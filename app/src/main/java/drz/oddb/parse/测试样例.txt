@@ -1,0 +1,43 @@
+CREATE CLASS company (name char,age int, salary int);
+INSERT INTO company VALUES ("aa",20,1000);
+INSERT INTO company VALUES ("bb",30,8000);
+INSERT INTO company VALUES ("cc",30,8000);
+INSERT INTO company VALUES ("dd",20,1000);
+INSERT INTO company VALUES ("ee",20,1000);
+INSERT INTO company VALUES ("ff",30,1000);
+
+//虚属性
+//创建代理类
+CREATE SELECTDEPUTY nandb SELECT name AS n1,age+5 AS birth,salary AS s1 FROM company WHERE age=20;
+
+CREATE SELECTDEPUTY nands SELECT name AS n,salary+10 AS s FROM company WHERE salary=1000;
+
+//更新迁移
+//增
+INSERT INTO company VALUES ("gg",20,3000);
+//删
+DELETE FROM company WHERE name="aa";
+//改
+UPDATE company SET salary=8000 WHERE name="gg";
+//查
+SELECT n1 AS names,birth AS births,s1 AS salarys FROM nandb WHERE n1="gg";
+
+
+//跨类查询
+SELECT company -> nandb.n1 FROM company WHERE salary=1000;
+
+//删除类
+DROP CLASS nandb;
+//删除类（同时删除代理类）
+DROP CLASS company; 
+
+
+
+
+
+
+
+
+
+
+
