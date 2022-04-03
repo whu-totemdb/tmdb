@@ -1,6 +1,6 @@
 # tmdb
 
-Totem Mobile Database at WHU (This is a project for teaching purpose)
+Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 武汉大学移动端Totem数据库系统
 
@@ -18,7 +18,7 @@ Totem Mobile Database at WHU (This is a project for teaching purpose)
 
 实现手机端各app产生的轨迹（百度地图、跑步软件、共享单车、打车等），并进行Union操作以完整的存储个人出行轨迹。
 
-所有功能将可用SQL实现，可利用javacc进行编译，小组成员共四人，能连通3大任务。
+所有功能需要用SQL实现进行调用，可利用javacc进行编译，小组成员共四人，能连通3大任务，并进行流畅的展示。
 
 ## 参考资料
 
