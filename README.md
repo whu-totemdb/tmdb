@@ -7,19 +7,23 @@ Totem Mobile Database at WHU，
 ## This is a project for teaching purpose.
 
 
-### Project 1
+### Task 1
 
-实现索引功能，网格索引
+实现对象Union操作。
 
-### Project 2
+### Task 2
 
-实现kNN查询，实现查询
+实现更新迁移操作。
 
-### Project 3
+### Task 3
 
-实现更新迁移、跨类查询等功能
+实现手机端各app产生的轨迹（百度地图、跑步软件、共享单车、打车等），并进行Union操作以完整的存储个人出行轨迹。
 
-所有功能将可用SQL实现，可利用javacc进行编译，小组成员共四人，能连通3个部分。
+所有功能将可用SQL实现，可利用javacc进行编译，小组成员共四人，能连通3大任务。
+
+## 参考资料
+
+[JavaCC](resource/javaCC编译.pdf)
 
 
 
