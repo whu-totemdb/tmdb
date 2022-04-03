@@ -23,6 +23,9 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 ## 参考资料
 
 [JavaCC](resource/javaCC编译.pdf)
-[Android Studio安装及使用](resource/Android Studio安装及使用.pdf)
+
+[Android Studio安装及使用](resource/Android\ Studio安装及使用.pdf)
+
 [TotemDB资料1](http://totemdb.whu.edu.cn/upload/202102/02/202102022020113648.pdf)
+
 [TotemDB资料2](http://totemdb.whu.edu.cn/upload/202102/02/202102022020276488.pdf)
