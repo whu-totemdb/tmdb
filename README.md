@@ -22,6 +22,8 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 ## 参考资料
 
+[TMDB总体设计文档](resource/TMDB总体设计文档1.0.pdf)
+
 [JavaCC](resource/javaCC编译.pdf)
 
 [Android Studio安装及使用](resource/AndroidStudio安装及使用.pdf)
