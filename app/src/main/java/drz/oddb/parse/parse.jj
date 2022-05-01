@@ -18,6 +18,8 @@ public static final int OPT_DELETE                = 5;
 public static final int OPT_SELECT_DERECTSELECT   = 6;
 public static final int OPT_SELECT_INDERECTSELECT = 7;
 public static final int OPT_CREATE_UPDATE         = 8;
+public static final int OPT_UNION                 = 9;
+public static final int OPT_CREATE_UNIONDEPUTY    = 10;
 
 	static Queue<String > st= new LinkedList<String>(); ;
   public static void main(String args[]) throws ParseException {
@@ -64,6 +66,7 @@ TOKEN:
 |<PLUS:"+">
 |<UPDATE:"UPDATE">
 |<SET:"SET">
+|<UNION:"UNION">
 }
 
 
@@ -88,6 +91,7 @@ String[] sql() :
 	String insert_s;
 	String delete_s;
 	String update_s;
+  String union_s;
 }
 {
    create_s = create() {sql_s = create_s;System.out.println(sql_s+"\n");return sql_s.split(","); }
@@ -96,6 +100,7 @@ String[] sql() :
    |insert_s = insert2(){sql_s = insert_s;System.out.println(sql_s+"\n");return sql_s.split(",");  }
    |delete_s = delete(){sql_s = delete_s;System.out.println(sql_s+"\n");return sql_s.split(",");  }
    |update_s = update() {sql_s = update_s;System.out.println(sql_s+"\n");return sql_s.split(","); }
+   |union_s = union() {sql_s = union_s;System.out.println(sql_s+"\n");return sql_s.split(",");   }
 }
 
 String create() :
@@ -199,7 +204,7 @@ String select() :
 	int count;
 }
 {
-    (<SELECT> count = directselect() <SEMICOLON>)
+    <SELECT> count = directselect() <SEMICOLON>
     {
 	  select_s = OPT_SELECT_DERECTSELECT+",";
       select_s += count;
@@ -363,4 +368,36 @@ String update():
   <WHERE>
   cond = condition() { update_s += cond;}
   <SEMICOLON> {return update_s;}
+}
+
+String union():
+{
+  
+  String union_s;
+  int count_1;
+  int count_2;
+}
+{
+  <SELECT> count_1 = directselect()
+  <UNION>
+  {
+    union_s = OPT_UNION + ",";
+	  union_s += OPT_SELECT_DERECTSELECT+",";
+    union_s += count_1;
+    while(!st.isEmpty()){
+        union_s +=",";
+        union_s += st.poll();
+    }
+  }
+  <SELECT> count_2 = directselect() <SEMICOLON>
+  {
+    union_s += ",";
+	  union_s += OPT_SELECT_DERECTSELECT+",";
+    union_s += count_2;
+    while(!st.isEmpty()){
+        union_s +=",";
+        union_s += st.poll();
+    }
+  }
+  return union_s;
 }

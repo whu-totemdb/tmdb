@@ -143,6 +143,11 @@ public class TransAction {
                     log.WriteLog(s);
                     Update(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
+                case parse.OPT_UNION:
+                    log.WriteLog(s);
+                    Union(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
+                
                 default:
                     break;
 
@@ -803,6 +808,57 @@ public class TransAction {
             }
         }
 
+    }
+
+    private void Union(String[] p){
+        TupleList tpl1 = new TupleList();
+        TupleList tpl2 = new TupleList();
+        String classname = p[1];
+        String[] attrname = new String[1];
+        String[] attrtype = new String[1];
+        attrname[0] = p[2];
+        attrtype[0] = p[3];
+        String[] con = new String[3];
+        con[0] = p[4];
+        con[1] = p[5];
+        con[2] = p[6];
+        int classid = 0;
+        int attrid = 0;
+        int crossid = 0;
+        int crossattrid = 0;
+        String crossattrtype = null;
+        for(ClassTableItem item:classt.classTable){
+            if(item.classname.equals(classname)){
+                classid = item.classid;
+                if(item.attrname.equals(attrname[0]))
+                    attrid = item.attrid;
+            }
+        }
+        for(ClassTableItem item1:classt.classTable){
+            if(item1.classid == classid){
+                if(item1.attrname.equals(con[0])){
+                    crossid = item1.classid;
+                    crossattrtype = item1.attrtype;
+                    crossattrid = item1.attrid;
+                }
+            }
+        }
+        for(ObjectTableItem item2:topt.objectTable){
+            if(item2.classid == classid){
+                Tuple tuple = GetTuple(item2.blockid,item2.offset);
+                if(Condition(attrtype[0],tuple,attrid,con[2])){
+                    tpl1.addTuple(tuple);
+                }
+            }
+        }
+        for(ObjectTableItem item3:topt.objectTable){
+            if(item3.classid == crossid){
+                Tuple tuple = GetTuple(item3.blockid,item3.offset);
+                if(Condition(crossattrtype,tuple,crossattrid,con[1])){
+                    tpl2.addTuple(tuple);
+                }
+            }
+        }
     }
 
 

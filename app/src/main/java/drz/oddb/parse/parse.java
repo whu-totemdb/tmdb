@@ -12,6 +12,7 @@ public static final int OPT_DELETE                = 5;
 public static final int OPT_SELECT_DERECTSELECT   = 6;
 public static final int OPT_SELECT_INDERECTSELECT = 7;
 public static final int OPT_CREATE_UPDATE         = 8;
+public static final int OPT_UNION                 = 9;
 
         static Queue<String > st= new LinkedList<String>(); ;
   public static void main(String args[]) throws ParseException {
