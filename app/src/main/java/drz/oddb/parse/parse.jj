@@ -42,27 +42,28 @@ SKIP :
 TOKEN:
 {
 <SEMICOLON:";">
-|<CREATE:"CREATE">
-|<DROP:"DROP">
-|<CLASS:"CLASS">
+|<CREATE:"CREATE"|"create">
+|<DROP:"DROP"|"drop">
+|<CLASS:"CLASS"|"class">
 |<INSERT:"INSERT">
-|<INTO:"INTO">
+|<INTO:"INTO"|"into">
 |<VALUES:"VALUES">
 |<LEFT_BRACKET:"(">
 |<COMMA:",">
 |<RIGHT_BRACKET:")">
 |<DELETE:"DELETE">
-|<FROM:"FROM">
-|<WHERE:"WHERE">
+|<FROM:"FROM"|"from">
+|<WHERE:"WHERE"|"where">
 |<SELECT:"SELECT">
 |<SELECTDEPUTY:"SELECTDEPUTY">
+|<UNIONDEPUTY:"UNIONDEPUTY">
+|<AS:"AS"|"as">
 |<ID: ["a"-"z"](["a"-"z","A"-"Z","0"-"9"])* >
 |<EQUAL:"=">
 |<INT: "0"|(["1"-"9"](["0"-"9"])*) >
 |<STRING: "\""(["a"-"z","A"-"Z","1"-"9"])*"\"" >
 |<CROSS:"->">
 |<DOT:".">
-|<AS:"AS">
 |<PLUS:"+">
 |<UPDATE:"UPDATE">
 |<SET:"SET">
@@ -100,7 +101,6 @@ String[] sql() :
    |insert_s = insert2(){sql_s = insert_s;System.out.println(sql_s+"\n");return sql_s.split(",");  }
    |delete_s = delete(){sql_s = delete_s;System.out.println(sql_s+"\n");return sql_s.split(",");  }
    |update_s = update() {sql_s = update_s;System.out.println(sql_s+"\n");return sql_s.split(","); }
-   |union_s = union() {sql_s = union_s;System.out.println(sql_s+"\n");return sql_s.split(",");   }
 }
 
 String create() :
@@ -134,7 +134,18 @@ String create() :
       }
       return create_s;
     }
-    
+    |
+    (<CREATE> count = uniondeputy() <SEMICOLON>)
+    {
+      create_s = OPT_CREATE_UNIONDEPUTY+",";
+      create_s += count;
+      while(!st.isEmpty())
+      {
+        create_s +=",";
+        create_s += st.poll();
+      }
+      return create_s;
+    }
 }
 
 String drop() :
@@ -200,11 +211,12 @@ String delete() :
 
 String select() :
 {
-    String select_s;
+  String select_s;
 	int count;
+  int union_count = 0;
 }
 {
-    <SELECT> count = directselect() <SEMICOLON>
+    (<SELECT> count = directselect() <SEMICOLON>)
     {
 	  select_s = OPT_SELECT_DERECTSELECT+",";
       select_s += count;
@@ -216,6 +228,7 @@ String select() :
       }
       return select_s;
     }
+
     |
     (<SELECT> count = indirectselect() <SEMICOLON>)
     {
@@ -260,6 +273,15 @@ int selectdeputy() :
     <SELECTDEPUTY> cln = classname() {st.add(cln); }  <SELECT> count = directselect() { return count;}
 }
 
+int uniondeputy() :
+{
+  String cln;
+  int count;
+}
+{
+    <UNIONDEPUTY> cln = classname() {st.add(cln); }  <SELECT> count = directselect() <UNION> <SELECT> count = directselect() {return count;}
+}
+
 String classname() :
 {  Token s;}
 {
@@ -269,6 +291,7 @@ String classname() :
 
 String attrtype() :
 {  Token s;}
+
 {
    s=<ID>
    { return s.image;}
@@ -368,36 +391,4 @@ String update():
   <WHERE>
   cond = condition() { update_s += cond;}
   <SEMICOLON> {return update_s;}
-}
-
-String union():
-{
-  
-  String union_s;
-  int count_1;
-  int count_2;
-}
-{
-  <SELECT> count_1 = directselect()
-  <UNION>
-  {
-    union_s = OPT_UNION + ",";
-	  union_s += OPT_SELECT_DERECTSELECT+",";
-    union_s += count_1;
-    while(!st.isEmpty()){
-        union_s +=",";
-        union_s += st.poll();
-    }
-  }
-  <SELECT> count_2 = directselect() <SEMICOLON>
-  {
-    union_s += ",";
-	  union_s += OPT_SELECT_DERECTSELECT+",";
-    union_s += count_2;
-    while(!st.isEmpty()){
-        union_s +=",";
-        union_s += st.poll();
-    }
-  }
-  return union_s;
 }
