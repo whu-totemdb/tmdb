@@ -538,9 +538,9 @@ public class TransAction {
                 }
             }
         }
-        for(int i =0;i<attrnumber;i++){
-            attrid[i]=i;
-        }
+        // for(int i =0;i<attrnumber;i++){
+        //     attrid[i]=i;
+        // }
         PrintSelectResult(tpl,attrname,attrid,attrtype);
         return tpl;
 

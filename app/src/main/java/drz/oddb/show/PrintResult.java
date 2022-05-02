@@ -46,17 +46,19 @@ public class PrintResult extends AppCompatActivity {
             for(c = 0;c < tabCol;c++){
                 TextView tv = new TextView(this);
                 if(r == 0){
-                    tv.setText(attrname[attrid[c]]);
+                    tv.setText(attrname[c]);
                 }
                 else{
-                    oj = tpl.tuplelist.get(r-1).tuple[c];
-                    switch (type[attrid[c]]){
+                    oj = tpl.tuplelist.get(r-1).tuple[attrid[c]];
+                    switch (type[c]){
                         case "int":
-                            itemp = Integer.parseInt(oj.toString());
-                            tv.setText(itemp+"");
+                            //itemp = Integer.parseInt(oj.toString());
+                            tv.setText(oj.toString()+"");
+                            break;
                         case "char":
                             stemp = oj.toString();
                             tv.setText(stemp);
+                            break;
                     }
                 }
                 tv.setGravity(Gravity.CENTER);
