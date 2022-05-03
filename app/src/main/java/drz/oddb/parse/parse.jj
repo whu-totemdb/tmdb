@@ -1,9 +1,8 @@
 options{
-LOOKAHEAD = 3;
-STATIC = false ;
-DEBUG_PARSER = true;
-
- }
+  LOOKAHEAD = 3;
+  STATIC = false ;
+  DEBUG_PARSER = true;
+}
  
 PARSER_BEGIN(parse)
 package drz.oddb.parse;
@@ -214,19 +213,28 @@ String select() :
   String select_s;
 	int count;
   int union_count = 0;
+  String union_s; // 用于判断是否是union
 }
 {
-    (<SELECT> count = directselect() <SEMICOLON>)
+    <SELECT> count = directselect() 
     {
-	  select_s = OPT_SELECT_DERECTSELECT+",";
+
+      select_s = OPT_SELECT_DERECTSELECT+",";
       select_s += count;
-      while(!st.isEmpty())
-      {
-        select_s +=",";
-        select_s += st.poll();
-        
+      while(!st.isEmpty()){
+          select_s +=",";
+          select_s += st.poll();
       }
-      return select_s;
+    }
+    union_s = union()
+    {
+      if (union_s == "END") return select_s;
+      else {
+        select_s = select_s.substring(1);
+        select_s = OPT_UNION + select_s;
+        select_s += union_s;
+        return select_s;
+      }
     }
 
     |
@@ -242,7 +250,6 @@ String select() :
       }
       return select_s;
     }
-    
 }
 
 int originclass() :
@@ -335,7 +342,7 @@ String value() :
 
 int directselect() :
 {
-    String dattr_s;
+  String dattr_s;
 	String attr_s;
 	String value_s = "";
 	boolean plus = false;
@@ -391,4 +398,30 @@ String update():
   <WHERE>
   cond = condition() { update_s += cond;}
   <SEMICOLON> {return update_s;}
+}
+
+String union():
+{
+  String union_s ="";
+  int count;
+}
+{
+  <SEMICOLON>
+  {
+    union_s = "END";
+    return union_s;
+  }
+  |
+  // 后面部分至少出现一次并且可以循环下去的,所以使用了 +
+  (<UNION> <SELECT> count = directselect()
+  {
+    union_s += ",";
+    union_s += count;
+    while(!st.isEmpty()){
+      union_s +=",";
+      union_s += st.poll();
+    }
+  })+
+  <SEMICOLON>
+  {return union_s;}
 }

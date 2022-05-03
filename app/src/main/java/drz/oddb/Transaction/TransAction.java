@@ -152,7 +152,7 @@ public class TransAction {
                 case parse.OPT_UNION:
                     log.WriteLog(s);
                     Union(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
+                    //new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
                     break;
                 default:
                     break;
@@ -503,11 +503,11 @@ public class TransAction {
         int classid = 0;
         for(int i = 0;i < attrnumber;i++){
             for (ClassTableItem item:classt.classTable) {
-                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) {
+                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) { // 2+4*i 是属性名
                     classid = item.classid;
                     attrid[i] = item.attrid;
                     attrtype[i] = item.attrtype;
-                    attrname[i] = p[5+4*i];
+                    attrname[i] = p[5+4*i]; // 新的名字
                     //重命名
 
                     break;
@@ -515,7 +515,7 @@ public class TransAction {
             }
         }
 
-
+        // 找到WHERE条件的属性
         int sattrid = 0;
         String sattrtype = null;
         for (ClassTableItem item:classt.classTable) {
@@ -549,13 +549,13 @@ public class TransAction {
                 }
             }
         }
-        for(int i =0;i<attrnumber;i++){
-            attrid[i]=i;
-        }
+        // for(int i =0;i<attrnumber;i++){
+        //     attrid[i]=i;
+        // }
         PrintSelectResult(tpl,attrname,attrid,attrtype);
         return tpl;
-
     }
+
 
 
     //CREATE SELECTDEPUTY aa SELECT  b1+2 AS c1,b2 AS c2,b3 AS c3 FROM  bb WHERE t1="1" ;
@@ -662,7 +662,6 @@ public class TransAction {
     }
 
     private void CreateUnionDeputy(String[] p) { //3+3+4*count - 3 + 1 = 4+12 = 16
-        new AlertDialog.Builder(context).setTitle("提示").setMessage(p[15]).setPositiveButton("确定",null).show();
         int count = Integer.parseInt(p[1]);
         String classname = p[2];//代理类的名字
         String bedeputyname = p[4*count+3];//代理的类的名字
@@ -923,10 +922,6 @@ public class TransAction {
         id[0] = 0;
         PrintSelectResult(tpl,name,id,attrtype);
         return tpl;
-
-
-
-
     }
 
     //UPDATE Song SET type = ‘jazz’WHERE songId = 100;
@@ -1022,17 +1017,124 @@ public class TransAction {
 
     private void Union(String[] p){
         System.out.println("Union");
+
+        // SELECT name AS n FROM company WHERE age=20 
+        // UNION 
+        // SELECT name AS n FROM company WHERE age=20
+        // UNION
+        // SELECT name AS n FROM company WHERE age=20;
+
+        // >>
+        //
+        // 9,1,name,0,0,n,company,age,=,20,1,name,0,0,n,company,age,=,20,1,name,0,0,n,company,age,=,20
+        int attrnumber = Integer.parseInt(p[1]);
+        String[] attrname = new String[attrnumber];
+        int[] attrid = new int[attrnumber];
+        String[] attrtype= new String[attrnumber];
+        String classname = p[2+4*attrnumber];
+        int classid = 0;
+        for(int i = 0;i < attrnumber;i++){
+            for (ClassTableItem item:classt.classTable) {
+                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) { // 2+4*i 是属性名
+                    classid = item.classid;
+                    attrid[i] = item.attrid;
+                    attrtype[i] = item.attrtype;
+                    attrname[i] = p[5+4*i]; // 新的名字
+                    //重命名
+                    break;
+                }
+            }
+        }
+        // String Union_operator = p[0];
+        
+        TupleList total_tpl = new TupleList();
+
+        int pointer = 1; // 指向最后一组的开头
+
+        while (pointer<p.length){
+            System.out.println("pointer:"+pointer);
+            System.out.println("p[pointer]:"+p[pointer]);
+            int count = Integer.parseInt(p[pointer]);
+            int select_length = count*4+5;
+            String[] select_p = new String[select_length+1];
+
+            // select[0] is not used
+            select_p[0] = "a";
+            for(int i=1;i<=select_length;i++){
+                select_p[i] = p[pointer+i-1];
+            }
+            TupleList tpl = new TupleList();
+            
+            tpl = subDirectSelect(select_p);
+
+            // 将tpl中的tuple添加到total_tpl中
+            for (int i=0;i<tpl.tuplenum;i++){
+                total_tpl.addTuple(tpl.tuplelist.get(i));
+            }
+            pointer = pointer+select_length;
+        }
+        // totoal_tpl去重
+        PrintSelectResult(total_tpl,attrname,attrid,attrtype,"true");
     }
 
 
+    private TupleList subDirectSelect(String[] p){
+        TupleList tpl = new TupleList();
+        System.out.println("P[1] = "+p[1]);
+        int attrnumber = Integer.parseInt(p[1]);
+        String[] attrname = new String[attrnumber];
+        int[] attrid = new int[attrnumber];
+        String[] attrtype= new String[attrnumber];
+        String classname = p[2+4*attrnumber];
+        int classid = 0;
+        for(int i = 0;i < attrnumber;i++){
+            for (ClassTableItem item:classt.classTable) {
+                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) { // 2+4*i 是属性名
+                    classid = item.classid;
+                    attrid[i] = item.attrid;
+                    attrtype[i] = item.attrtype;
+                    attrname[i] = p[5+4*i]; // 新的名字
+                    //重命名
+
+                    break;
+                }
+            }
+        }
+
+        // 找到WHERE条件的属性
+        int sattrid = 0;
+        String sattrtype = null;
+        for (ClassTableItem item:classt.classTable) {
+            if (item.classid == classid && item.attrname.equals(p[3+4*attrnumber])) {
+                sattrid = item.attrid;
+                sattrtype = item.attrtype;
+                break;
+            }
+        }
 
 
-
-        //INSERT INTO aa VALUES (1,2,"3");
-        //4,3,aa,1,2,"3"
-
-
-
+        for(ObjectTableItem item : topt.objectTable){
+            if(item.classid == classid){
+                Tuple tuple = GetTuple(item.blockid,item.offset);
+                if(Condition(sattrtype,tuple,sattrid,p[4*attrnumber+5])){
+                    for(int j = 0;j<attrnumber;j++){
+                        if(Integer.parseInt(p[3+4*j])==1){
+                            int value = Integer.parseInt(p[4+4*j]);
+                            int orivalue = Integer.parseInt((String)tuple.tuple[attrid[j]]);
+                            Object ob = value+orivalue;
+                            tuple.tuple[attrid[j]] = ob;
+                        }
+                    }
+                    tpl.addTuple(tuple);
+                }
+            }
+        }
+        // for(int i =0;i<attrnumber;i++){
+        //     attrid[i]=i;
+        // }
+        // PrintSelectResult(tpl,attrname,attrid,attrtype);
+        return tpl;
+    }
 
 
 
@@ -1090,18 +1192,34 @@ public class TransAction {
 
     private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, String[] type) {
         Intent intent = new Intent(context, PrintResult.class);
-
+        //System.out.println("PrintSelectResult");
 
         Bundle bundle = new Bundle();
         bundle.putSerializable("tupleList", tpl);
         bundle.putStringArray("attrname", attrname);
         bundle.putIntArray("attrid", attrid);
         bundle.putStringArray("type", type);
+        bundle.putString("removeDuplicate", "false");
         intent.putExtras(bundle);
         context.startActivity(intent);
-
-
     }
+
+    private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, String[] type,String removeDuplicate) {
+        Intent intent = new Intent(context, PrintResult.class);
+        //System.out.println("PrintSelectResult");
+
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("tupleList", tpl);
+        bundle.putStringArray("attrname", attrname);
+        bundle.putIntArray("attrid", attrid);
+        bundle.putStringArray("type", type);
+        bundle.putString("removeDuplicate", "true");
+        intent.putExtras(bundle);
+        context.startActivity(intent);
+    }
+
+
+
     public void PrintTab(){
         PrintTab(topt,switchingT,deputyt,biPointerT,classt);
     }
