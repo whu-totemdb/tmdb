@@ -787,7 +787,7 @@ public class TransAction {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                        classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                        //classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
                         //swi
                         if(Integer.parseInt(p[4+4*i + offset]) == 1){
                             switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i + offset]));
@@ -802,11 +802,11 @@ public class TransAction {
 
 
 
-        // String[] con =new String[3];
-        con[0] = p[4+4*count + offset];
-        con[1] = p[5+4*count + offset];
-        con[2] = p[6+4*count + offset];
-        deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,con));
+        String[] con1 =new String[3];
+        con1[0] = p[4+4*count + offset];
+        con1[1] = p[5+4*count + offset];
+        con1[2] = p[6+4*count + offset];
+        deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,con1));
 
 
         TupleList tpl1= new TupleList();

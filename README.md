@@ -17,30 +17,40 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 ## 任务要求
 
-### Task 1: 实现对象Union操作
+### Task 1
 
-### Task 2: 实现更新迁移操作
+实现对象Union操作
 
-### Task 3: 实现手机端各app产生的轨迹（百度地图、跑步软件、共享单车、打车等），并进行Union操作以完整的存储个人出行轨迹
+### Task 2
 
-所有功能需要用SQL实现进行调用，可利用javacc进行编译，小组成员共四人，能连通3大任务，并进行流畅的展示
+实现更新迁移操作
 
-## [解决思路](solution.md)
+### Task 3
 
-## [使用方法](use.md)
+实现手机端各app产生的轨迹（百度地图、跑步软件、共享单车、打车等），并进行Union操作以完整的存储个人出行轨迹
+
+> 所有功能需要用SQL实现进行调用，可利用javacc进行编译，小组成员共四人，能连通3大任务，并进行流畅的展示
+
+## 解决思路
+
+- [TASK1-解决思路](task1-solution.md)
+- [TASK2-解决思路](task2-solution.md)
+- [TASK3-解决思路](task3-solution.md)
+
+## 使用方法
+
+[安卓apk下载](asd)
 
 ## 可视化结果演示
 
 ## 实验文档--[下载](a)
 
+## [一些锦上添花](addition.md)
+
 ## 参考资料
-
-[TMDB总体设计文档](resource/TMDB总体设计文档v1.pdf)
-
-[JavaCC](resource/javaCC编译.pdf)
-
-[Android Studio安装及使用](resource/AndroidStudio安装及使用.pdf)
 
 [TotemDB资料1](http://totemdb.whu.edu.cn/upload/202102/02/202102022020113648.pdf)
 
 [TotemDB资料2](http://totemdb.whu.edu.cn/upload/202102/02/202102022020276488.pdf)
+
+[其他相关资料下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.1/resource.zip)
