@@ -74,3 +74,36 @@ int uniondeputy() :
 
 但是值得一提的是,虽然说复制两份但是需要修改一些地方,防止多次添加,属性相同.**详见代码段**
 
+## 测试执行结果
+
+先创建两个类
+
+```SQL
+CREATE CLASS company1 (name char,age int, salary int);
+INSERT INTO company1 VALUES ("aa",20,1000);
+INSERT INTO company1 VALUES ("bb",30,8000);
+
+CREATE CLASS company2 (name char,age int, salary int);
+INSERT INTO company2 VALUES ("cc",20,1000);
+INSERT INTO company2 VALUES ("dd",30,1000);
+```
+
+创建UNION代理类
+
+```SQL
+CREATE UNIONDEPUTY ud SELECT name AS n,age AS a FROM company1 WHERE salary=1000 UNION SELECT name AS n,age AS a FROM company2 WHERE salary=1000;
+```
+
+> 提示union代理类创建成功
+
+![20220504022904](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504022904.png)
+
+查询代理类中情况
+
+```SQL
+SELECT n AS n1 FROM ud WHERE a=20;
+```
+
+结果: 执行正确
+
+![20220504022949](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504022949.png)

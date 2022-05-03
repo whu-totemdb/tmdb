@@ -297,5 +297,6 @@ INSERT INTO company2 VALUES ("dd",30,1000);
 SELECT name AS n FROM company1 WHERE age=20 UNION SELECT name AS n FROM company2 WHERE age=30;
 ```
 
-结果:
+结果: 执行正确
 
+![20220504021126](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504021126.png)
