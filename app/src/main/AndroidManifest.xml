@@ -33,6 +33,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <activity android:name=".gaodemap">
+            <intent-filter>
+                <action android:name="android.intent.action.gaodemap" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
         <activity 
             android:name=".show.PrintResult"
             android:label="Print Result">
@@ -78,7 +85,7 @@
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
-         <meta-data android:name="com.amap.api.v2.apikey" android:value="前面获取到的key值">
+         <meta-data android:name="com.amap.api.v2.apikey" android:value="4ff28d19e341ebf29b6667d56435c5d2">
         </meta-data>
     </application>
     <!--允许程序打开网络套接字-->

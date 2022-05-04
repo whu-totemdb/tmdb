@@ -20,6 +20,7 @@ import drz.oddb.Transaction.SystemTable.*;
 
 import drz.oddb.parse.*;
 import drz.oddb.echart;
+import drz.oddb.gaodemap;
 
 public class TransAction {
     public TransAction(Context context) {
@@ -109,6 +110,13 @@ public class TransAction {
         intent.putExtras(bundle);
         context.startActivity(intent);
     }
+
+    public void show_map(){
+        Intent intent = new Intent(context, gaodemap.class);
+        context.startActivity(intent);
+    }
+
+
     public String query(String s) {
 
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());

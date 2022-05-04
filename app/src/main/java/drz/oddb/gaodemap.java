@@ -1,6 +1,7 @@
 
+package drz.oddb;
 
-
+import android.os.Bundle;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.constraint.ConstraintLayout;
@@ -15,19 +16,13 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.amap.api.maps.AMap;
+import com.amap.api.maps.MapView;
 
-public class map extends AppCompatActivity{
+public class gaodemap extends AppCompatActivity{
+
     private AMap aMap;
     MapView mMapView = null;
-    //获取地图控件引用
-    mMapView = (MapView)findViewById(R.id.mapView);
-    //在activity执行onCreate时执行mMapView.onCreate(savedInstanceState)，创建地图
-    mMapView.onCreate(savedInstanceState);
-
-    //初始化地图控制器对象
-    if (aMap == null) {
-        aMap = mMapView.getMap();
-    }
 
     @Override
     public void onDestroy() {
@@ -52,5 +47,18 @@ public class map extends AppCompatActivity{
         super.onSaveInstanceState(outState);
         //在activity执行onSaveInstanceState时执行mMapView.onSaveInstanceState (outState)，保存地图当前的状态
         mMapView.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onCreate(){
+        //获取地图控件引用
+        mMapView = (MapView)findViewById(R.id.mapView);
+        //在activity执行onCreate时执行mMapView.onCreate(savedInstanceState)，创建地图
+        //mMapView.onCreate(savedInstanceState);
+
+        //初始化地图控制器对象
+        if (aMap == null) {
+            aMap = mMapView.getMap();
+        }
     }
 }

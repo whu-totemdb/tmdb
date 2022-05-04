@@ -96,3 +96,10 @@
     </meta-data>
     ```
 
+
+
+## 参考资料
+
+https://lbs.amap.com/api/android-sdk/guide/create-project/android-studio-create-project
+
+https://blog.csdn.net/qq_50272406/article/details/123006575
