@@ -77,6 +77,16 @@ public class MainActivity extends AppCompatActivity {
                 trans.PrintTab();
             }
         });
+
+        Button clean_button = findViewById(R.id.clean_button);
+        clean_button.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                //editText = findViewById(R.id.edit_text);
+                editText.setText("");
+            }
+        });
+
     }
     protected void onStop(){
         Intent intent = new Intent(MainActivity.this,MusicServer.class);

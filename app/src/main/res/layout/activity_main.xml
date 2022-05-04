@@ -32,8 +32,23 @@
         android:text=""
         app:layout_constraintBottom_toTopOf="@+id/showbutton"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.281"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/edit_text" />
+
+    <Button
+        android:id="@+id/clean_button"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_marginBottom="62dp"
+        android:background="@android:drawable/ic_delete"
+        android:text=""
+        app:layout_constraintBottom_toTopOf="@+id/showbutton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.741"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/edit_text"
+        app:layout_constraintVertical_bias="1.0" />
 
     <Button
         android:id="@+id/exit_button"
