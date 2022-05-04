@@ -41,6 +41,8 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 [安卓apk下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.2/app-release.apk)
 
+安卓手机安装之后可以使用SQL语句进行增删改查,**这里的SQL语句非常的脆弱**,需要一个完整的句子
+
 ## 可视化结果演示(TASK3)
 
 > TASK1 TASK2 为功能测试,不方便可视化,结果演示见解决思路中的测试结果

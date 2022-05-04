@@ -34,3 +34,40 @@
 4. wow，还不错哦~
 
    ![desktop](https://raw.githubusercontent.com/learner-lu/picbed/master/desktop.jpg)
+
+## 支持大小写SQL语句
+
+这里值得一提的是,因为ID和STRING都是使用的正则处理,所以需要提前一些小写字符,不然会被优先识别为ID
+
+```javacc
+TOKEN:
+{
+<SEMICOLON:";">
+|<CREATE:"CREATE"|"create">
+|<DROP:"DROP"|"drop">
+|<CLASS:"CLASS"|"class">
+|<INSERT:"INSERT"|"insert">
+|<INTO:"INTO"|"into">
+|<VALUES:"VALUES"|"values">
+|<LEFT_BRACKET:"(">
+|<COMMA:",">
+|<RIGHT_BRACKET:")">
+|<DELETE:"DELETE">
+|<FROM:"FROM"|"from">
+|<WHERE:"WHERE"|"where">
+|<SELECT:"SELECT"|"select">
+|<SELECTDEPUTY:"SELECTDEPUTY"|"selectdeputy">
+|<UNIONDEPUTY:"UNIONDEPUTY"|"uniondeputy">
+|<AS:"AS"|"as">
+|<UPDATE:"UPDATE"|"undate">
+|<SET:"SET"|"set">
+|<UNION:"UNION"|"union">
+|<ID: ["a"-"z"](["a"-"z","A"-"Z","0"-"9"])* >
+|<EQUAL:"=">
+|<INT: "0"|(["1"-"9"](["0"-"9"])*) >
+|<STRING: "\""(["a"-"z","A"-"Z","1"-"9"])*"\"" >
+|<CROSS:"->">
+|<DOT:".">
+|<PLUS:"+">
+}
+```

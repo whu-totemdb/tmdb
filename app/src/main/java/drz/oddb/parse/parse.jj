@@ -44,19 +44,22 @@ TOKEN:
 |<CREATE:"CREATE"|"create">
 |<DROP:"DROP"|"drop">
 |<CLASS:"CLASS"|"class">
-|<INSERT:"INSERT">
+|<INSERT:"INSERT"|"insert">
 |<INTO:"INTO"|"into">
-|<VALUES:"VALUES">
+|<VALUES:"VALUES"|"values">
 |<LEFT_BRACKET:"(">
 |<COMMA:",">
 |<RIGHT_BRACKET:")">
 |<DELETE:"DELETE">
 |<FROM:"FROM"|"from">
 |<WHERE:"WHERE"|"where">
-|<SELECT:"SELECT">
-|<SELECTDEPUTY:"SELECTDEPUTY">
-|<UNIONDEPUTY:"UNIONDEPUTY">
+|<SELECT:"SELECT"|"select">
+|<SELECTDEPUTY:"SELECTDEPUTY"|"selectdeputy">
+|<UNIONDEPUTY:"UNIONDEPUTY"|"uniondeputy">
 |<AS:"AS"|"as">
+|<UPDATE:"UPDATE"|"undate">
+|<SET:"SET"|"set">
+|<UNION:"UNION"|"union">
 |<ID: ["a"-"z"](["a"-"z","A"-"Z","0"-"9"])* >
 |<EQUAL:"=">
 |<INT: "0"|(["1"-"9"](["0"-"9"])*) >
@@ -64,9 +67,6 @@ TOKEN:
 |<CROSS:"->">
 |<DOT:".">
 |<PLUS:"+">
-|<UPDATE:"UPDATE">
-|<SET:"SET">
-|<UNION:"UNION">
 }
 
 
