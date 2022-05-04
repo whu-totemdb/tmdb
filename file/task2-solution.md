@@ -91,7 +91,7 @@ INSERT INTO company2 VALUES ("dd",30,1000);
 创建UNION代理类
 
 ```SQL
-CREATE UNIONDEPUTY ud SELECT name AS n,age AS a FROM company1 WHERE salary=1000 UNION SELECT name AS n,age AS a FROM company2 WHERE salary=1000;
+CREATE UNIONDEPUTY ud2 SELECT name AS n,age AS a FROM company1 WHERE salary=1000 UNION SELECT name AS n,age AS a FROM company2 WHERE salary=1000;
 ```
 
 > 提示union代理类创建成功
@@ -101,9 +101,40 @@ CREATE UNIONDEPUTY ud SELECT name AS n,age AS a FROM company1 WHERE salary=1000 
 查询代理类中情况
 
 ```SQL
-SELECT n AS n1 FROM ud WHERE a=20;
+SELECT n AS n1 FROM ud2 WHERE a=20;
 ```
 
 结果: 执行正确
 
 ![20220504022949](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504022949.png)
+
+UNION代理类代理多个对象
+
+```SQL
+CREATE CLASS company3 (name char,age int, salary int);
+INSERT INTO company3 VALUES ("ee",20,1000);
+INSERT INTO company4 VALUES ("ff",30,1000);
+
+
+CREATE UNIONDEPUTY ud3 SELECT name AS n,age AS a FROM company1 WHERE salary=1000 UNION SELECT name AS n,age AS a FROM company2 WHERE salary=1000 UNION SELECT name AS n,age AS a FROM company3 WHERE salary=1000;
+```
+
+测试
+
+```SQL
+SELECT n AS n1 FROM ud3 WHERE a=20;
+```
+
+![20220504175527](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504175527.png)
+
+```SQL
+INSERT INTO company1 VALUES ("zz",20,1000);
+SELECT n AS n1 FROM ud2 WHERE a=20;
+SELECT n AS n1 FROM ud3 WHERE a=20;
+```
+
+|ud2|ud3|
+|:--:|:--:|
+|![20220504175717](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504175717.png)|![20220504175823](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504175823.png)|
+
+

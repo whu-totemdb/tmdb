@@ -18,7 +18,7 @@ SELECT column_name(s) FROM table2;
 
 实现UNION操作需要修改两个文件 [parse.jj](../app/src/main/java/drz/oddb/parse/parse.jj) 和 [Transaction.java](../app/src/main/java/drz/oddb/Transaction/TransAction.java)
 
-> 如果尚不熟悉javacc语法可以参考 [javacc基本用法](javacc)
+> 如果尚不熟悉javacc语法,自己去学
 
 ## javacc中需要注意的地方
 

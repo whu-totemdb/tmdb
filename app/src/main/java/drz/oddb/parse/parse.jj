@@ -286,7 +286,7 @@ int uniondeputy() :
   int count;
 }
 {
-    <UNIONDEPUTY> cln = classname() {st.add(cln); }  <SELECT> count = directselect() <UNION> <SELECT> count = directselect() {return count;}
+    <UNIONDEPUTY> cln = classname() {st.add(cln); } <SELECT> count = directselect() (<UNION> <SELECT> count = directselect())+ {return count;}
 }
 
 String classname() :

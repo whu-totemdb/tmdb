@@ -662,6 +662,8 @@ public class TransAction {
     }
 
     private void CreateUnionDeputy(String[] p) { //3+3+4*count - 3 + 1 = 4+12 = 16
+        
+
         int count = Integer.parseInt(p[1]);
         String classname = p[2];//代理类的名字
         String bedeputyname = p[4*count+3];//代理的类的名字
@@ -673,6 +675,13 @@ public class TransAction {
         int[] bedeputyattrid = new int[count];//代理属性id
         String[] attrtype=new String[count];//代理属性类型
         int[] attrid=new int[count];// attribute id
+
+
+        int num_p = p.length;
+        int num_u = (num_p - 3) / (count * 4 + 4);
+
+        assert(num_u > 1);
+
 
         
         for(int j = 0;j<count;j++){
@@ -769,9 +778,14 @@ public class TransAction {
     //b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
     //19 202122 23 242526 27 282930 31 32 33 34
     // count = 3, 4*3*2 = 24 + 6
-    
+    int offset = 0;
+    List<ObjectTableItem> obj1 = new ArrayList<>();
+    String condition[][] = new String[num_u][3];
 
-    int offset = 4*count + 4; // 12+4 22-6=16 4*count + 3 + 3 - 3 + 1
+    for(int i = 0; i < num_u - 1; i++)
+    {
+        obj1 = new ArrayList<>();
+        offset += 4*count + 4; // 12+4 22-6=16 4*count + 3 + 3 - 3 + 1
         bedeputyname = p[4*count+3 + offset];
         for(int j = 0;j<count;j++){
             attrname[j] = p[4*j+6 + offset];
@@ -781,51 +795,48 @@ public class TransAction {
 
 
         // String attrtype1;
-        for (int i = 0; i < count; i++) {
+        for (int j = 0; j < count; j++) {
             for (ClassTableItem item:classt.classTable) {
-                if (item.classname.equals(bedeputyname)&&item.attrname.equals(p[3+4*i + offset])) {
+                if (item.classname.equals(bedeputyname)&&item.attrname.equals(p[3+4*j + offset])) {
                     bedeputyid = item.classid;
-                    bedeputyattrid[i] = item.attrid;
+                    bedeputyattrid[j] = item.attrid;
 
-                        //classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                        //classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[j],attrname[j], item.attrtype,"de"));
                         //swi
-                        if(Integer.parseInt(p[4+4*i + offset]) == 1){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i + offset]));
+                        if(Integer.parseInt(p[4+4*j + offset]) == 1){
+                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[j],p[5+4*j + offset]));
                         }
-                        if(Integer.parseInt(p[4+4*i + offset])==0){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
+                        if(Integer.parseInt(p[4+4*j + offset]) == 0){
+                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[j],"0"));
                         }
                     break;
                 }
             };
         }
 
+        // String[] con1 =new String[3];
+        condition[i][0] = p[4+4*count + offset];
+        condition[i][1] = p[5+4*count + offset];
+        condition[i][2] = p[6+4*count + offset];
+        deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,condition[i]));
 
-
-        String[] con1 =new String[3];
-        con1[0] = p[4+4*count + offset];
-        con1[1] = p[5+4*count + offset];
-        con1[2] = p[6+4*count + offset];
-        deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,con1));
-
-
-        TupleList tpl1= new TupleList();
+        // TupleList tpl1= new TupleList();
 
         conid = 0;
         contype  = null;
         for(ClassTableItem item3:classt.classTable){
-            if(item3.attrname.equals(con[0])){
+            if(item3.attrname.equals(condition[i][0])){
                 conid = item3.attrid;
                 contype = item3.attrtype;
                 break;
             }
         }
 
-        List<ObjectTableItem> obj1 = new ArrayList<>();
+
         for(ObjectTableItem item2:topt.objectTable){
             if(item2.classid ==bedeputyid){
                 Tuple tuple = GetTuple(item2.blockid,item2.offset);
-                if(Condition(contype,tuple,conid,con[2])){
+                if(Condition(contype,tuple,conid,condition[i][2])){
                     //插入
                     //swi
                     Tuple ituple = new Tuple();
@@ -853,7 +864,6 @@ public class TransAction {
 
                     //bi
                     biPointerT.biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));
-
                 }
             }
         }
@@ -861,6 +871,8 @@ public class TransAction {
         for(ObjectTableItem item6:obj1) {
             topt.objectTable.add(item6);
         }
+
+    }
     }
 
 
