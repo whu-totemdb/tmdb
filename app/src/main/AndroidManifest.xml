@@ -3,6 +3,7 @@
     package="drz.oddb">
 
     <application
+    
         android:allowBackup="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name"
@@ -77,7 +78,28 @@
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
+         <meta-data android:name="com.amap.api.v2.apikey" android:value="前面获取到的key值">
+        </meta-data>
     </application>
-
+    <!--允许程序打开网络套接字-->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!--允许程序设置内置sd卡的写权限-->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--允许程序获取网络状态-->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--允许程序访问WiFi网络信息-->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!--允许程序读写手机状态和身份-->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!--用于进行网络定位-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"></uses-permission>
+    <!--用于访问GPS定位-->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"></uses-permission>
+    <!--用于获取wifi的获取权限，wifi信息会用来进行网络定位-->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"></uses-permission>
+    <!--用于读取手机当前的状态-->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
+    <!--用于申请调用A-GPS模块-->
+    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS"></uses-permission>
 
 </manifest>
