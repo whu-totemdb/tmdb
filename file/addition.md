@@ -22,7 +22,7 @@
 
 ## 替换图标
 
-1. 制作一个图标 (png/jpg)
+1. 制作一个图标 (png/jpg),放在(app/src/main/res/drawable)文件夹下
 
    ![20220504011739](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504011739.png)
 
