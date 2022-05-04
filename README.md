@@ -39,9 +39,15 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 ## 使用方法
 
-[安卓apk下载](asd)
+[安卓apk下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.2/app-release.apk)
 
-## 可视化结果演示
+## 可视化结果演示(TASK3)
+
+> TASK1 TASK2 为功能测试,不方便可视化,结果演示见解决思路中的测试结果
+
+|WHU|APP|
+|:--:|:--:|
+|![whu_trace](https://raw.githubusercontent.com/learner-lu/picbed/master/whu_trace.gif)|![APP_trace](https://raw.githubusercontent.com/learner-lu/picbed/master/APP_trace.gif)|
 
 ## 实验文档--[下载](a)
 

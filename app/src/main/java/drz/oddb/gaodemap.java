@@ -1,13 +1,10 @@
 
 package drz.oddb;
 
-
 import android.content.Intent;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 
-import android.provider.SyncStateContract;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Pair;
 
@@ -17,8 +14,6 @@ import com.amap.api.maps.MapView;
 import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.LatLngBounds;
-import com.amap.api.maps.model.Marker;
-import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.Polyline;
 import com.amap.api.maps.model.PolylineOptions;
 import com.amap.api.maps.utils.SpatialRelationUtil;
@@ -176,6 +171,7 @@ public class gaodemap extends AppCompatActivity{
             }
         }
         
+        // 上颜色
         polyline =aMap.addPolyline(new PolylineOptions().
         addAll(trace).width(10).color(Color.argb(255, 1, 1, 1)));
         return trace;
