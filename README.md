@@ -45,7 +45,7 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 ## 实验文档--[下载](a)
 
-## [一些思考](debug.md)和[一些锦上添花](addition.md)
+## [一些思考](file/debug.md)和[一些锦上添花](file/addition.md)
 
 ## 参考资料
 
