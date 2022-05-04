@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     TransAction trans = new TransAction(this);
     Intent music = null;
 
-
+    private boolean whu_trace_select = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,7 +92,23 @@ public class MainActivity extends AppCompatActivity {
         draw_trace.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
-                trans.show_map();
+                trans.show_map(whu_trace_select);
+
+                //int id[] = {1,1,1,1};
+                //trans.Printechart(id);
+            }
+        });
+
+        Button whu_trace = findViewById(R.id.whu);
+        whu_trace.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                if(whu_trace_select){
+                    whu_trace_select = false;
+                }
+                else{
+                    whu_trace_select = true;
+                }
             }
         });
 

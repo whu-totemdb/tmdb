@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.R;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -21,6 +22,10 @@ import drz.oddb.Transaction.SystemTable.*;
 import drz.oddb.parse.*;
 import drz.oddb.echart;
 import drz.oddb.gaodemap;
+
+
+import com.amap.api.maps.AMap;
+import com.amap.api.maps.MapView;
 
 public class TransAction {
     public TransAction(Context context) {
@@ -111,8 +116,12 @@ public class TransAction {
         context.startActivity(intent);
     }
 
-    public void show_map(){
+    public void show_map(boolean whu){
         Intent intent = new Intent(context, gaodemap.class);
+
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("whu", whu);
+        intent.putExtras(bundle);
         context.startActivity(intent);
     }
 

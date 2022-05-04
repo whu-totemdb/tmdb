@@ -85,8 +85,7 @@
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
-         <meta-data android:name="com.amap.api.v2.apikey" android:value="4ff28d19e341ebf29b6667d56435c5d2">
-        </meta-data>
+         <meta-data android:name="com.amap.api.v2.apikey" android:value="4ff28d19e341ebf29b6667d56435c5d2"/>
     </application>
     <!--允许程序打开网络套接字-->
     <uses-permission android:name="android.permission.INTERNET" />

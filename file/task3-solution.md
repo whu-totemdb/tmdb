@@ -37,6 +37,8 @@
 
    ![20220504205420](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504205420.png)
 
+   这会给你分配一个key值,比如我的是`4ff28d19e341ebf29b6667d56435c5d2`
+
 5. 进入高德地图的 [Android 地图SDK下载](https://lbs.amap.com/api/android-sdk/download)
 
    下滑,选择开发包定制下载
@@ -89,13 +91,16 @@
 
    然后在 `<application></application>`中间添加代码
 
-   > 建议添加到最后
+   > 将后面的value改为你的key值
 
    ```xml
-    <meta-data android:name="com.amap.api.v2.apikey" android:value="前面获取到的key值">
+    <meta-data android:name="com.amap.api.v2.apikey" android:value="4ff28d19e341ebf29b6667d56435c5d2">
     </meta-data>
     ```
 
+图片重设大小
+
+![20220505031850](https://raw.githubusercontent.com/learner-lu/picbed/master/20220505031850.png)
 
 
 ## 参考资料
@@ -103,3 +108,5 @@
 https://lbs.amap.com/api/android-sdk/guide/create-project/android-studio-create-project
 
 https://blog.csdn.net/qq_50272406/article/details/123006575
+
+https://github.com/luzhixing12345/tmdb/commit/dc3268a36908c00ee58035fd73d16ff791a0b192
