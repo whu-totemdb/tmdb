@@ -32,7 +32,7 @@
         android:text=""
         app:layout_constraintBottom_toTopOf="@+id/showbutton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.281"
+        app:layout_constraintHorizontal_bias="0.196"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/edit_text" />
 
@@ -45,7 +45,21 @@
         android:text=""
         app:layout_constraintBottom_toTopOf="@+id/showbutton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.741"
+        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/edit_text"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/draw_trace"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_marginBottom="62dp"
+        android:background="@android:drawable/ic_menu_search"
+        android:text=""
+        app:layout_constraintBottom_toTopOf="@+id/showbutton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.8"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/edit_text"
         app:layout_constraintVertical_bias="1.0" />
@@ -73,6 +87,7 @@
         android:text=""
         app:layout_constraintBottom_toTopOf="@+id/exit_button"
         app:layout_constraintEnd_toEndOf="@+id/exit_button"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/exit_button"
         app:layout_constraintTop_toBottomOf="@+id/button" />
 

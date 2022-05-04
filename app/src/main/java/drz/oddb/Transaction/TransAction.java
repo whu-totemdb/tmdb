@@ -19,6 +19,7 @@ import drz.oddb.show.ShowTable;
 import drz.oddb.Transaction.SystemTable.*;
 
 import drz.oddb.parse.*;
+import drz.oddb.echart;
 
 public class TransAction {
     public TransAction(Context context) {
@@ -99,7 +100,15 @@ public class TransAction {
         }
         return true;
     }
+    public void Printechart(int[] id) {
+        Intent intent = new Intent(context, echart.class);
+        //System.out.println("PrintSelectResult");
 
+        Bundle bundle = new Bundle();
+        bundle.putIntArray("id", id);
+        intent.putExtras(bundle);
+        context.startActivity(intent);
+    }
     public String query(String s) {
 
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());

@@ -78,12 +78,22 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // 清除文本框内数据
         Button clean_button = findViewById(R.id.clean_button);
         clean_button.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
                 //editText = findViewById(R.id.edit_text);
                 editText.setText("");
+            }
+        });
+
+        Button draw_trace = findViewById(R.id.draw_trace);
+        draw_trace.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                int id[] = {1,1,1,1};
+                trans.Printechart(id);
             }
         });
 
