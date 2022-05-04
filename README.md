@@ -33,9 +33,9 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 ## 解决思路
 
-- [TASK1-解决思路](task1-solution.md)
-- [TASK2-解决思路](task2-solution.md)
-- [TASK3-解决思路](task3-solution.md)
+- [TASK1-解决思路](file/task1-solution.md)
+- [TASK2-解决思路](file/task2-solution.md)
+- [TASK3-解决思路](file/task3-solution.md)
 
 ## 使用方法
 
