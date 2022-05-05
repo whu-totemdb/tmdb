@@ -55,7 +55,10 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 |:--:|:--:|
 |![whu_trace](https://raw.githubusercontent.com/learner-lu/picbed/master/whu_trace.gif)|![APP_trace](https://raw.githubusercontent.com/learner-lu/picbed/master/APP_trace.gif)|
 
-## 实验文档--[下载](a)
+## 实验文档
+
+- pdf [下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.3/default.pdf)
+- markdown [下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.3/default.md)
 
 ## [一些思考](file/debug.md)和[一些锦上添花](file/addition.md)
 
