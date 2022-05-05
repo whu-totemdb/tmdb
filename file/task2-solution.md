@@ -179,6 +179,8 @@ SELECT n AS n1 FROM ud3 WHERE a=20;
 
 ![20220504175527](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504175527.png)
 
+增加元素测试代理类实现效果
+
 ```SQL
 INSERT INTO company1 VALUES ("zz",20,1000);
 SELECT n AS n1 FROM ud2 WHERE a=20;

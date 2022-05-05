@@ -57,7 +57,7 @@ TOKEN:
 |<SELECTDEPUTY:"SELECTDEPUTY"|"selectdeputy">
 |<UNIONDEPUTY:"UNIONDEPUTY"|"uniondeputy">
 |<AS:"AS"|"as">
-|<UPDATE:"UPDATE"|"undate">
+|<UPDATE:"UPDATE"|"update">
 |<SET:"SET"|"set">
 |<UNION:"UNION"|"union">
 |<ID: ["a"-"z"](["a"-"z","A"-"Z","0"-"9"])* >
@@ -91,7 +91,6 @@ String[] sql() :
 	String insert_s;
 	String delete_s;
 	String update_s;
-  String union_s;
 }
 {
    create_s = create() {sql_s = create_s;System.out.println(sql_s+"\n");return sql_s.split(","); }

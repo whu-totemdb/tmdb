@@ -57,7 +57,7 @@ TOKEN:
 |<SELECTDEPUTY:"SELECTDEPUTY"|"selectdeputy">
 |<UNIONDEPUTY:"UNIONDEPUTY"|"uniondeputy">
 |<AS:"AS"|"as">
-|<UPDATE:"UPDATE"|"undate">
+|<UPDATE:"UPDATE"|"update">
 |<SET:"SET"|"set">
 |<UNION:"UNION"|"union">
 |<ID: ["a"-"z"](["a"-"z","A"-"Z","0"-"9"])* >
