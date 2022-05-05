@@ -20,6 +20,15 @@ SELECT column_name(s) FROM table2;
 
 > 如果尚不熟悉javacc语法,自己去学
 
+**每一次parse.jj的修改之后都需要重新编译**生成java的class文件
+
+```bash
+javacc parse.jj
+javac *.java
+```
+
+一个简单的脚本见[recompile.sh](../recompile.sh)
+
 ## javacc中需要注意的地方
 
 - TOKEN加一个 `<UNION:"UNION">`
