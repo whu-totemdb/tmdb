@@ -16,8 +16,6 @@
 
 ![20220504011138](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504011138.png)
 
-![20220504011215](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504011215.png)
-
 > 如果你尚不熟悉如果给一个项目提 pull request(PR),可以参考我的博客-[如何给开源项目提PR](https://luzhixing12345.github.io/2022/05/04/git/%E5%A6%82%E4%BD%95%E7%BB%99%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE%E6%8F%90PR/)
 
 ## 替换图标
