@@ -59,6 +59,7 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 - pdf [下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.3/default.pdf)
 - markdown [下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.3/default.md)
+- [B站视频讲解](https://www.bilibili.com/video/BV1gY4y1C7sc)
 
 ## [一些思考](file/debug.md)和[一些锦上添花](file/addition.md)
 
