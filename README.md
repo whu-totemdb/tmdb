@@ -1,5 +1,7 @@
 # tmdb
 
+<div align=center><img src="https://raw.githubusercontent.com/learner-lu/picbed/master/20220504011739.png" height="300" alt="抚子妹妹"></div>
+
 ## 介绍
 
 本项目为武汉大学2019级计算机弘毅班"数据库系统实现"课程的第三次大作业
@@ -42,9 +44,8 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 [安卓apk下载](https://github.com/luzhixing12345/tmdb/releases/download/v0.0.2/app-release.apk)
 
 - 安卓手机安装之后可以使用SQL语句进行增删改查,**这里的SQL语句非常的脆弱**,需要一个完整的句子
-- 直接点击右侧放大镜可以看到APP的数据轨迹追踪
-- 点击武大图标奇数次后再点击放大镜可以看到我的路线
-- 
+- 点击武大图标奇数次后再点击右侧放大镜可以看到我的路线
+- 点击武大图标偶数次后再点击右侧放大镜可以看到APP的数据轨迹追踪
 
 ## 可视化结果演示(TASK3)
 
