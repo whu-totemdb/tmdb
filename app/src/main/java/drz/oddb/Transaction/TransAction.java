@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+
 import drz.oddb.Log.*;
 import drz.oddb.Memory.*;
 
@@ -22,6 +23,11 @@ import drz.oddb.Transaction.SystemTable.*;
 import drz.oddb.parse.*;
 import drz.oddb.echart;
 import drz.oddb.gaodemap;
+
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.*;
+import net.sf.jsqlparser.JSQLParserException;
 
 
 import com.amap.api.maps.AMap;
@@ -106,6 +112,9 @@ public class TransAction {
         }
         return true;
     }
+
+
+
     public void Printechart(int[] id) {
         Intent intent = new Intent(context, echart.class);
         //System.out.println("PrintSelectResult");
@@ -127,12 +136,10 @@ public class TransAction {
 
 
     public String query(String s) {
-
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         parse p = new parse(byteArrayInputStream);
         try {
             String[] aa = p.Run();
-
             switch (Integer.parseInt(aa[0])) {
                 case parse.OPT_CREATE_ORIGINCLASS:
                     log.WriteLog(s);
@@ -143,11 +150,6 @@ public class TransAction {
                     log.WriteLog(s);
                     CreateSelectDeputy(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
-                    break;
-                case parse.OPT_CREATE_UNIONDEPUTY:
-                    log.WriteLog(s);
-                    CreateUnionDeputy(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建Union代理类成功").setPositiveButton("确定",null).show();
                     break;
                 case parse.OPT_DROP:
                     log.WriteLog(s);
@@ -174,12 +176,6 @@ public class TransAction {
                     log.WriteLog(s);
                     Update(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
-                    break;
-                case parse.OPT_UNION:
-                    log.WriteLog(s);
-                    Union(aa);
-                    //new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
-                    break;
                 default:
                     break;
 
@@ -188,6 +184,69 @@ public class TransAction {
 
             e.printStackTrace();
         }
+
+//        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+//        try {
+//            Statement stmt=CCJSqlParserUtil.parse(byteArrayInputStream);
+//            String[] aa = new String[2];
+//            String sqlType=stmt.getClass().getSimpleName();
+//
+//            switch (sqlType) {
+//                case "CreateTable":
+//                    log.WriteLog(s);
+//                    CreateOriginClass(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "CreateDeputyClass":
+////                    switch
+//                    log.WriteLog(s);
+//                    CreateSelectDeputy(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+//                    break;
+////                case "Create":
+////                    log.WriteLog(s);
+////                    CreateUnionDeputy(aa);
+////                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建Union代理类成功").setPositiveButton("确定",null).show();
+////                    break;
+//                case "Drop":
+//                    log.WriteLog(s);
+//                    Drop(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "Insert":
+//                    log.WriteLog(s);
+//                    Insert(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "Delete":
+//                    log.WriteLog(s);
+//                    Delete(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "Select":
+//                    DirectSelect(aa);
+//                    break;
+////                case parse.OPT_SELECT_INDERECTSELECT:
+////                    InDirectSelect(aa);
+////                    break;
+//                case "Update":
+//                    log.WriteLog(s);
+//                    Update(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
+//                    break;
+////                case :
+////                    log.WriteLog(s);
+////                    Union(aa);
+////                    //new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
+////                    break;
+//                default:
+//                    break;
+//
+//            }
+//        } catch (JSQLParserException e) {
+//
+//            e.printStackTrace();
+//        }
 
         return s;
 
@@ -278,7 +337,7 @@ public class TransAction {
                             k++;
 
                             if (k ==count)
-                                    break;
+                                break;
                         }
                     }
                     for (int l = 0;l<count;l++) {
@@ -358,7 +417,7 @@ public class TransAction {
                 Tuple tuple = GetTuple(item.blockid,item.offset);
                 if(Condition(attrtype,tuple,attrid,p[4])){
                     //需要删除的元组
-                     OandB ob =new OandB(DeletebyID(item.tupleid));
+                    OandB ob =new OandB(DeletebyID(item.tupleid));
                     for(ObjectTableItem obj:ob.o){
                         ob2.o.add(obj);
                     }
@@ -396,7 +455,7 @@ public class TransAction {
                     BiPointerTableItem item1 =(BiPointerTableItem) it.next();
                     if(item.tupleid == item1.deputyobjectid){
                         //it.remove();
-                      if(!todelete2.contains(item1))
+                        if(!todelete2.contains(item1))
                             todelete2.add(item1);
                     }
                     if(item.tupleid == item1.objectid){
@@ -421,16 +480,16 @@ public class TransAction {
                 //删除自身
                 DeleteTuple(item.blockid,item.offset);
                 if(!todelete2.contains(item));
-                    todelete1.add(item);
+                todelete1.add(item);
 
 
 
 
 
-                }
             }
+        }
 
-            return ob;
+        return ob;
     }
 
     //DROP CLASS asd;
@@ -455,7 +514,7 @@ public class TransAction {
                 for(Iterator it = switchingT.switchingTable.iterator(); it.hasNext();) {
                     SwitchingTableItem item2 =(SwitchingTableItem) it.next();
                     if (item2.attr.equals( item.attrname)||item2.deputy .equals( item.attrname)){
-                       it.remove();
+                        it.remove();
                     }
                 }
                 it1.remove();
@@ -499,12 +558,12 @@ public class TransAction {
                 }
                 for(String item4: sname){
 
-                        s[1] = item4;
-                        List<DeputyTableItem> dti2 = Drop1(s);
-                        for(DeputyTableItem item8:dti2){
-                            if(!dti.contains(item8))
-                                dti.add(item8);
-                        }
+                    s[1] = item4;
+                    List<DeputyTableItem> dti2 = Drop1(s);
+                    for(DeputyTableItem item8:dti2){
+                        if(!dti.contains(item8))
+                            dti.add(item8);
+                    }
 
                 }
                 if(!dti.contains(item3))
@@ -613,14 +672,14 @@ public class TransAction {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                        classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
-                        //swi
-                        if(Integer.parseInt(p[4+4*i]) == 1){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
-                        }
-                        if(Integer.parseInt(p[4+4*i])==0){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
-                        }
+                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                    //swi
+                    if(Integer.parseInt(p[4+4*i]) == 1){
+                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
+                    }
+                    if(Integer.parseInt(p[4+4*i])==0){
+                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
+                    }
                     break;
                 }
             };
@@ -688,7 +747,7 @@ public class TransAction {
     }
 
     private void CreateUnionDeputy(String[] p) { //3+3+4*count - 3 + 1 = 4+12 = 16
-        
+
 
         int count = Integer.parseInt(p[1]);
         String classname = p[2];//代理类的名字
@@ -709,7 +768,7 @@ public class TransAction {
         assert(num_u > 1);
 
 
-        
+
         for(int j = 0;j<count;j++){
             attrname[j] = p[4*j+6];
             attrid[j] = j;
@@ -724,14 +783,14 @@ public class TransAction {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                        classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
-                        //swi
-                        if(Integer.parseInt(p[4+4*i]) == 1){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
-                        }
-                        if(Integer.parseInt(p[4+4*i])==0){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
-                        }
+                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                    //swi
+                    if(Integer.parseInt(p[4+4*i]) == 1){
+                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
+                    }
+                    if(Integer.parseInt(p[4+4*i])==0){
+                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
+                    }
                     break;
                 }
             };
@@ -801,31 +860,31 @@ public class TransAction {
 
 
 
-    //b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
-    //19 202122 23 242526 27 282930 31 32 33 34
-    // count = 3, 4*3*2 = 24 + 6
-    int offset = 0;
-    List<ObjectTableItem> obj1 = new ArrayList<>();
-    String condition[][] = new String[num_u][3];
+        //b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
+        //19 202122 23 242526 27 282930 31 32 33 34
+        // count = 3, 4*3*2 = 24 + 6
+        int offset = 0;
+        List<ObjectTableItem> obj1 = new ArrayList<>();
+        String condition[][] = new String[num_u][3];
 
-    for(int i = 0; i < num_u - 1; i++)
-    {
-        obj1 = new ArrayList<>();
-        offset += 4*count + 4; // 12+4 22-6=16 4*count + 3 + 3 - 3 + 1
-        bedeputyname = p[4*count+3 + offset];
-        for(int j = 0;j<count;j++){
-            attrname[j] = p[4*j+6 + offset];
-            attrid[j] = j;
-            bedeputyattrname[j] = p[4*j+3 + offset];
-        }
+        for(int i = 0; i < num_u - 1; i++)
+        {
+            obj1 = new ArrayList<>();
+            offset += 4*count + 4; // 12+4 22-6=16 4*count + 3 + 3 - 3 + 1
+            bedeputyname = p[4*count+3 + offset];
+            for(int j = 0;j<count;j++){
+                attrname[j] = p[4*j+6 + offset];
+                attrid[j] = j;
+                bedeputyattrname[j] = p[4*j+3 + offset];
+            }
 
 
-        // String attrtype1;
-        for (int j = 0; j < count; j++) {
-            for (ClassTableItem item:classt.classTable) {
-                if (item.classname.equals(bedeputyname)&&item.attrname.equals(p[3+4*j + offset])) {
-                    bedeputyid = item.classid;
-                    bedeputyattrid[j] = item.attrid;
+            // String attrtype1;
+            for (int j = 0; j < count; j++) {
+                for (ClassTableItem item:classt.classTable) {
+                    if (item.classname.equals(bedeputyname)&&item.attrname.equals(p[3+4*j + offset])) {
+                        bedeputyid = item.classid;
+                        bedeputyattrid[j] = item.attrid;
 
                         //classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[j],attrname[j], item.attrtype,"de"));
                         //swi
@@ -835,70 +894,70 @@ public class TransAction {
                         if(Integer.parseInt(p[4+4*j + offset]) == 0){
                             switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[j],"0"));
                         }
+                        break;
+                    }
+                };
+            }
+
+            // String[] con1 =new String[3];
+            condition[i][0] = p[4+4*count + offset];
+            condition[i][1] = p[5+4*count + offset];
+            condition[i][2] = p[6+4*count + offset];
+            deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,condition[i]));
+
+            // TupleList tpl1= new TupleList();
+
+            conid = 0;
+            contype  = null;
+            for(ClassTableItem item3:classt.classTable){
+                if(item3.attrname.equals(condition[i][0])){
+                    conid = item3.attrid;
+                    contype = item3.attrtype;
                     break;
                 }
-            };
-        }
-
-        // String[] con1 =new String[3];
-        condition[i][0] = p[4+4*count + offset];
-        condition[i][1] = p[5+4*count + offset];
-        condition[i][2] = p[6+4*count + offset];
-        deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,condition[i]));
-
-        // TupleList tpl1= new TupleList();
-
-        conid = 0;
-        contype  = null;
-        for(ClassTableItem item3:classt.classTable){
-            if(item3.attrname.equals(condition[i][0])){
-                conid = item3.attrid;
-                contype = item3.attrtype;
-                break;
             }
-        }
 
 
-        for(ObjectTableItem item2:topt.objectTable){
-            if(item2.classid ==bedeputyid){
-                Tuple tuple = GetTuple(item2.blockid,item2.offset);
-                if(Condition(contype,tuple,conid,condition[i][2])){
-                    //插入
-                    //swi
-                    Tuple ituple = new Tuple();
-                    ituple.tupleHeader = count;
-                    ituple.tuple = new Object[count];
+            for(ObjectTableItem item2:topt.objectTable){
+                if(item2.classid ==bedeputyid){
+                    Tuple tuple = GetTuple(item2.blockid,item2.offset);
+                    if(Condition(contype,tuple,conid,condition[i][2])){
+                        //插入
+                        //swi
+                        Tuple ituple = new Tuple();
+                        ituple.tupleHeader = count;
+                        ituple.tuple = new Object[count];
 
-                    for(int o =0;o<count;o++){
-                        if(Integer.parseInt(p[4+4*o + offset]) == 1){
-                            int value = Integer.parseInt(p[5+4*o + offset]);
-                            int orivalue =Integer.parseInt((String)tuple.tuple[bedeputyattrid[o]]);
-                            Object ob = value+orivalue;
-                            ituple.tuple[o] = ob;
+                        for(int o =0;o<count;o++){
+                            if(Integer.parseInt(p[4+4*o + offset]) == 1){
+                                int value = Integer.parseInt(p[5+4*o + offset]);
+                                int orivalue =Integer.parseInt((String)tuple.tuple[bedeputyattrid[o]]);
+                                Object ob = value+orivalue;
+                                ituple.tuple[o] = ob;
+                            }
+                            if(Integer.parseInt(p[4+4*o + offset]) == 0){
+                                ituple.tuple[o] = tuple.tuple[bedeputyattrid[o]];
+                            }
                         }
-                        if(Integer.parseInt(p[4+4*o + offset]) == 0){
-                            ituple.tuple[o] = tuple.tuple[bedeputyattrid[o]];
-                        }
+
+                        topt.maxTupleId++;
+                        int tupid = topt.maxTupleId;
+
+                        int [] aa = InsertTuple(ituple);
+                        //topt.objectTable.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
+                        obj1.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
+
+                        //bi
+                        biPointerT.biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));
                     }
-
-                    topt.maxTupleId++;
-                    int tupid = topt.maxTupleId;
-
-                    int [] aa = InsertTuple(ituple);
-                    //topt.objectTable.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-                    obj1.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-
-                    //bi
-                    biPointerT.biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));
                 }
             }
-        }
 
-        for(ObjectTableItem item6:obj1) {
-            topt.objectTable.add(item6);
-        }
+            for(ObjectTableItem item6:obj1) {
+                topt.objectTable.add(item6);
+            }
 
-    }
+        }
     }
 
 
@@ -1056,8 +1115,8 @@ public class TransAction {
     private void Union(String[] p){
         System.out.println("Union");
 
-        // SELECT name AS n FROM company WHERE age=20 
-        // UNION 
+        // SELECT name AS n FROM company WHERE age=20
+        // UNION
         // SELECT name AS n FROM company WHERE age=20
         // UNION
         // SELECT name AS n FROM company WHERE age=20;
@@ -1084,7 +1143,7 @@ public class TransAction {
             }
         }
         // String Union_operator = p[0];
-        
+
         TupleList total_tpl = new TupleList();
 
         int pointer = 1; // 指向最后一组的开头
@@ -1102,7 +1161,7 @@ public class TransAction {
                 select_p[i] = p[pointer+i-1];
             }
             TupleList tpl = new TupleList();
-            
+
             tpl = subDirectSelect(select_p);
 
             // 将tpl中的tuple添加到total_tpl中
