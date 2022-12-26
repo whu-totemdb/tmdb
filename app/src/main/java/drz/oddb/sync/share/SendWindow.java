@@ -1,19 +1,13 @@
-package drz.oddb.sync.node;
+package drz.oddb.sync.share;
 
 import java.util.ArrayList;
 
-
-/*
-* 1. 队列非空时才能移除元素
-* 2. 队列非满时才能添加元素
-* */
-public class SlidingWindow {
-
+public class SendWindow {
     private final int maxNum;//数组最大长度
 
     private int nextIndex = 0;//数组中下一个待填入元素的索引值，即队尾指针
 
-    private QueueEntry[] syncQueue;
+    private WindowEntry[] syncQueue;
 
     private int left = 0;//窗口左端索引
 
@@ -23,14 +17,14 @@ public class SlidingWindow {
 
 
 
-    public SlidingWindow(int maxNum, int windowSize) {
+    public SendWindow(int maxNum, int windowSize) {
         this.maxNum = maxNum;
         this.windowSize = windowSize;
         right = left + windowSize - 1;
-        syncQueue = new QueueEntry[maxNum];
+        syncQueue = new WindowEntry[maxNum];
     }
 
-    public QueueEntry[] getSyncQueue() {
+    public WindowEntry[] getSyncQueue() {
         return syncQueue;
     }
 
@@ -65,7 +59,7 @@ public class SlidingWindow {
     public void putRequest(RequestType requestType, Long key){
 
 
-        QueueEntry entry = new QueueEntry(requestType,key);
+        WindowEntry entry = new WindowEntry(requestType,key);
         syncQueue[nextIndex] = entry;
 
         nextIndex = (nextIndex + 1) % maxNum;
@@ -80,13 +74,13 @@ public class SlidingWindow {
     }
 
     //获取窗口首部的元素
-    public QueueEntry getHeadEntry(){
+    public WindowEntry getHeadEntry(){
         return syncQueue[left];
     }
 
     //获取滑动窗口内的所有元素
-    public ArrayList<QueueEntry> getAllEntries(){
-        ArrayList<QueueEntry> result = new ArrayList<>(windowSize);
+    public ArrayList<WindowEntry> getAllEntries(){
+        ArrayList<WindowEntry> result = new ArrayList<>(windowSize);
 
         for(int i = left;i <= right; i++){
             result.add(syncQueue[i]);
@@ -94,7 +88,4 @@ public class SlidingWindow {
 
         return result;
     }
-
-
-
 }

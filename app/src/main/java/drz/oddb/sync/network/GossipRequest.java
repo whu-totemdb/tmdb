@@ -9,6 +9,8 @@ import java.net.InetSocketAddress;
 import java.time.LocalDateTime;
 
 public class GossipRequest implements Serializable {
+    private int requestID;
+
     private Long key;//数据主键
 
     /*还需要添加一个属性为value，表示数据更新后的值*/
@@ -24,12 +26,9 @@ public class GossipRequest implements Serializable {
 
     private long receiveTime;
 
-    public GossipRequest(Long key, VectorClock vectorClock) {
-        this.key = key;
-        this.vectorClock = vectorClock;
-    }
 
-    public GossipRequest(Long key, VectorClock vectorClock, InetAddress sourceIPAddress) {
+    public GossipRequest(int requestID, Long key, VectorClock vectorClock, InetAddress sourceIPAddress) {
+        this.requestID = requestID;
         this.key = key;
         this.vectorClock = vectorClock;
         this.sourceIPAddress = sourceIPAddress;
@@ -37,7 +36,8 @@ public class GossipRequest implements Serializable {
     }
 
 
-    public GossipRequest(Long key, VectorClock vectorClock, InetAddress sourceIPAddress, InetSocketAddress targetIPAddress) {
+    public GossipRequest(int requestID, Long key, VectorClock vectorClock, InetAddress sourceIPAddress, InetSocketAddress targetIPAddress) {
+        this.requestID = requestID;
         this.key = key;
         this.vectorClock = vectorClock;
         this.sourceIPAddress = sourceIPAddress;
@@ -45,12 +45,30 @@ public class GossipRequest implements Serializable {
 
     }
 
-    public GossipRequest(Long key, Action action, VectorClock vectorClock, InetAddress sourceIPAddress, long sendTime) {
+    public GossipRequest(int requestID, Long key, Action action, VectorClock vectorClock, InetAddress sourceIPAddress, long sendTime) {
+        this.requestID = requestID;
         this.key = key;
         this.action = action;
         this.vectorClock = vectorClock;
         this.sourceIPAddress = sourceIPAddress;
         this.sendTime = sendTime;
+
+    }
+
+    public int getRequestID() {
+        return requestID;
+    }
+
+    public void setRequestID(int requestID) {
+        this.requestID = requestID;
+    }
+
+    public Action getAction() {
+        return action;
+    }
+
+    public void setAction(Action action) {
+        this.action = action;
     }
 
     public Long getKey() {

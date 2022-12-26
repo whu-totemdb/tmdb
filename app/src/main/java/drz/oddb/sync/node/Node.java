@@ -3,6 +3,10 @@ package drz.oddb.sync.node;
 import drz.oddb.sync.config.GossipConfig;
 import drz.oddb.sync.network.GossipController;
 import drz.oddb.sync.network.GossipRequest;
+import drz.oddb.sync.node.database.Action;
+import drz.oddb.sync.node.database.OperationType;
+import drz.oddb.sync.share.SendInfo;
+import drz.oddb.sync.timeTest.TimeTest;
 import drz.oddb.sync.vectorClock.VectorClock;
 
 import java.io.IOException;
@@ -21,6 +25,9 @@ public class Node implements Serializable {
     private final InetAddress IPAddress;//IP地址
 
     //private long version = 0;//节点版本号
+    private static int requestID = 0;
+
+    private static int maxRequestID = 65536;
 
     private final int receivePort;//节点的接收端口
 
@@ -39,6 +46,7 @@ public class Node implements Serializable {
     private GossipController gossipController;
 
     //private byte[] data;
+
 
 
     public Node(InetAddress IPAddress, int receivePort, GossipConfig gossipConfig) {
@@ -63,10 +71,10 @@ public class Node implements Serializable {
             nodeStateTable.putIfAbsent(socketAddress,true);
 
 
-        gossipController = new GossipController(socketAddress,gossipConfig);
+        gossipController = new GossipController(maxRequestID,socketAddress,gossipConfig);
 
         setLastUpdateTime();
-        System.out.println("新生成了一个节点" + this.IPAddress.toString());
+        System.out.println(Thread.currentThread().getName() + "：新生成了一个节点" + this.IPAddress.toString());
 
     }
 
@@ -90,29 +98,29 @@ public class Node implements Serializable {
     }
 
     /*
-    * 获取节点的唯一标识，以节点的IP地址作为唯一的标识
-    * */
+     * 获取节点的唯一标识，以节点的IP地址作为唯一的标识
+     * */
     public String getNodeID(){
         return IPAddress.toString();
     }
 
     /*
-    * 获取主机名
-    * */
+     * 获取主机名
+     * */
     public String getHostName(){
         return IPAddress.getHostName();
     }
 
     /*
-    * 获取IP地址
-    * */
+     * 获取IP地址
+     * */
     /*public InetAddress getIPAddress(){
         return socketAddress.getAddress();
     }*/
 
     /*
-    * 获取端口号
-    * */
+     * 获取端口号
+     * */
     /*public int getPort(){
         return socketAddress.getPort();
     }*/
@@ -212,7 +220,7 @@ public class Node implements Serializable {
 
     public void setLastUpdateTime(){
         LocalDateTime updateTime = LocalDateTime.now();
-        System.out.println("节点"+ IPAddress.toString() + "在" + updateTime + "时刻" + "发生一次更新。");
+        System.out.println(Thread.currentThread().getName() + "：节点"+ IPAddress.toString() + "在" + updateTime + "时刻" + "发生一次更新。");
         this.lastUpdateTime = updateTime;
     }
 
@@ -244,8 +252,8 @@ public class Node implements Serializable {
     }*/
 
     /*
-    * 检测节点是否故障
-    * */
+     * 检测节点是否故障
+     * */
     public void check(){
         //存在异常，lastUpdateTime可能为空
         if(lastUpdateTime == null){
@@ -296,24 +304,71 @@ public class Node implements Serializable {
 
 
     public GossipRequest generateGossipRequest(Long key){
-        return new GossipRequest(key,getVectorClock(key),getIPAddress());
+        if (requestID < maxRequestID){
+            requestID++;
+        }
+        else {
+            requestID = 1;
+        }
+        return new GossipRequest(requestID,key,getVectorClock(key),getIPAddress());
     }
 
-    //处理队列
+    //处理一个请求
     private void processQueue(){
 
-        GossipRequest request = generateGossipRequest(syncQueue.peek());
-        gossipController.setCurrentRequest(request);
+        SendInfo info = gossipController.getSendInfo();
 
-        ArrayList<InetSocketAddress> aliveNodes = getAliveNodes();
-        gossipController.setCurrentNodes(aliveNodes.toArray());
-        while(!gossipController.isRequestIsSent()){}
+        if(!info.structureIsFull()) {
+            //获取一个请求，并移交给下层
+            long l1 = System.currentTimeMillis();
+            GossipRequest request = generateGossipRequest(syncQueue.peek());
+            long l2 = System.currentTimeMillis();
+            TimeTest.setGenerateRequestTime(TimeTest.calculate(l1, l2));
+            //gossipController.setCurrentRequest(request);
+
+            //insert into test values("a",1,10.0);
+            Action action = new Action(
+                    OperationType.insert,
+                    "test",
+                    "test",
+                    1,
+                    1,
+                    3,
+                    new String[]{"name","age","num"},
+                    new String[]{"String","Integer","Double"},
+                    new String[]{"a","1","10.0"});
+            request.setAction(action);
+            info.getRequestToSend().add(request);
+
+            //获取能够发送的目标节点的IP套接字（IP地址与其对应的接收端口），并移交给下层
+            long l3 = System.currentTimeMillis();
+            ArrayList<InetSocketAddress> aliveNodes = getAliveNodes();
+            long l4 = System.currentTimeMillis();
+            TimeTest.setGetAliveNodesTime(TimeTest.calculate(l3, l4));
+            //gossipController.setCurrentNodes(aliveNodes.toArray());
+            info.getTargets().add(aliveNodes.toArray());
+            info.getRequestSendOver().put(request.getRequestID(), false);
+
+            //等待下层把这个请求发送完成（即向所有待发节点都发送成功）
+
+
+        }
+        else{
+
+            try {
+                wait(500);
+            }catch (InterruptedException e){
+                e.printStackTrace();
+            }
+
+        }
+
 
         //仍然待改进，只有每个节点的请求发送都成功后才能判断这个request是成功的
-        gossipController.setCurrentRequest(null);
+        /*gossipController.setCurrentRequest(null);
         gossipController.setCurrentNodes(null);
-        gossipController.setRequestIsSent(false);
-        syncQueue.remove();//简单处理，直接从队列中移出
+        gossipController.setRequestIsSent(false);*/
+        syncQueue.poll();//简单处理，直接从队列中移出
         //需要根据状态表来加速队列的处理，代码在此处添加
         //1. 请求在什么条件下从syncQueue中移出
         //2. 如何判断这个条件 --- 读写仲裁判定通过
@@ -335,9 +390,12 @@ public class Node implements Serializable {
 
         }
         else {
-            System.out.println("节点" + IPAddress.toString() + "成功接收到来自" + IPAddress1.toString() + "的向量时钟");
+            System.out.println(Thread.currentThread().getName() + "：节点" + IPAddress.toString() + "成功接收到来自" + IPAddress1.toString() + "的向量时钟");
             VectorClock oldClock = getVectorClock(primaryKey);
+            long l1=System.currentTimeMillis();
             VectorClock newClock = oldClock.merge(gossipRequest.getVectorClock());//合并向量时钟
+            long l2=System.currentTimeMillis();
+            TimeTest.setMergeVectorClockTime(TimeTest.calculate(l1,l2));
             //等待后续补充其他对向量时钟更加复杂操作的实现
 
             vectorClockMap.put(primaryKey,newClock);
@@ -361,14 +419,17 @@ public class Node implements Serializable {
                     e.printStackTrace();
                 }
             }
-        }).start();
+        },"analyseThread").start();
     }
 
     private void startProcessThread(){
         new Thread(()->{
             while(!failed){
                 while(!syncQueue.isEmpty()){
+                    long start =System.currentTimeMillis();
                     processQueue();
+                    long end = System.currentTimeMillis();
+                    TimeTest.setProcessQueueTimeOnce(TimeTest.calculate(start,end));
                 }
 
                 try{
@@ -377,7 +438,7 @@ public class Node implements Serializable {
                     e.printStackTrace();
                 }
             }
-        }).start();
+        },"processThread").start();
     }
 
 
@@ -412,6 +473,7 @@ public class Node implements Serializable {
             }
         }).start();
     }*/
+
 
 
 
