@@ -4,14 +4,13 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.R;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-
+import drz.oddb.Level.LevelManager;
 import drz.oddb.Log.*;
 import drz.oddb.Memory.*;
 
@@ -21,17 +20,6 @@ import drz.oddb.show.ShowTable;
 import drz.oddb.Transaction.SystemTable.*;
 
 import drz.oddb.parse.*;
-import drz.oddb.echart;
-import drz.oddb.gaodemap;
-
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.statement.*;
-import net.sf.jsqlparser.JSQLParserException;
-
-
-import com.amap.api.maps.AMap;
-import com.amap.api.maps.MapView;
 
 public class TransAction {
     public TransAction(Context context) {
@@ -50,6 +38,10 @@ public class TransAction {
 
     LogManage log = new LogManage(this);
 
+    public MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
+            deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
+    public LevelManager levelManager = memManager.levelManager;
+
     public void SaveAll( )
     {
         mem.saveObjectTable(topt);
@@ -61,6 +53,9 @@ public class TransAction {
         while(!mem.flush());
         while(!mem.setLogCheck(log.LogT.logID));
         mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
+
+        memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
+        levelManager.saveIndexToFile();
     }
 
     public void Test(){
@@ -113,33 +108,13 @@ public class TransAction {
         return true;
     }
 
-
-
-    public void Printechart(int[] id) {
-        Intent intent = new Intent(context, echart.class);
-        //System.out.println("PrintSelectResult");
-
-        Bundle bundle = new Bundle();
-        bundle.putIntArray("id", id);
-        intent.putExtras(bundle);
-        context.startActivity(intent);
-    }
-
-    public void show_map(boolean whu){
-        Intent intent = new Intent(context, gaodemap.class);
-
-        Bundle bundle = new Bundle();
-        bundle.putBoolean("whu", whu);
-        intent.putExtras(bundle);
-        context.startActivity(intent);
-    }
-
-
     public String query(String s) {
+
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         parse p = new parse(byteArrayInputStream);
         try {
             String[] aa = p.Run();
+
             switch (Integer.parseInt(aa[0])) {
                 case parse.OPT_CREATE_ORIGINCLASS:
                     log.WriteLog(s);
@@ -185,7 +160,7 @@ public class TransAction {
             e.printStackTrace();
         }
 
-//        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+        //        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
 //        try {
 //            Statement stmt=CCJSqlParserUtil.parse(byteArrayInputStream);
 //            String[] aa = new String[2];
@@ -588,11 +563,11 @@ public class TransAction {
         int classid = 0;
         for(int i = 0;i < attrnumber;i++){
             for (ClassTableItem item:classt.classTable) {
-                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) { // 2+4*i 是属性名
+                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) {
                     classid = item.classid;
                     attrid[i] = item.attrid;
                     attrtype[i] = item.attrtype;
-                    attrname[i] = p[5+4*i]; // 新的名字
+                    attrname[i] = p[5+4*i];
                     //重命名
 
                     break;
@@ -600,7 +575,7 @@ public class TransAction {
             }
         }
 
-        // 找到WHERE条件的属性
+
         int sattrid = 0;
         String sattrtype = null;
         for (ClassTableItem item:classt.classTable) {
@@ -634,13 +609,13 @@ public class TransAction {
                 }
             }
         }
-        // for(int i =0;i<attrnumber;i++){
-        //     attrid[i]=i;
-        // }
+        for(int i =0;i<attrnumber;i++){
+            attrid[i]=i;
+        }
         PrintSelectResult(tpl,attrname,attrid,attrtype);
         return tpl;
-    }
 
+    }
 
 
     //CREATE SELECTDEPUTY aa SELECT  b1+2 AS c1,b2 AS c2,b3 AS c3 FROM  bb WHERE t1="1" ;
@@ -746,221 +721,6 @@ public class TransAction {
         }
     }
 
-    private void CreateUnionDeputy(String[] p) { //3+3+4*count - 3 + 1 = 4+12 = 16
-
-
-        int count = Integer.parseInt(p[1]);
-        String classname = p[2];//代理类的名字
-        String bedeputyname = p[4*count+3];//代理的类的名字
-        classt.maxid++;
-        int classid = classt.maxid;//代理类的id
-        int bedeputyid = -1;//代理的类的id
-        String[] attrname=new String[count];
-        String[] bedeputyattrname=new String[count];//代理属性名
-        int[] bedeputyattrid = new int[count];//代理属性id
-        String[] attrtype=new String[count];//代理属性类型
-        int[] attrid=new int[count];// attribute id
-
-
-        int num_p = p.length;
-        int num_u = (num_p - 3) / (count * 4 + 4);
-
-        assert(num_u > 1);
-
-
-
-        for(int j = 0;j<count;j++){
-            attrname[j] = p[4*j+6];
-            attrid[j] = j;
-            bedeputyattrname[j] = p[4*j+3];
-        }
-
-        String attrtype1;
-        for (int i = 0; i < count; i++) {
-
-            for (ClassTableItem item:classt.classTable) {
-                if (item.classname.equals(bedeputyname)&&item.attrname.equals(p[3+4*i])) {
-                    bedeputyid = item.classid;
-                    bedeputyattrid[i] = item.attrid;
-
-                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
-                    //swi
-                    if(Integer.parseInt(p[4+4*i]) == 1){
-                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
-                    }
-                    if(Integer.parseInt(p[4+4*i])==0){
-                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
-                    }
-                    break;
-                }
-            };
-        }
-
-
-
-        String[] con =new String[3];
-        con[0] = p[4+4*count];
-        con[1] = p[5+4*count];
-        con[2] = p[6+4*count];
-        deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,con));
-
-
-        TupleList tpl= new TupleList();
-
-        int conid = 0;
-        String contype  = null;
-        for(ClassTableItem item3:classt.classTable){
-            if(item3.attrname.equals(con[0])){
-                conid = item3.attrid;
-                contype = item3.attrtype;
-                break;
-            }
-        }
-
-        List<ObjectTableItem> obj = new ArrayList<>();
-        for(ObjectTableItem item2:topt.objectTable){
-            if(item2.classid ==bedeputyid){
-                Tuple tuple = GetTuple(item2.blockid,item2.offset);
-                if(Condition(contype,tuple,conid,con[2])){
-                    //插入
-                    //swi
-                    Tuple ituple = new Tuple();
-                    ituple.tupleHeader = count;
-                    ituple.tuple = new Object[count];
-
-                    for(int o =0;o<count;o++){
-                        if(Integer.parseInt(p[4+4*o]) == 1){
-                            int value = Integer.parseInt(p[5+4*o]);
-                            int orivalue =Integer.parseInt((String)tuple.tuple[bedeputyattrid[o]]);
-                            Object ob = value+orivalue;
-                            ituple.tuple[o] = ob;
-                        }
-                        if(Integer.parseInt(p[4+4*o]) == 0){
-                            ituple.tuple[o] = tuple.tuple[bedeputyattrid[o]];
-                        }
-                    }
-
-                    topt.maxTupleId++;
-                    int tupid = topt.maxTupleId;
-
-                    int [] aa = InsertTuple(ituple);
-                    //topt.objectTable.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-                    obj.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-
-                    //bi
-                    biPointerT.biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));
-
-                }
-            }
-        }
-
-        for(ObjectTableItem item6:obj) {
-            topt.objectTable.add(item6);
-        }
-
-
-
-        //b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
-        //19 202122 23 242526 27 282930 31 32 33 34
-        // count = 3, 4*3*2 = 24 + 6
-        int offset = 0;
-        List<ObjectTableItem> obj1 = new ArrayList<>();
-        String condition[][] = new String[num_u][3];
-
-        for(int i = 0; i < num_u - 1; i++)
-        {
-            obj1 = new ArrayList<>();
-            offset += 4*count + 4; // 12+4 22-6=16 4*count + 3 + 3 - 3 + 1
-            bedeputyname = p[4*count+3 + offset];
-            for(int j = 0;j<count;j++){
-                attrname[j] = p[4*j+6 + offset];
-                attrid[j] = j;
-                bedeputyattrname[j] = p[4*j+3 + offset];
-            }
-
-
-            // String attrtype1;
-            for (int j = 0; j < count; j++) {
-                for (ClassTableItem item:classt.classTable) {
-                    if (item.classname.equals(bedeputyname)&&item.attrname.equals(p[3+4*j + offset])) {
-                        bedeputyid = item.classid;
-                        bedeputyattrid[j] = item.attrid;
-
-                        //classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[j],attrname[j], item.attrtype,"de"));
-                        //swi
-                        if(Integer.parseInt(p[4+4*j + offset]) == 1){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[j],p[5+4*j + offset]));
-                        }
-                        if(Integer.parseInt(p[4+4*j + offset]) == 0){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[j],"0"));
-                        }
-                        break;
-                    }
-                };
-            }
-
-            // String[] con1 =new String[3];
-            condition[i][0] = p[4+4*count + offset];
-            condition[i][1] = p[5+4*count + offset];
-            condition[i][2] = p[6+4*count + offset];
-            deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,condition[i]));
-
-            // TupleList tpl1= new TupleList();
-
-            conid = 0;
-            contype  = null;
-            for(ClassTableItem item3:classt.classTable){
-                if(item3.attrname.equals(condition[i][0])){
-                    conid = item3.attrid;
-                    contype = item3.attrtype;
-                    break;
-                }
-            }
-
-
-            for(ObjectTableItem item2:topt.objectTable){
-                if(item2.classid ==bedeputyid){
-                    Tuple tuple = GetTuple(item2.blockid,item2.offset);
-                    if(Condition(contype,tuple,conid,condition[i][2])){
-                        //插入
-                        //swi
-                        Tuple ituple = new Tuple();
-                        ituple.tupleHeader = count;
-                        ituple.tuple = new Object[count];
-
-                        for(int o =0;o<count;o++){
-                            if(Integer.parseInt(p[4+4*o + offset]) == 1){
-                                int value = Integer.parseInt(p[5+4*o + offset]);
-                                int orivalue =Integer.parseInt((String)tuple.tuple[bedeputyattrid[o]]);
-                                Object ob = value+orivalue;
-                                ituple.tuple[o] = ob;
-                            }
-                            if(Integer.parseInt(p[4+4*o + offset]) == 0){
-                                ituple.tuple[o] = tuple.tuple[bedeputyattrid[o]];
-                            }
-                        }
-
-                        topt.maxTupleId++;
-                        int tupid = topt.maxTupleId;
-
-                        int [] aa = InsertTuple(ituple);
-                        //topt.objectTable.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-                        obj1.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-
-                        //bi
-                        biPointerT.biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));
-                    }
-                }
-            }
-
-            for(ObjectTableItem item6:obj1) {
-                topt.objectTable.add(item6);
-            }
-
-        }
-    }
-
-
     //SELECT popSinger -> singer.nation  FROM popSinger WHERE singerName = "JayZhou";
     //7,2,popSinger,singer,nation,popSinger,singerName,=,"JayZhou"
     //0 1 2         3      4      5         6          7  8
@@ -1019,6 +779,10 @@ public class TransAction {
         id[0] = 0;
         PrintSelectResult(tpl,name,id,attrtype);
         return tpl;
+
+
+
+
     }
 
     //UPDATE Song SET type = ‘jazz’WHERE songId = 100;
@@ -1112,126 +876,15 @@ public class TransAction {
 
     }
 
-    private void Union(String[] p){
-        System.out.println("Union");
-
-        // SELECT name AS n FROM company WHERE age=20
-        // UNION
-        // SELECT name AS n FROM company WHERE age=20
-        // UNION
-        // SELECT name AS n FROM company WHERE age=20;
-
-        // >>
-        //
-        // 9,1,name,0,0,n,company,age,=,20,1,name,0,0,n,company,age,=,20,1,name,0,0,n,company,age,=,20
-        int attrnumber = Integer.parseInt(p[1]);
-        String[] attrname = new String[attrnumber];
-        int[] attrid = new int[attrnumber];
-        String[] attrtype= new String[attrnumber];
-        String classname = p[2+4*attrnumber];
-        int classid = 0;
-        for(int i = 0;i < attrnumber;i++){
-            for (ClassTableItem item:classt.classTable) {
-                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) { // 2+4*i 是属性名
-                    classid = item.classid;
-                    attrid[i] = item.attrid;
-                    attrtype[i] = item.attrtype;
-                    attrname[i] = p[5+4*i]; // 新的名字
-                    //重命名
-                    break;
-                }
-            }
-        }
-        // String Union_operator = p[0];
-
-        TupleList total_tpl = new TupleList();
-
-        int pointer = 1; // 指向最后一组的开头
-
-        while (pointer<p.length){
-            System.out.println("pointer:"+pointer);
-            System.out.println("p[pointer]:"+p[pointer]);
-            int count = Integer.parseInt(p[pointer]);
-            int select_length = count*4+5;
-            String[] select_p = new String[select_length+1];
-
-            // select[0] is not used
-            select_p[0] = "a";
-            for(int i=1;i<=select_length;i++){
-                select_p[i] = p[pointer+i-1];
-            }
-            TupleList tpl = new TupleList();
-
-            tpl = subDirectSelect(select_p);
-
-            // 将tpl中的tuple添加到total_tpl中
-            for (int i=0;i<tpl.tuplenum;i++){
-                total_tpl.addTuple(tpl.tuplelist.get(i));
-            }
-            pointer = pointer+select_length;
-        }
-        // totoal_tpl去重
-        PrintSelectResult(total_tpl,attrname,attrid,attrtype,"true");
-    }
 
 
-    private TupleList subDirectSelect(String[] p){
-        TupleList tpl = new TupleList();
-        System.out.println("P[1] = "+p[1]);
-        int attrnumber = Integer.parseInt(p[1]);
-        String[] attrname = new String[attrnumber];
-        int[] attrid = new int[attrnumber];
-        String[] attrtype= new String[attrnumber];
-        String classname = p[2+4*attrnumber];
-        int classid = 0;
-        for(int i = 0;i < attrnumber;i++){
-            for (ClassTableItem item:classt.classTable) {
-                if (item.classname.equals(classname) && item.attrname.equals(p[2+4*i])) { // 2+4*i 是属性名
-                    classid = item.classid;
-                    attrid[i] = item.attrid;
-                    attrtype[i] = item.attrtype;
-                    attrname[i] = p[5+4*i]; // 新的名字
-                    //重命名
-
-                    break;
-                }
-            }
-        }
-
-        // 找到WHERE条件的属性
-        int sattrid = 0;
-        String sattrtype = null;
-        for (ClassTableItem item:classt.classTable) {
-            if (item.classid == classid && item.attrname.equals(p[3+4*attrnumber])) {
-                sattrid = item.attrid;
-                sattrtype = item.attrtype;
-                break;
-            }
-        }
 
 
-        for(ObjectTableItem item : topt.objectTable){
-            if(item.classid == classid){
-                Tuple tuple = GetTuple(item.blockid,item.offset);
-                if(Condition(sattrtype,tuple,sattrid,p[4*attrnumber+5])){
-                    for(int j = 0;j<attrnumber;j++){
-                        if(Integer.parseInt(p[3+4*j])==1){
-                            int value = Integer.parseInt(p[4+4*j]);
-                            int orivalue = Integer.parseInt((String)tuple.tuple[attrid[j]]);
-                            Object ob = value+orivalue;
-                            tuple.tuple[attrid[j]] = ob;
-                        }
-                    }
-                    tpl.addTuple(tuple);
-                }
-            }
-        }
-        // for(int i =0;i<attrnumber;i++){
-        //     attrid[i]=i;
-        // }
-        // PrintSelectResult(tpl,attrname,attrid,attrtype);
-        return tpl;
-    }
+    //INSERT INTO aa VALUES (1,2,"3");
+    //4,3,aa,1,2,"3"
+
+
+
 
 
 
@@ -1289,36 +942,19 @@ public class TransAction {
 
     private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, String[] type) {
         Intent intent = new Intent(context, PrintResult.class);
-        //System.out.println("PrintSelectResult");
+
 
         Bundle bundle = new Bundle();
         bundle.putSerializable("tupleList", tpl);
         bundle.putStringArray("attrname", attrname);
         bundle.putIntArray("attrid", attrid);
         bundle.putStringArray("type", type);
-        bundle.putString("removeDuplicate", "false");
         intent.putExtras(bundle);
         context.startActivity(intent);
+
+
     }
-
-    private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, String[] type,String removeDuplicate) {
-        Intent intent = new Intent(context, PrintResult.class);
-        //System.out.println("PrintSelectResult");
-
-        Bundle bundle = new Bundle();
-        bundle.putSerializable("tupleList", tpl);
-        bundle.putStringArray("attrname", attrname);
-        bundle.putIntArray("attrid", attrid);
-        bundle.putStringArray("type", type);
-        bundle.putString("removeDuplicate", "true");
-        intent.putExtras(bundle);
-        context.startActivity(intent);
-    }
-
-
-
     public void PrintTab(){
         PrintTab(topt,switchingT,deputyt,biPointerT,classt);
     }
 }
-
