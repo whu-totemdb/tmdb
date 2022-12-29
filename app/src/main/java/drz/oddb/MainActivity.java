@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     TransAction trans = new TransAction(this);
     Intent music = null;
 
-
+    private boolean whu_trace_select = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +77,41 @@ public class MainActivity extends AppCompatActivity {
                 trans.PrintTab();
             }
         });
+
+        // 清除文本框内数据
+        Button clean_button = findViewById(R.id.clean_button);
+        clean_button.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                //editText = findViewById(R.id.edit_text);
+                editText.setText("");
+            }
+        });
+
+        Button draw_trace = findViewById(R.id.draw_trace);
+        draw_trace.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                trans.show_map(whu_trace_select);
+
+                //int id[] = {1,1,1,1};
+                //trans.Printechart(id);
+            }
+        });
+
+        Button whu_trace = findViewById(R.id.whu);
+        whu_trace.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                if(whu_trace_select){
+                    whu_trace_select = false;
+                }
+                else{
+                    whu_trace_select = true;
+                }
+            }
+        });
+
     }
     protected void onStop(){
         Intent intent = new Intent(MainActivity.this,MusicServer.class);

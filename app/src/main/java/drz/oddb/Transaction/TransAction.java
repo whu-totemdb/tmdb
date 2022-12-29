@@ -160,6 +160,69 @@ public class TransAction {
             e.printStackTrace();
         }
 
+        //        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+//        try {
+//            Statement stmt=CCJSqlParserUtil.parse(byteArrayInputStream);
+//            String[] aa = new String[2];
+//            String sqlType=stmt.getClass().getSimpleName();
+//
+//            switch (sqlType) {
+//                case "CreateTable":
+//                    log.WriteLog(s);
+//                    CreateOriginClass(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "CreateDeputyClass":
+////                    switch
+//                    log.WriteLog(s);
+//                    CreateSelectDeputy(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+//                    break;
+////                case "Create":
+////                    log.WriteLog(s);
+////                    CreateUnionDeputy(aa);
+////                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建Union代理类成功").setPositiveButton("确定",null).show();
+////                    break;
+//                case "Drop":
+//                    log.WriteLog(s);
+//                    Drop(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "Insert":
+//                    log.WriteLog(s);
+//                    Insert(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "Delete":
+//                    log.WriteLog(s);
+//                    Delete(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
+//                    break;
+//                case "Select":
+//                    DirectSelect(aa);
+//                    break;
+////                case parse.OPT_SELECT_INDERECTSELECT:
+////                    InDirectSelect(aa);
+////                    break;
+//                case "Update":
+//                    log.WriteLog(s);
+//                    Update(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
+//                    break;
+////                case :
+////                    log.WriteLog(s);
+////                    Union(aa);
+////                    //new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
+////                    break;
+//                default:
+//                    break;
+//
+//            }
+//        } catch (JSQLParserException e) {
+//
+//            e.printStackTrace();
+//        }
+
         return s;
 
     }
@@ -249,7 +312,7 @@ public class TransAction {
                             k++;
 
                             if (k ==count)
-                                    break;
+                                break;
                         }
                     }
                     for (int l = 0;l<count;l++) {
@@ -329,7 +392,7 @@ public class TransAction {
                 Tuple tuple = GetTuple(item.blockid,item.offset);
                 if(Condition(attrtype,tuple,attrid,p[4])){
                     //需要删除的元组
-                     OandB ob =new OandB(DeletebyID(item.tupleid));
+                    OandB ob =new OandB(DeletebyID(item.tupleid));
                     for(ObjectTableItem obj:ob.o){
                         ob2.o.add(obj);
                     }
@@ -367,7 +430,7 @@ public class TransAction {
                     BiPointerTableItem item1 =(BiPointerTableItem) it.next();
                     if(item.tupleid == item1.deputyobjectid){
                         //it.remove();
-                      if(!todelete2.contains(item1))
+                        if(!todelete2.contains(item1))
                             todelete2.add(item1);
                     }
                     if(item.tupleid == item1.objectid){
@@ -392,16 +455,16 @@ public class TransAction {
                 //删除自身
                 DeleteTuple(item.blockid,item.offset);
                 if(!todelete2.contains(item));
-                    todelete1.add(item);
+                todelete1.add(item);
 
 
 
 
 
-                }
             }
+        }
 
-            return ob;
+        return ob;
     }
 
     //DROP CLASS asd;
@@ -426,7 +489,7 @@ public class TransAction {
                 for(Iterator it = switchingT.switchingTable.iterator(); it.hasNext();) {
                     SwitchingTableItem item2 =(SwitchingTableItem) it.next();
                     if (item2.attr.equals( item.attrname)||item2.deputy .equals( item.attrname)){
-                       it.remove();
+                        it.remove();
                     }
                 }
                 it1.remove();
@@ -470,12 +533,12 @@ public class TransAction {
                 }
                 for(String item4: sname){
 
-                        s[1] = item4;
-                        List<DeputyTableItem> dti2 = Drop1(s);
-                        for(DeputyTableItem item8:dti2){
-                            if(!dti.contains(item8))
-                                dti.add(item8);
-                        }
+                    s[1] = item4;
+                    List<DeputyTableItem> dti2 = Drop1(s);
+                    for(DeputyTableItem item8:dti2){
+                        if(!dti.contains(item8))
+                            dti.add(item8);
+                    }
 
                 }
                 if(!dti.contains(item3))
@@ -584,14 +647,14 @@ public class TransAction {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                        classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
-                        //swi
-                        if(Integer.parseInt(p[4+4*i]) == 1){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
-                        }
-                        if(Integer.parseInt(p[4+4*i])==0){
-                            switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
-                        }
+                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                    //swi
+                    if(Integer.parseInt(p[4+4*i]) == 1){
+                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
+                    }
+                    if(Integer.parseInt(p[4+4*i])==0){
+                        switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
+                    }
                     break;
                 }
             };
@@ -817,8 +880,8 @@ public class TransAction {
 
 
 
-        //INSERT INTO aa VALUES (1,2,"3");
-        //4,3,aa,1,2,"3"
+    //INSERT INTO aa VALUES (1,2,"3");
+    //4,3,aa,1,2,"3"
 
 
 
@@ -895,4 +958,3 @@ public class TransAction {
         PrintTab(topt,switchingT,deputyt,biPointerT,classt);
     }
 }
-

@@ -41,25 +41,29 @@ public interface parseConstants {
   /** RegularExpression Id. */
   int SELECTDEPUTY = 19;
   /** RegularExpression Id. */
-  int ID = 20;
+  int UNIONDEPUTY = 20;
   /** RegularExpression Id. */
-  int EQUAL = 21;
+  int AS = 21;
   /** RegularExpression Id. */
-  int INT = 22;
+  int ID = 22;
   /** RegularExpression Id. */
-  int STRING = 23;
+  int EQUAL = 23;
   /** RegularExpression Id. */
-  int CROSS = 24;
+  int INT = 24;
   /** RegularExpression Id. */
-  int DOT = 25;
+  int STRING = 25;
   /** RegularExpression Id. */
-  int AS = 26;
+  int CROSS = 26;
   /** RegularExpression Id. */
-  int PLUS = 27;
+  int DOT = 27;
   /** RegularExpression Id. */
-  int UPDATE = 28;
+  int PLUS = 28;
   /** RegularExpression Id. */
-  int SET = 29;
+  int UPDATE = 29;
+  /** RegularExpression Id. */
+  int SET = 30;
+  /** RegularExpression Id. */
+  int UNION = 31;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -72,30 +76,32 @@ public interface parseConstants {
     "\"/n\"",
     "\"/r\"",
     "\";\"",
-    "\"CREATE\"",
-    "\"DROP\"",
-    "\"CLASS\"",
+    "<CREATE>",
+    "<DROP>",
+    "<CLASS>",
     "\"INSERT\"",
-    "\"INTO\"",
+    "<INTO>",
     "\"VALUES\"",
     "\"(\"",
     "\",\"",
     "\")\"",
     "\"DELETE\"",
-    "\"FROM\"",
-    "\"WHERE\"",
+    "<FROM>",
+    "<WHERE>",
     "\"SELECT\"",
     "\"SELECTDEPUTY\"",
+    "\"UNIONDEPUTY\"",
+    "<AS>",
     "<ID>",
     "\"=\"",
     "<INT>",
     "<STRING>",
     "\"->\"",
     "\".\"",
-    "\"AS\"",
     "\"+\"",
     "\"UPDATE\"",
     "\"SET\"",
+    "\"UNION\"",
   };
 
 }

@@ -20,6 +20,7 @@
         android:maxLines="2"
         app:layout_constraintBottom_toTopOf="@+id/button"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.444"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -32,8 +33,37 @@
         android:text=""
         app:layout_constraintBottom_toTopOf="@+id/showbutton"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.196"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/edit_text" />
+
+    <Button
+        android:id="@+id/clean_button"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_marginBottom="62dp"
+        android:background="@android:drawable/ic_delete"
+        android:text=""
+        app:layout_constraintBottom_toTopOf="@+id/showbutton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/edit_text"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/draw_trace"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_marginBottom="62dp"
+        android:background="@android:drawable/ic_menu_search"
+        android:text=""
+        app:layout_constraintBottom_toTopOf="@+id/showbutton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.8"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/edit_text"
+        app:layout_constraintVertical_bias="1.0" />
 
     <Button
         android:id="@+id/exit_button"
@@ -58,7 +88,23 @@
         android:text=""
         app:layout_constraintBottom_toTopOf="@+id/exit_button"
         app:layout_constraintEnd_toEndOf="@+id/exit_button"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/exit_button"
         app:layout_constraintTop_toBottomOf="@+id/button" />
+
+    <Button
+        android:id="@+id/whu"
+        android:layout_width="87dp"
+        android:layout_height="82dp"
+        android:layout_marginStart="159dp"
+        android:layout_marginTop="45dp"
+        android:layout_marginEnd="165dp"
+        android:layout_marginBottom="32dp"
+        android:background="@drawable/whu"
+        android:text="WHU"
+        app:layout_constraintBottom_toTopOf="@+id/edit_text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>
