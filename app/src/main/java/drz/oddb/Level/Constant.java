@@ -1,4 +1,4 @@
-package drz.oddb.Transaction;
+package drz.oddb.Level;
 
 import drz.oddb.Transaction.SystemTable.BiPointerTableItem;
 import drz.oddb.Transaction.SystemTable.ClassTableItem;
@@ -36,6 +36,38 @@ public class Constant {
 
     // key 作为length允许占用的最大长度
     public static final int MAX_KEY_LENGTH = 10;
+
+    // Bloom Filter 使用的bit数组长度
+    public static final int BLOOM_FILTER_ARRAY_LENGTH = 24 * 1000;
+
+
+    /**
+     * BTree的阶<br>
+     * BTree中关键字个数为[ceil(m/2)-1,m-1]    <br>
+     * BTree中子树个数为[ceil(m/2),m]
+     */
+    public static final int BTREE_ORDER = 200;
+
+    /**
+     * 非根节点中最小的关键字个数
+     */
+    public static final int MIN_KEY_SIZE = (int) (Math.ceil(BTREE_ORDER / 2.0) - 1);
+
+    /**
+     * 非根节点中最大的关键字个数
+     */
+    public static final int MAX_KEY_SIZE = BTREE_ORDER - 1;
+
+    /**
+     * 每个结点中最小的孩子个数
+     */
+    public static final int MIN_CHILDREN_SIZE = (int) (Math.ceil(BTREE_ORDER / 2.0));
+
+    /**
+     * 每个结点中最大的孩子个数
+     */
+    public static final int MAX_CHILDREN_SIZE = BTREE_ORDER ;
+
 
     // 编码key字符串为byte[]
     public static final byte[] KEY_TO_BYTES(String key){
