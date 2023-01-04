@@ -33,7 +33,7 @@ public class MemManager {
         this.biPointerTable = b;
         this.switchingTable = s;
 
-        test();
+        //test();
     }
 
     private void test(){
