@@ -1,13 +1,14 @@
 package drz.oddb.Memory;
 
+import static drz.oddb.Level.Test.test;
+
 import org.apache.lucene.util.RamUsageEstimator;
 
 import java.util.List;
-import java.util.Random;
 
 import drz.oddb.Level.FileData;
 import drz.oddb.Level.LevelManager;
-import drz.oddb.Transaction.Constant;
+import drz.oddb.Level.Constant;
 import drz.oddb.Transaction.SystemTable.BiPointerTableItem;
 import drz.oddb.Transaction.SystemTable.ClassTableItem;
 import drz.oddb.Transaction.SystemTable.DeputyTableItem;
@@ -34,60 +35,6 @@ public class MemManager {
         this.switchingTable = s;
 
         //test();
-    }
-
-    private void test(){
-
-//        // 关于FileInfo的测试
-//        FileInfo f1 = new FileInfo(1, 300, "a1", "a10");
-//        FileInfo f2 = new FileInfo(2,400, "a1", "a11");
-//        FileInfo f3 = new FileInfo(3,300,"a0", "b10");
-//        SortedSet<FileInfo> s = new TreeSet<>();
-//        s.add(f1);
-//        s.add(f2);
-//        s.add(f3);
-//        return;
-
-
-//        // RamUsageEstimator 计算对象占用大小测试
-//        Random random = new Random();
-//        long[] sizes = new long[100];
-//        for(int i=0; i<100; i++){
-//            ObjectTableItem o = new ObjectTableItem(random.nextInt(100), i,random.nextInt(100),random.nextInt(100));
-//            this.objectTable.objectTable.add(o);
-//            sizes[i] = RamUsageEstimator.sizeOf(o);
-//        }
-//        return;
-
-
-        // add 测试
-        Random random = new Random();
-        int i = 0;
-        while(true){
-            ObjectTableItem o = new ObjectTableItem(random.nextInt(100), i,random.nextInt(100),random.nextInt(100));
-            add(o);
-            ClassTableItem c = new ClassTableItem("name", i, i, i, "attrname", "int", "ori");
-            add(c);
-            SwitchingTableItem s = new SwitchingTableItem("attr", "" + i, "00");
-            add(s);
-            i++;
-        }
-
-////        // FileData 测试
-//        ObjectTableItem o = new ObjectTableItem(10, 1, 10, 10);
-//        add(o);
-//        o = new ObjectTableItem(10, 2, 10, 10);
-//        add(o);
-//        o = new ObjectTableItem(10, 3, 10, 10);
-//        add(o);
-//        o = new ObjectTableItem(10, 4, 10, 10);
-//        add(o);
-//        saveMemTableToFile();
-//        FileData f1 = new FileData("data1", 1);
-//        return;
-
-
-
     }
 
 

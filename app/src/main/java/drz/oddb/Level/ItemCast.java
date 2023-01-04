@@ -1,6 +1,6 @@
 package drz.oddb.Level;
 
-import static drz.oddb.Transaction.Constant.DATABASE_DIR;
+import static drz.oddb.Level.Constant.DATABASE_DIR;
 
 import java.io.File;
 import java.io.FileInputStream;

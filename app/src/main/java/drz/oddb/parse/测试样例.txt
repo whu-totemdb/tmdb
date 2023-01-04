@@ -6,6 +6,16 @@ INSERT INTO company VALUES ("dd",20,1000);
 INSERT INTO company VALUES ("ee",20,1000);
 INSERT INTO company VALUES ("ff",30,1000);
 
+SELECT name from company UNION SELECT name from company;
+create CLASS test (name char,age int, salary int);
+
+INSERT INTO UNIONTEST VALUES ("aa",20,1000);
+INSERT INTO UNIONTEST VALUES ("bb",30,8000);
+INSERT INTO UNIONTEST VALUES ("cc",30,8000);
+
+SELECT * FROM UNIONTEST UNION ALL SELECT * FROM company;
+
+SELECT name AS n1 from company where age = 20 UNION SELECT name AS n2 from company where age = 30;
 //虚属性
 //创建代理类
 CREATE SELECTDEPUTY nandb SELECT name AS n1,age+5 AS birth,salary AS s1 FROM company WHERE age=20;

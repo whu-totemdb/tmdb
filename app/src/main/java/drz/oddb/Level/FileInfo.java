@@ -3,8 +3,6 @@ package drz.oddb.Level;
 
 import java.util.Map;
 
-import drz.oddb.Transaction.Constant;
-
 // 用于compaction时的排序
 public class FileInfo implements Comparable {
 

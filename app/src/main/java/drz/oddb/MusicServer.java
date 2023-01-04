@@ -18,7 +18,8 @@ public class MusicServer extends Service{
         super.onStart(intent,startld);
         if(mediaPlayer==null){
             //R.raw.xxx 是资源文件
-            mediaPlayer = MediaPlayer.create(this,R.raw.old_memory);
+            //mediaPlayer = MediaPlayer.create(this,R.raw.old_memory);
+            mediaPlayer = MediaPlayer.create(this,R.raw.eva);
             mediaPlayer.setLooping(true);
             mediaPlayer.start();
         }
