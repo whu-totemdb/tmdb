@@ -85,7 +85,7 @@ public class MobileTest {
                             new InetSocketAddress("127.0.0.1", 9090 + i - 1), gossipConfig);
             gossipService.start(true,initialNode.generateGossipRequest(key));*/
             //InetAddress otherIP = InetAddress.getByName(nodeSelf);
-            Node otherNode = new Node(ip, 9090 + i,  gossipConfig);
+            Node otherNode = new Node(ip, 9090+i, gossipConfig);
             nodeCluster.add(otherNode.getSocketAddress());
             otherNode.start();
             /*initialNode.getGossipController().getNodes().putIfAbsent(otherNode.getNodeID(), otherNode);
@@ -93,7 +93,7 @@ public class MobileTest {
             //otherNode.getGossipController().start();
         }
 
-        initialNode.broadcast(nodeCluster);
+        initialNode.broadcast1(nodeCluster);
         initialNode.updateVectorClock(key);
         //initialNode.getGossipController().setRequest(initialNode.generateGossipRequest(key));
 

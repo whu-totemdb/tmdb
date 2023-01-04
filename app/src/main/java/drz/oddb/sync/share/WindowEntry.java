@@ -11,4 +11,8 @@ public class WindowEntry {
         this.requestType = requestType;
         this.key = key;
     }
+
+    public Long getKey() {
+        return key;
+    }
 }

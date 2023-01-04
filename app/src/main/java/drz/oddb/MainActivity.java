@@ -14,7 +14,9 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.net.UnknownHostException;
 
 import drz.oddb.Memory.*;
 import drz.oddb.Transaction.SystemTable.BiPointerTable;
@@ -24,6 +26,8 @@ import drz.oddb.Transaction.SystemTable.DeputyTable;
 import drz.oddb.Transaction.SystemTable.ObjectTable;
 import drz.oddb.Transaction.SystemTable.SwitchingTable;
 import drz.oddb.Transaction.TransAction;
+import drz.oddb.sync.Sync;
+import drz.oddb.sync.node.Node;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView text_view;
     TransAction trans = new TransAction(this);
     Intent music = null;
+    Node node;
 
 
 
@@ -42,6 +47,20 @@ public class MainActivity extends AppCompatActivity {
         music = new Intent(MainActivity.this,MusicServer.class);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+        new Thread(()->{
+
+            try {
+                node = Sync.initialNode();
+                node.start();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+        },"initialNodeThread").start();
+
+
 
         //播放BGM
         startService(music);
@@ -77,7 +96,53 @@ public class MainActivity extends AppCompatActivity {
                 trans.PrintTab();
             }
         });
+
+
+        //广播按钮
+        Button broadcast_button = findViewById(R.id.broadcast_button);
+
+        broadcast_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new Thread(() -> {
+                    try {
+                        Sync.broadcast(node);
+                    }catch (UnknownHostException e){
+                        e.printStackTrace();
+                    }
+                },"broadcastThread").start();
+
+
+            }
+        });
+
+
+
+        //同步按钮
+        Button sync_button = findViewById(R.id.sync_button);
+        sync_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                /*try {
+
+                    try {
+                        Sync.syncStart();
+                    }catch (InterruptedException e1){
+                        e1.printStackTrace();
+                    }
+
+                }catch (IOException e2){
+                    e2.printStackTrace();
+                }*/
+
+            }
+        });
+
+
+
     }
+
+
     protected void onStop(){
         Intent intent = new Intent(MainActivity.this,MusicServer.class);
         stopService(intent);
