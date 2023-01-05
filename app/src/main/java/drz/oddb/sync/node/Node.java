@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -66,10 +67,15 @@ public class Node implements Serializable {
 
     private GossipController gossipController;
 
-    public static SendTimeTest sendTimeTest = new SendTimeTest();
 
-    public static ReceiveTimeTest receiveTimeTest = new ReceiveTimeTest();
-    //private byte[] data;
+    //统计使用
+    public static HashMap<Integer,SendTimeTest> sendTimeTest = new HashMap<>();//批次号batch_id与测试对象的映射
+
+    public static HashMap<Integer,ArrayList<Integer>> batch_id_map = new HashMap<>();//批次号batch_id与该批请求的映射
+
+    public static HashMap<Integer,ReceiveTimeTest> receiveTimeTest = new HashMap<>();//请求id与接收时间测试对象的映射
+
+    public static int batch_num = 0;
 
 
 
@@ -413,7 +419,12 @@ public class Node implements Serializable {
         //生成一个仲裁判定器
 
 
-        return new GossipRequest(requestID,key,action,getVectorClock(key),getSocketAddress(),false);
+
+
+        GossipRequest request = new GossipRequest(requestID,key,action,getVectorClock(key),getSocketAddress(),false);
+        request.batch_id = batch_num;
+
+        return request;
     }
 
     //处理一个请求
@@ -494,8 +505,9 @@ public class Node implements Serializable {
         }
         else {
             //不是广播请求
-            long primaryKey = gossipRequest.getKey();
+            long primaryKey = gossipRequest.getKey();//主键
             InetSocketAddress socketAddress1 = gossipRequest.getSourceIPAddress();
+            int id = gossipRequest.getRequestID();//请求的id号
 
             nodeStateTable.put(socketAddress1,true);
 
@@ -508,7 +520,7 @@ public class Node implements Serializable {
                 long l1 = System.currentTimeMillis();
                 VectorClock newClock = oldClock.merge(gossipRequest.getVectorClock());//合并向量时钟
                 long l2 = System.currentTimeMillis();
-                receiveTimeTest.setMergeVectorClockTime(SendTimeTest.calculate(l1, l2));
+                receiveTimeTest.get(id).setMergeVectorClockTime(SendTimeTest.calculate(l1, l2));
                 //等待后续补充其他对向量时钟更加复杂操作的实现
 
                 vectorClockMap.put(primaryKey, newClock);
@@ -538,7 +550,7 @@ public class Node implements Serializable {
 
         if (response.isBroadcast()){
             //如果是广播请求的响应
-            InetSocketAddress inetSocketAddress = response.getSource();//获取其他节点的IP套接字
+            InetSocketAddress inetSocketAddress = response.getSource();//获取其他节点的IP套接字（IP地址+接收端口号）
             nodeStateTable.putIfAbsent(inetSocketAddress,true);//更新节点状态表
         }
         else {
@@ -579,10 +591,17 @@ public class Node implements Serializable {
         new Thread(()->{
             while(!failed){
                 GossipRequest request = generateGossipRequest();
+
+                if (!sendTimeTest.containsKey(request.batch_id)) {
+                    SendTimeTest s = new SendTimeTest();
+                    sendTimeTest.put(request.batch_id, s);
+                    batch_id_map.put(request.batch_id,new ArrayList<>());
+                }
+
                 long start =System.currentTimeMillis();
                 processQueue(request);
                 long end = System.currentTimeMillis();
-                sendTimeTest.setProcessQueueTimeOnce(SendTimeTest.calculate(start,end));
+                sendTimeTest.get(request.batch_id).setProcessQueueTimeOnce(SendTimeTest.calculate(start,end));
 
                 try{
                     Thread.sleep(gossipConfig.updateFrequency.toMillis());

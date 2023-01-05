@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import drz.oddb.sync.config.GossipConfig;
 import drz.oddb.sync.node.Node;
 import drz.oddb.sync.statistics.WriteCSV;
-
+import drz.oddb.sync.timeTest.SendTimeTest;
 
 
 /**
@@ -32,7 +32,7 @@ public class ExampleUnitTest {
                 Duration.ofSeconds(3),
                 Duration.ofMillis(10),
                 Duration.ofMillis(10),
-                3
+                2
         );
 
         ArrayList<InetSocketAddress> nodeCluster = new ArrayList<>();
@@ -88,35 +88,42 @@ public class ExampleUnitTest {
 
         initialNode.broadcast1(nodeCluster);
 
-        String[] sendData;
-        ArrayList<String[]> sendDataList = new ArrayList<>();
-
-
-
 
         for (int m = 1; m <= 3; m++) {
-            initialNode.updateVectorClock(key);
+
+            for (int n = 1; n <= m ; n++){
+                initialNode.updateVectorClock(key);
+            }
+
             try {
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            sendData = WriteCSV.getAttributeValue(Node.sendTimeTest);
-            sendDataList.add(sendData);
+            SendTimeTest s = Node.sendTimeTest.get(Node.batch_num);
+            s.getProcessQueueAverageTime();
+            s.getSendRequestAverageTime();
+            s.getWriteObjectAverageTime();
+            Node.batch_num++;
 
-
-            /*for(int n = 0;n<data.length;n++){
-                System.out.print(data[n]+" ");
-            }
-            System.out.println();*/
         }
 
 
 
         Thread.sleep(10000);
 
-        ArrayList<String[]> sendHead = WriteCSV.getAttributes(Node.sendTimeTest);
-        WriteCSV.writeCSVFile("sendTime2",sendHead,sendDataList,false);
+        ArrayList<String[]> sendHead = WriteCSV.getAttributes(new SendTimeTest());
+        ArrayList<String[]> sendDataList = new ArrayList<>();
+        SendTimeTest test;
+        String[] tmp;
+
+        for (Integer i : Node.sendTimeTest.keySet()){
+            test = Node.sendTimeTest.get(i);
+            tmp = WriteCSV.getAttributeValue(test);
+            sendDataList.add(tmp);
+        }
+
+        WriteCSV.writeCSVFile("sendTime3",sendHead,sendDataList,false);
         /*ArrayList<String[]> receiveHead = WriteCSV.getAttributes(Node.receiveTimeTest);
         String[] receiveData = WriteCSV.getAttributeValue(Node.receiveTimeTest);
         ArrayList<String[]> receiveDataList = new ArrayList<>();
@@ -144,6 +151,7 @@ public class ExampleUnitTest {
         Node initialNode = new Node(ip, 9091, gossipConfig);
 
         initialNode.start();
+
 
 
         //initialNode.broadcast();

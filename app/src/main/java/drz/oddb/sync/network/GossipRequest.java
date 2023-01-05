@@ -1,6 +1,8 @@
 package drz.oddb.sync.network;
 
 import drz.oddb.sync.node.database.Action;
+import drz.oddb.sync.timeTest.ReceiveTimeTest;
+import drz.oddb.sync.timeTest.SendTimeTest;
 import drz.oddb.sync.vectorClock.VectorClock;
 
 import java.io.Serializable;
@@ -9,6 +11,8 @@ import java.net.InetSocketAddress;
 import java.time.LocalDateTime;
 
 public class GossipRequest implements Serializable {
+    public int batch_id;//供统计使用，后可删除
+
     private int requestID;
 
     private Long key;//数据主键
@@ -27,6 +31,7 @@ public class GossipRequest implements Serializable {
     private long sendTime;
 
     private long receiveTime;
+
 
 
     public GossipRequest(InetSocketAddress sourceIPAddress, boolean broadcast) {

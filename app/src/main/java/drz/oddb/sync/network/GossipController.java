@@ -4,6 +4,7 @@ import drz.oddb.sync.config.GossipConfig;
 import drz.oddb.sync.node.Node;
 import drz.oddb.sync.share.ReceiveDataArea;
 import drz.oddb.sync.share.SendInfo;
+import drz.oddb.sync.timeTest.SendTimeTest;
 import drz.oddb.sync.vectorClock.VectorClock;
 
 import java.io.IOException;
@@ -271,9 +272,10 @@ public class GossipController {
          * 对每个需要发送的节点都会开启一个线程进行异步的传输
          * */
         try {
-            int count = 0;
+            int count = 0;//发送线程计数
 
-            long timeSum = 0;
+            int batch_id = gossipRequest.batch_id;
+
             for (InetSocketAddress target : otherNodes) {
                 gossipRequest.setTargetIPAddress(target);
 
@@ -291,13 +293,13 @@ public class GossipController {
                 thread.start();
                 thread.join();
                 long l1 = System.currentTimeMillis();
-                System.out.println(thread.getName() + "：发送请求给节点所耗费的时间为：" + (l1 - l) + "ms");
-                timeSum += l1 - l;
+
+                Node.sendTimeTest.get(batch_id).setSendRequestTimeOnce(SendTimeTest.calculate(l,l1));
             }
 
-            Node.sendTimeTest.setSendRequestAverageTime(timeSum / otherNodes.size());
+            /*Node.sendTimeTest.setSendRequestAverageTime(timeSum / otherNodes.size());
             Node.sendTimeTest.setWriteObjectAverageTime(
-                    Node.sendTimeTest.getWriteObjectTotalTime() / otherNodes.size());
+                    Node.sendTimeTest.getWriteObjectTotalTime() / otherNodes.size());*/
 
 
         } catch (InterruptedException e) {
@@ -417,7 +419,7 @@ public class GossipController {
             else if(newData instanceof Response){
                 Response response = (Response) newData;
 
-                System.out.println("成功收到来自"+response.getSource()+"的响应");
+                //System.out.println("成功收到来自"+response.getSource()+"的响应");
                 synchronized (receiveDataArea.getReceivedResponseQueue()){
                     if (receiveDataArea.responseQueueFull()){
                         try {

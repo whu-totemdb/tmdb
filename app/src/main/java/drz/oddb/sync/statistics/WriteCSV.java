@@ -95,6 +95,7 @@ public class WriteCSV {
     }
 
 
+    //获取类T的属性名
     public static <T> ArrayList<String[]> getAttributes(T t){
         ArrayList<String[]> result = new ArrayList<>();
 
@@ -112,8 +113,8 @@ public class WriteCSV {
         return result;
     }
 
+    //获取类T的对象t各个属性的值
     public static <T> String[] getAttributeValue(T t){
-
 
         Field[] fields = t.getClass().getDeclaredFields();
         int len = fields.length;
@@ -132,7 +133,6 @@ public class WriteCSV {
         }
 
         //result.add(attributes);
-
 
         return values;
     }

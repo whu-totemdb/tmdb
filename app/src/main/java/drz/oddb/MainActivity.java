@@ -111,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
         draw_trace.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
-                trans.show_map(whu_trace_select);
+                //trans.show_map(whu_trace_select);
 
                 //int id[] = {1,1,1,1};
                 //trans.Printechart(id);

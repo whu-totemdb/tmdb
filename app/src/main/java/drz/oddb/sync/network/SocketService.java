@@ -49,11 +49,18 @@ public class SocketService {
 
 
     public void sendGossipRequest(/*Node source,Node target,*/GossipRequest request) throws IOException{
+
+        int batch_id = request.batch_id;
+
         request.setSendTime(System.currentTimeMillis());
 
         byte[] dataReadyToTransport = getDataToTransport(request);
 
-        Node.sendTimeTest.setDataSize(dataReadyToTransport.length);
+        if(!Node.batch_id_map.get(batch_id).contains(request.getRequestID())) {//如果是第一次处理此id号的请求
+            Node.batch_id_map.get(batch_id).add(request.getRequestID());
+            Node.sendTimeTest.get(batch_id).setDataSize(dataReadyToTransport.length);
+
+        }
 
         System.out.println(Thread.currentThread().getName() + "：发送的请求大小为：" + dataReadyToTransport.length + "B");
 
@@ -72,6 +79,16 @@ public class SocketService {
 
     public static byte[] getDataToTransport(Object request){
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        boolean isRequest = false;
+        int batch_id;
+        if (request instanceof GossipRequest) {
+            GossipRequest gRequest = (GossipRequest) request;
+            batch_id = gRequest.batch_id;
+            isRequest = true;
+        }else {
+            batch_id = 0;
+        }
+
 
         try{
             ObjectOutput oo = new ObjectOutputStream(byteArrayOutputStream);
@@ -81,17 +98,20 @@ public class SocketService {
             long packageAfter = System.currentTimeMillis();
 
             long cost = SendTimeTest.calculate(packageBefore,packageAfter);
+            if (isRequest) {
+                SendTimeTest sendTimeTest = Node.sendTimeTest.get(batch_id);
 
-            if(cost > Node.sendTimeTest.getWriteObjectMaxTime()) {
-                Node.sendTimeTest.setWriteObjectMaxTime(cost);
-            }else if(cost < Node.sendTimeTest.getWriteObjectMinTime()){
-                Node.sendTimeTest.setWriteObjectMinTime(cost);
-            }else{
-                Node.sendTimeTest.setWriteObjectTotalTime(Node.sendTimeTest.getWriteObjectTotalTime() + cost);
+                if (sendTimeTest != null) {
+                    sendTimeTest.setWriteObjectTimeOnce(cost);
+
+                    if (cost > sendTimeTest.getWriteObjectMaxTime()) {
+                        sendTimeTest.setWriteObjectMaxTime(cost);
+
+                    } else if (cost < sendTimeTest.getWriteObjectMinTime()) {
+                        sendTimeTest.setWriteObjectMinTime(cost);
+                    }
+                }
             }
-
-            //Node.sendTimeTest.setWriteObjectTime(SendTimeTest.calculate(packageBefore,packageAfter));
-            //System.out.println("数据流写入所需时间为："+(packageAfter-packageBefore)+"ms");
             oo.close();
         }catch (IOException e){
             e.printStackTrace();
@@ -142,35 +162,36 @@ public class SocketService {
 
     public Object receiveData(){
         try{
-            byte[] data;
-
             receiveDatagramSocket.receive(receivePacket);
 
             /*InetAddress a = receivePacket.getAddress();
             int b = receivePacket.getPort();*/
-            data = receivePacket.getData();
+            byte[] data = receivePacket.getData();
 
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
             ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
 
-
-            //System.out.println("数据流接收所需时间为："+(packageAfter1-packageBefore1)+"ms");
-
             Object message = null;
 
-
             try{
-
-
                 long packageBefore = System.currentTimeMillis();
                 message = objectInputStream.readObject();//耗时点
                 long packageAfter = System.currentTimeMillis();
-                Node.receiveTimeTest.setReadObjectTime(ReceiveTimeTest.calculate(packageBefore,packageAfter));
+
+                if (message instanceof GossipRequest){
+                    GossipRequest request = (GossipRequest) message;
+                    int id = request.getRequestID();
+
+                    if (!Node.receiveTimeTest.containsKey(id)){
+                        ReceiveTimeTest r = new ReceiveTimeTest();
+                        r.setReadObjectTime(ReceiveTimeTest.calculate(packageBefore,packageAfter));
+                        Node.receiveTimeTest.put(id,r);
+                    }
+                }
+
 
                 //System.out.println("数据流读取所需时间为："+(packageAfter-packageBefore)+"ms");
-                if(message != null){
 
-                }
             }catch (ClassNotFoundException classNotFoundException){
                 classNotFoundException.printStackTrace();
             }finally {
@@ -186,36 +207,18 @@ public class SocketService {
 
     public Object receiveBroadcastData(){
         try{
-            byte[] data;
 
             broadcastDatagramSocket.receive(broadcastReceivePacket);
-
-            /*InetAddress a = receivePacket.getAddress();
-            int b = receivePacket.getPort();*/
-
-            data = broadcastReceivePacket.getData();
+            byte[] data = broadcastReceivePacket.getData();
 
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
             ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
 
-
-            //System.out.println("数据流接收所需时间为："+(packageAfter1-packageBefore1)+"ms");
-
             Object message = null;
 
-
             try{
+                message = objectInputStream.readObject();
 
-
-                long packageBefore = System.currentTimeMillis();
-                message = objectInputStream.readObject();//耗时点
-                long packageAfter = System.currentTimeMillis();
-                Node.receiveTimeTest.setReadObjectTime(ReceiveTimeTest.calculate(packageBefore,packageAfter));
-
-                //System.out.println("数据流读取所需时间为："+(packageAfter-packageBefore)+"ms");
-                if(message != null){
-
-                }
             }catch (ClassNotFoundException classNotFoundException){
                 classNotFoundException.printStackTrace();
             }finally {
