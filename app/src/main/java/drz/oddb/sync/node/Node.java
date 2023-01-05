@@ -488,6 +488,7 @@ public class Node implements Serializable {
             System.out.println("本机的IP套接字为："+source);
             InetSocketAddress target = gossipRequest.getSourceIPAddress();
             nodeStateTable.putIfAbsent(target,true);
+            showNodeStateTable();
 
             Thread sendResponseThread = new Thread(() -> {
                 Response response = new Response(source,target,true);
@@ -552,6 +553,7 @@ public class Node implements Serializable {
             //如果是广播请求的响应
             InetSocketAddress inetSocketAddress = response.getSource();//获取其他节点的IP套接字（IP地址+接收端口号）
             nodeStateTable.putIfAbsent(inetSocketAddress,true);//更新节点状态表
+            showNodeStateTable();
         }
         else {
 
@@ -646,7 +648,12 @@ public class Node implements Serializable {
         }).start();
     }*/
 
-
+    public void showNodeStateTable(){
+        System.out.println("本节点保存的集群内各IP地址的信息为：");
+        for (InetSocketAddress i : nodeStateTable.keySet()){
+            System.out.println(i);
+        }
+    }
 
 
 }

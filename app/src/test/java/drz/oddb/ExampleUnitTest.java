@@ -147,6 +147,7 @@ public class ExampleUnitTest {
 
         String nodeSelf = InetAddress.getLocalHost().getHostAddress();
         InetAddress ip = InetAddress.getByName(nodeSelf);
+        System.out.println("IP地址为：" + ip);
 
         Node initialNode = new Node(ip, 9091, gossipConfig);
 
