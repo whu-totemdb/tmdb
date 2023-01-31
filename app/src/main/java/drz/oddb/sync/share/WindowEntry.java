@@ -1,18 +1,20 @@
 package drz.oddb.sync.share;
 
+import drz.oddb.sync.node.database.Action;
+
 public class WindowEntry {
     private RequestType requestType;
 
-    private Long key;
+    private Action action;
 
     public WindowEntry(){}
 
-    public WindowEntry(RequestType requestType, Long key) {
+    public WindowEntry(RequestType requestType, Action action) {
         this.requestType = requestType;
-        this.key = key;
+        this.action = action;
     }
 
-    public Long getKey() {
-        return key;
+    public Action getAction() {
+        return action;
     }
 }

@@ -1,30 +1,32 @@
 package drz.oddb.sync;
 
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
+
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
+
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
+
 
 import drz.oddb.sync.config.GossipConfig;
 import drz.oddb.sync.node.Node;
-import drz.oddb.sync.statistics.WriteCSV;
+import drz.oddb.sync.node.database.Action;
+import drz.oddb.sync.node.database.OperationType;
 import drz.oddb.sync.util.NetworkUtil;
+import drz.oddb.sync.util.NodeUtil;
 
 public class Sync {
 
-    public static Node initialNode() throws Exception{
+    private static Node node;
+
+    public static Node getNode() {
+        return node;
+    }
+
+
+
+    public static void initialNode(int receivePort) throws Exception{
         GossipConfig gossipConfig = new GossipConfig(
                 Duration.ofSeconds(3),
                 Duration.ofSeconds(3),
@@ -33,29 +35,40 @@ public class Sync {
                 3
         );
 
-
+        String nodeID = NodeUtil.obtainNodeID();//后面需要将nodeID持久化保存，如果机器之前生成过则读取保存的值进行node初始化
 
         String nodeSelf = NetworkUtil.getLocalHostIP();//InetAddress.getLocalHost().getHostAddress();
         InetAddress ip = InetAddress.getByName(nodeSelf);
         System.out.println("IP地址为："+ip);
 
-        Node initialNode = new Node(ip, 9090, gossipConfig);
+        node = new Node(nodeID, ip, receivePort, gossipConfig);
 
-        return initialNode;
+        //return initialNode;
     }
 
 
 
-    public static void syncStart() throws
-            IOException,
-            InterruptedException {
-
+    public static void start() {
+        if(node == null){
+            System.out.println("请先初始化节点！");
+        }
+        else{
+            node.start();
+        }
 
     }
 
 
-    public static void broadcast(Node initialNode) throws UnknownHostException {
+    public static void broadcast() throws UnknownHostException {
+        node.broadcast();
+    }
 
-        initialNode.broadcast();
+    //对主键为key的数据进行同步操作
+    public static void syncStart(Action action){
+        //node.updateVectorClock(key);
+        node.getDataManager().putAction(action);
+        if (action.getOp() != OperationType.select){
+            node.getDataManager().putOldAction(action);
+        }
     }
 }

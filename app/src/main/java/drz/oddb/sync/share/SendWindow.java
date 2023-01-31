@@ -2,6 +2,8 @@ package drz.oddb.sync.share;
 
 import java.util.ArrayList;
 
+import drz.oddb.sync.node.database.Action;
+
 public class SendWindow {
     private final int maxNum;//数组最大长度，即所能容纳的最大请求数量
 
@@ -61,10 +63,10 @@ public class SendWindow {
     }
 
 
-    public void put(RequestType requestType, Long key){
+    public void put(RequestType requestType, Action action){
 
 
-        WindowEntry entry = new WindowEntry(requestType,key);
+        WindowEntry entry = new WindowEntry(requestType,action);
         syncQueue[nextIndex] = entry;
 
         nextIndex = (nextIndex + 1) % maxNum;

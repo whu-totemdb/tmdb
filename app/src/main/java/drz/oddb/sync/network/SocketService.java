@@ -79,6 +79,8 @@ public class SocketService {
 
     public static byte[] getDataToTransport(Object request){
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+        //统计使用
         boolean isRequest = false;
         int batch_id;
         if (request instanceof GossipRequest) {
@@ -90,6 +92,8 @@ public class SocketService {
         }
 
 
+
+
         try{
             ObjectOutput oo = new ObjectOutputStream(byteArrayOutputStream);
 
@@ -98,6 +102,8 @@ public class SocketService {
             long packageAfter = System.currentTimeMillis();
 
             long cost = SendTimeTest.calculate(packageBefore,packageAfter);
+
+            //统计使用
             if (isRequest) {
                 SendTimeTest sendTimeTest = Node.sendTimeTest.get(batch_id);
 
@@ -112,6 +118,8 @@ public class SocketService {
                     }
                 }
             }
+
+
             oo.close();
         }catch (IOException e){
             e.printStackTrace();

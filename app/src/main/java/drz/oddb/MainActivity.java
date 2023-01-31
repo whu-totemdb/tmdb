@@ -28,6 +28,8 @@ import drz.oddb.Transaction.SystemTable.SwitchingTable;
 import drz.oddb.Transaction.TransAction;
 import drz.oddb.sync.Sync;
 import drz.oddb.sync.node.Node;
+import drz.oddb.sync.node.database.Action;
+import drz.oddb.sync.node.database.OperationType;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView text_view;
     TransAction trans = new TransAction(this);
     Intent music = null;
-    Node node;
+    //Node node;
 
     private boolean whu_trace_select = false;
 
@@ -52,8 +54,9 @@ public class MainActivity extends AppCompatActivity {
         new Thread(()->{
 
             try {
-                node = Sync.initialNode();
-                node.start();
+                Sync.initialNode(9090);
+                Sync.start();
+                //node.start();
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -141,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 new Thread(() -> {
                     try {
-                        Sync.broadcast(node);
+                        Sync.broadcast();
                     }catch (UnknownHostException e){
                         e.printStackTrace();
                     }
@@ -158,17 +161,20 @@ public class MainActivity extends AppCompatActivity {
         sync_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*try {
 
-                    try {
-                        Sync.syncStart();
-                    }catch (InterruptedException e1){
-                        e1.printStackTrace();
-                    }
+                //insert into test values("a",1,10.0);
+                Action action = new Action(
+                    OperationType.insert,
+                    "test",
+                    "test",
+                    1,
+                    1,
+                    3,
+                    new String[]{"name", "age", "num"},
+                    new String[]{"String", "Integer", "Double"},
+                    new String[]{"a", "1", "10.0"});
 
-                }catch (IOException e2){
-                    e2.printStackTrace();
-                }*/
+                Sync.syncStart(action);
 
             }
         });

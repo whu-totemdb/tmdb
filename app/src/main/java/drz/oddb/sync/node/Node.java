@@ -2,12 +2,14 @@ package drz.oddb.sync.node;
 
 import android.util.Log;
 
+import drz.oddb.sync.arbitration.ArbitrationController;
 import drz.oddb.sync.config.GossipConfig;
 import drz.oddb.sync.network.GossipController;
 import drz.oddb.sync.network.GossipRequest;
 import drz.oddb.sync.network.Response;
 import drz.oddb.sync.network.SocketService;
 import drz.oddb.sync.node.database.Action;
+import drz.oddb.sync.node.database.DataManager;
 import drz.oddb.sync.node.database.OperationType;
 import drz.oddb.sync.share.ReceiveDataArea;
 import drz.oddb.sync.share.RequestType;
@@ -17,6 +19,7 @@ import drz.oddb.sync.share.WindowEntry;
 import drz.oddb.sync.timeTest.ReceiveTimeTest;
 import drz.oddb.sync.timeTest.SendTimeTest;
 import drz.oddb.sync.util.NetworkUtil;
+import drz.oddb.sync.util.NodeUtil;
 import drz.oddb.sync.vectorClock.VectorClock;
 
 import java.io.IOException;
@@ -38,6 +41,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Node implements Serializable {
     //private final InetSocketAddress socketAddress;//节点的IP套接字（IP地址+端口号）
+    private final String nodeID;
 
     private final InetAddress IPAddress;//IP地址
 
@@ -59,13 +63,15 @@ public class Node implements Serializable {
 
     private ConcurrentHashMap<Long, VectorClock> vectorClockMap;
 
-    private ConcurrentLinkedQueue<Long> syncQueue;
+    private DataManager dataManager;
 
     private SendWindow sendWindow;//发送窗口，存储待发送请求的数据区
 
     private ConcurrentHashMap<InetSocketAddress,Boolean> nodeStateTable = new ConcurrentHashMap<>();//节点状态表
 
     private GossipController gossipController;
+
+    private ArbitrationController arbitrationController;
 
 
     //统计使用
@@ -79,9 +85,11 @@ public class Node implements Serializable {
 
 
 
-    public Node( InetAddress IPAddress, int receivePort, GossipConfig gossipConfig) {
+    public Node( String nodeID, InetAddress IPAddress, int receivePort, GossipConfig gossipConfig) {
         //this.socketAddress = socketAddress;
         //this.version = version;
+        this.nodeID = nodeID;
+
         this.IPAddress = IPAddress;
         this.receivePort = receivePort;
         this.gossipConfig = gossipConfig;
@@ -89,7 +97,9 @@ public class Node implements Serializable {
 
 
         vectorClockMap = new ConcurrentHashMap<>();
-        syncQueue = new ConcurrentLinkedQueue<>();
+        dataManager = new DataManager();
+        arbitrationController = new ArbitrationController();
+
 
         initialVectorClockMap();//初始化应用数据库
 
@@ -105,9 +115,9 @@ public class Node implements Serializable {
 
         sendWindow = new SendWindow(65536,10);
 
-        setLastUpdateTime();
+        //setLastUpdateTime();
         System.out.println(Thread.currentThread().getName() + "：新生成了一个节点" + this.IPAddress.toString());
-
+        showNodeStateTable();
 
 
     }
@@ -159,10 +169,10 @@ public class Node implements Serializable {
     }
 
     /*
-     * 获取节点的唯一标识，以节点的IP地址作为唯一的标识
+     * 获取节点的唯一标识
      * */
     public String getNodeID(){
-        return IPAddress.toString();
+        return nodeID;
     }
 
     /*
@@ -172,19 +182,7 @@ public class Node implements Serializable {
         return IPAddress.getHostName();
     }
 
-    /*
-     * 获取IP地址
-     * */
-    /*public InetAddress getIPAddress(){
-        return socketAddress.getAddress();
-    }*/
 
-    /*
-     * 获取端口号
-     * */
-    /*public int getPort(){
-        return socketAddress.getPort();
-    }*/
 
     public int getReceivePort() {
         return receivePort;
@@ -206,6 +204,9 @@ public class Node implements Serializable {
         return gossipController;
     }
 
+    public DataManager getDataManager() {
+        return dataManager;
+    }
 
 
     public void setNodeStateTable(ConcurrentHashMap<InetSocketAddress, Boolean> nodeStateTable) {
@@ -347,32 +348,61 @@ public class Node implements Serializable {
     }*/
 
     //更新本地的向量时钟，只有写请求才会调用此函数
-    public void updateVectorClock(Long key){
+    public void updateVectorClock(long key){
         setLastUpdateTime();
+
         VectorClock clocks = vectorClockMap.get(key);
-
-
 
         if (clocks == null ){
             clocks = new VectorClock();
         }
 
-        clocks.increaseVersion(/*getNodeID()*/getIPAddress().toString(),System.currentTimeMillis());
+        clocks.increaseVersion(getNodeID()/*getIPAddress().toString()*/,System.currentTimeMillis());
         vectorClockMap.putIfAbsent(key,clocks);
 
-        //syncQueue.add(key);//压入队列中
-        synchronized (sendWindow) {
-            if (sendWindow.isFull()){
-                try {
-                    sendWindow.wait();
-                }catch (InterruptedException e){
-                    e.printStackTrace();
+
+    }
+
+    public void startDataManageThread(){
+        Thread thread = new Thread(() -> {
+            while (!failed){
+                Action action = dataManager.getAction();
+
+                if(action.getOp() == OperationType.select){
+                    //读请求
+                    synchronized (sendWindow) {
+                        if (sendWindow.isFull()){
+                            try {
+                                sendWindow.wait();
+                            }catch (InterruptedException e){
+                                e.printStackTrace();
+                            }
+                        }
+
+                        sendWindow.put(RequestType.readRequest, action);
+                        sendWindow.notifyAll();
+                    }
+                }
+                else{//写请求
+
+                    synchronized (sendWindow) {
+                        if (sendWindow.isFull()){
+                            try {
+                                sendWindow.wait();
+                            }catch (InterruptedException e){
+                                e.printStackTrace();
+                            }
+                        }
+
+                        updateVectorClock(action.getKey());
+                        sendWindow.put(RequestType.writeRequest, action);
+                        sendWindow.notifyAll();
+                    }
+
                 }
             }
-
-            sendWindow.put(RequestType.writeRequest, key);
-            sendWindow.notifyAll();
-        }
+        },"dataManageThread");
+        thread.start();
     }
 
 
@@ -391,7 +421,7 @@ public class Node implements Serializable {
             entry = sendWindow.getNextEntry();//取下一个待发送的请求，但不移出数据区
         }
 
-        long key = entry.getKey();
+        long key = entry.getAction().getKey();
 
         if (requestID < maxRequestID){
             requestID++;
@@ -403,8 +433,10 @@ public class Node implements Serializable {
         System.out.println(Thread.currentThread().getName() + "：本次处理的请求的id为" + requestID );
 
         //获取对应的action对象
+        Action action = entry.getAction();
+
         //insert into test values("a",1,10.0);
-        Action action = new Action(
+        /*Action action = new Action(
                 OperationType.insert,
                 "test",
                 "test",
@@ -413,7 +445,7 @@ public class Node implements Serializable {
                 3,
                 new String[]{"name", "age", "num"},
                 new String[]{"String", "Integer", "Double"},
-                new String[]{"a", "1", "10.0"});
+                new String[]{"a", "1", "10.0"});*/
 
 
         //生成一个仲裁判定器
@@ -428,7 +460,7 @@ public class Node implements Serializable {
     }
 
     //处理一个请求
-    private void processQueue(GossipRequest request){
+    private void process(GossipRequest request){
 
         ArrayList<InetSocketAddress> aliveNodes = getAliveNodes();
 
@@ -485,7 +517,7 @@ public class Node implements Serializable {
         //接收到其他节点发来的广播请求，向该节点返回响应，响应中包含本节点的IP套接字信息（IP地址+接收端口号）
         if(gossipRequest.isBroadcast()) {
             InetSocketAddress source = getSocketAddress();//本机的IP套接字
-            System.out.println("本机的IP套接字为："+source);
+            //System.out.println("本机的IP套接字为："+source);
             InetSocketAddress target = gossipRequest.getSourceIPAddress();
             nodeStateTable.putIfAbsent(target,true);
             showNodeStateTable();
@@ -601,7 +633,7 @@ public class Node implements Serializable {
                 }
 
                 long start =System.currentTimeMillis();
-                processQueue(request);
+                process(request);
                 long end = System.currentTimeMillis();
                 sendTimeTest.get(request.batch_id).setProcessQueueTimeOnce(SendTimeTest.calculate(start,end));
 
@@ -619,6 +651,7 @@ public class Node implements Serializable {
         startProcessThread();
         startAnalyseRequestThread();
         startAnalyseResponseThread();
+        startDataManageThread();
         gossipController.start();
     }
 
