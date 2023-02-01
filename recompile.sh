@@ -1,13 +1,13 @@
 
 echo "start recompile";
 
-cd app\\src\\main\\java\\drz\\oddb\\parse
+cd app\\src\\main\\java\\drz\\tmdb\\parse
 
-echo "compile oddb-parse"
+echo "compile tmdb-parse"
 
 javacc parse.jj
 
-echo "compile oddb-parse done"
+echo "compile tmdb-parse done"
 
 javac *.java
 

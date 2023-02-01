@@ -2,7 +2,7 @@
 
 ## 音乐
 
-调用音乐播放器的位置是[MusicServer.java](app/src/main/java/drz/oddb/MusicServer.java),其引用了Android库中MediaPlayer组件
+调用音乐播放器的位置是[MusicServer.java](app/src/main/java/drz/tmdb/MusicServer.java),其引用了Android库中MediaPlayer组件
 
 最开始播放的音乐是[R.raw.old_memory](app/src/main/res/raw/old_memory),这是缘之空的音乐很好听.
 

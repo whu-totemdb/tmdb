@@ -4,14 +4,7 @@
 
 ## 介绍
 
-本项目为武汉大学2019级计算机弘毅班"数据库系统实现"课程的第三次大作业
-
-组名: 啊对对对
-
-- 组长:陆知行
-- 组员:孙含笑
-- 组员:陶文琪
-- 组员:徐梓峻
+本项目为武汉大学计算机弘毅班"数据库系统实现"课程的大作业
 
 Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 

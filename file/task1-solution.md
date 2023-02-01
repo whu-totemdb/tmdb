@@ -16,7 +16,7 @@ SELECT column_name(s) FROM table2;
 
 ---
 
-实现UNION操作需要修改两个文件 [parse.jj](../app/src/main/java/drz/oddb/parse/parse.jj) 和 [Transaction.java](../app/src/main/java/drz/oddb/Transaction/TransAction.java)
+实现UNION操作需要修改两个文件 [parse.jj](../app/src/main/java/drz/tmdb/parse/parse.jj) 和 [Transaction.java](../app/src/main/java/drz/tmdb/Transaction/TransAction.java)
 
 > 如果尚不熟悉javacc语法,自己去学
 
@@ -189,7 +189,7 @@ String union():
 
 ## 实现函数执行
 
-这样我们就可以成功解析UNION的语句了,接下来我们需要为UNION完成函数实现,修改[Transaction.java](../app/src/main/java/drz/oddb/Transaction/TransAction.java)
+这样我们就可以成功解析UNION的语句了,接下来我们需要为UNION完成函数实现,修改[Transaction.java](../app/src/main/java/drz/tmdb/Transaction/TransAction.java)
 
 ```java
 
@@ -247,7 +247,7 @@ private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, S
 
 > ~~如果你不想去重,也可以直接改成 UNION ALL~~
 
-接下来完善[PrintResult.java](../app/src/main/java/drz/oddb/show/PrintResult.java)
+接下来完善[PrintResult.java](../app/src/main/java/drz/tmdb/show/PrintResult.java)
 
 主要改进思路就是如果`removeDuplicate`是"true"就去重,采用了一个比较笨的方法判断是否重复
 
