@@ -144,7 +144,7 @@ public class LogManager {
     //写日志
     public boolean WriteLog(String k,int op,String s){
         int lognum = LogT.logTable.size();  //获得当前对象的logtable中有几条语句
-        LogTableItem LogItem = new LogTableItem(k,s,op,0);     //把语句传入logItem，这个时候都是未完成
+        LogTableItem LogItem = new LogTableItem(op,0,k,s);     //把语句传入logItem，这个时候都是未完成
         if(lognum<MAXSIZE){  //List写得下
             LogT.logTable.add(LogItem);
             if(lognum == (MAXSIZE-1)){
