@@ -63,7 +63,7 @@ public class MemManage implements Serializable {
     public SwitchingTable loadSwitchingTable(){
         SwitchingTable ret=new SwitchingTable();
         SwitchingTableItem temp;
-        File switab=new File("/data/data/drz.tmdb/transaction/switchingtable");
+        File switab=new File("/data/data/drz.oddb/transaction/switchingtable");
         if(!switab.exists()){
             return ret;
         }else{
@@ -89,14 +89,14 @@ public class MemManage implements Serializable {
 
     //存Switching表
     public boolean saveSwitchingTable(SwitchingTable tab){
-        File switab=new File("/data/data/drz.tmdb/transaction/switchingtable");
+        File switab=new File("/data/data/drz.oddb/transaction/switchingtable");
         if(!switab.exists()){
             File path=switab.getParentFile();
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/transaction/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/transaction/成功！");
             }
             try {
-                if(switab.createNewFile())System.out.println("创建文件/data/data/drz.tmdb/transaction/switchingtable成功！");
+                if(switab.createNewFile())System.out.println("创建文件/data/data/drz.oddb/transaction/switchingtable成功！");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -126,7 +126,7 @@ public class MemManage implements Serializable {
     public BiPointerTable loadBiPointerTable() {
         BiPointerTable ret=new BiPointerTable();
         BiPointerTableItem temp;
-        File bitab=new File("/data/data/drz.tmdb/transaction/bipointertable");
+        File bitab=new File("/data/data/drz.oddb/transaction/bipointertable");
         if(!bitab.exists()){
             return ret;
         }else{
@@ -153,14 +153,14 @@ public class MemManage implements Serializable {
 
     //存BiPointer表
     public boolean saveBiPointerTable(BiPointerTable tab){
-        File bitab=new File("/data/data/drz.tmdb/transaction/bipointertable");
+        File bitab=new File("/data/data/drz.oddb/transaction/bipointertable");
         if(!bitab.exists()){
             File path=bitab.getParentFile();
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/transaction/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/transaction/成功！");
             }
             try {
-                if(bitab.createNewFile())System.out.println("创建文件/data/data/drz.tmdb/transaction/bipointertable成功！");
+                if(bitab.createNewFile())System.out.println("创建文件/data/data/drz.oddb/transaction/bipointertable成功！");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -192,7 +192,7 @@ public class MemManage implements Serializable {
     public DeputyTable loadDeputyTable(){
         DeputyTable ret = new DeputyTable();
         DeputyTableItem temp;
-        File deputytab=new File("/data/data/drz.tmdb/transaction/deputytable");
+        File deputytab=new File("/data/data/drz.oddb/transaction/deputytable");
         if(!deputytab.exists()){
             return ret;
         }else {
@@ -221,14 +221,14 @@ public class MemManage implements Serializable {
 
     //存Deputy表
     public boolean saveDeputyTable(DeputyTable tab){
-        File deputytab=new File("/data/data/drz.tmdb/transaction/deputytable");
+        File deputytab=new File("/data/data/drz.oddb/transaction/deputytable");
         if(!deputytab.exists()){
             File path=deputytab.getParentFile();
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/transaction/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/transaction/成功！");
             }
             try {
-                if(deputytab.createNewFile())System.out.println("创建文件/data/data/drz.tmdb/transaction/deputytable成功！");
+                if(deputytab.createNewFile())System.out.println("创建文件/data/data/drz.oddb/transaction/deputytable成功！");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -263,7 +263,7 @@ public class MemManage implements Serializable {
     public ClassTable loadClassTable(){
         ClassTable ret = new ClassTable();
         ClassTableItem temp;
-        File classtab=new File("/data/data/drz.tmdb/transaction/classtable");
+        File classtab=new File("/data/data/drz.oddb/transaction/classtable");
         if(!classtab.exists()){
             return ret;
         }else {
@@ -296,15 +296,15 @@ public class MemManage implements Serializable {
 
     //存Class表
     public boolean saveClassTable(ClassTable tab){
-        File classtab=new File("/data/data/drz.tmdb/transaction/classtable");
+        File classtab=new File("/data/data/drz.oddb/transaction/classtable");
         if(!classtab.exists()){
             File path=classtab.getParentFile();
             System.out.println(path.getAbsolutePath());
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/transaction/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/transaction/成功！");
             }
             try {
-                if(classtab.createNewFile())System.out.println("创建路径/data/data/drz.tmdb/transaction/classtable成功！");
+                if(classtab.createNewFile())System.out.println("创建路径/data/data/drz.oddb/transaction/classtable成功！");
                 System.out.println("创建文件成功！");
             } catch (IOException e) {
                 System.out.println("创建文件失败！");
@@ -349,7 +349,7 @@ public class MemManage implements Serializable {
     public ObjectTable loadObjectTable(){
         ObjectTable ret = new ObjectTable();
         ObjectTableItem temp;
-        File objtab=new File("/data/data/drz.tmdb/transaction/objecttable");
+        File objtab=new File("/data/data/drz.oddb/transaction/objecttable");
         if(!objtab.exists()){
             return ret;
         }else{
@@ -379,14 +379,14 @@ public class MemManage implements Serializable {
 
     //存Object表
     public boolean saveObjectTable(ObjectTable tab){
-        File objtab=new File("/data/data/drz.tmdb/transaction/objecttable");
+        File objtab=new File("/data/data/drz.oddb/transaction/objecttable");
         if(!objtab.exists()){
             File path=objtab.getParentFile();
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/transaction/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/transaction/成功！");
             }
             try {
-                if(objtab.createNewFile())System.out.println("创建路径/data/data/drz.tmdb/transaction/objecttable成功！");
+                if(objtab.createNewFile())System.out.println("创建路径/data/data/drz.oddb/transaction/objecttable成功！");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -564,93 +564,18 @@ public class MemManage implements Serializable {
         updateBufferPointerSequence(p);
     }
 
-    //存日志块
-    public boolean saveLog(LogTable log){
-        File file=new File("/data/data/drz.tmdb/Log/"+log.logID);
-        if(!file.exists()){
-            File path=file.getParentFile();
-            if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/Log/成功！");
-            }
-            try {
-                if(file.createNewFile())System.out.println("创建成功！");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        try {
-            BufferedOutputStream output=new BufferedOutputStream(new FileOutputStream(file));
-            byte[] header=int2Bytes(log.check,4);
-            output.write(header,0,4);
-            for(int i=0;i<log.logTable.size();i++){
-                byte[] in1=int2Bytes(log.logTable.get(i).length,4);
-                output.write(in1,0,4);
-                byte[] logstr=log.logTable.get(i).str.getBytes();
-                output.write(logstr,0,log.logTable.get(i).str.length());
-            }
-            output.flush();
-            output.close();
-            return true;
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
 
-    //加载日志块
-    public  LogTable loadLog(int logid){
-        LogTable log=new LogTable();
-        LogTableItem temp;
-        File file=new File("/data/data/drz.tmdb/Log/"+logid);
-        if(!file.exists()){
-            return null;
-        }else{
-            try {
-                FileInputStream input=new FileInputStream(file);
-                byte[] x=new byte[4];
-                input.read(x,0,4);
-                log.check=bytes2Int(x,0,4);
-                while((input.read(x,0,4)!=-1)){
-                    temp=new LogTableItem();
-                    temp.length=bytes2Int(x,0,4);
-                    byte[] y=new byte[temp.length];
-                    input.read(y,0,temp.length);
-                    temp.str=new String(y,0,temp.length);
-                    log.logTable.add(temp);
-                }
-                input.close();
-                log.logID=logid;
-                return log;
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-    }
 
-    //设置日志块检查点为1
-    public boolean setLogCheck(int logid){
-        LogTable l;
-        if((l=this.loadLog(logid))!=null){
-            l.check=1;
-            this.saveLog(l);
-            return true;
-        }else{
-            return false;
-        }
-    }
+
+
 
     //设置检查点号
     public boolean setCheckPoint(int logid){
-        File file=new File("/data/data/drz.tmdb/Log/checklogid");
+        File file=new File("/data/data/drz.oddb/Log/checklogid");
         if(!file.exists()){
             File path=file.getParentFile();
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/Log/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/Log/成功！");
             }
             try {
                 if(file.createNewFile())System.out.println("创建成功！");
@@ -675,7 +600,7 @@ public class MemManage implements Serializable {
     //加载日志检查检查点
     public int loadCheck(){
         int ret=-1;
-        File file=new File("/data/data/drz.tmdb/Log/checklogid");
+        File file=new File("/data/data/drz.oddb/Log/checklogid");
         if(!file.exists()){
             return -1;
         }else{
@@ -705,11 +630,11 @@ public class MemManage implements Serializable {
 
     //存块
     private boolean save(buffPointer blockpointer){
-        File file=new File("/data/data/drz.tmdb/Memory/"+blockpointer.blockNum);
+        File file=new File("/data/data/drz.oddb/Memory/"+blockpointer.blockNum);
         if(!file.exists()){
             File path=file.getParentFile();
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/Memory/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/Memory/成功！");
                 System.out.println("创建文件夹成功！");
             }
             try {
@@ -750,7 +675,7 @@ public class MemManage implements Serializable {
                 BuffPointerList.remove(bufflength-1);
             }
         }
-        File file=new File("/data/data/drz.tmdb/Memory/"+block);
+        File file=new File("/data/data/drz.oddb/Memory/"+block);
         if(file.exists()){
             Free.blockNum=block;
             Free.flag=false;
@@ -856,7 +781,7 @@ public class MemManage implements Serializable {
 
     //从磁盘加载块空间信息
     private void loadBlockSpace(){
-        File file=new File("/data/data/drz.tmdb/Memory/blockspace");
+        File file=new File("/data/data/drz.oddb/Memory/blockspace");
         if(file.exists()){
             try {
                 FileInputStream input=new FileInputStream(file);
@@ -882,11 +807,11 @@ public class MemManage implements Serializable {
 
     //存入块空间信息到磁盘
     private boolean saveBlockSpace(){
-        File file=new File("/data/data/drz.tmdb/Memory/blockspace");
+        File file=new File("/data/data/drz.oddb/Memory/blockspace");
         if(!file.exists()){
             File path=file.getParentFile();
             if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.tmdb/Memory/成功！");
+                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/Memory/成功！");
             }
             try {
                 if(file.createNewFile())System.out.println("创建成功");
