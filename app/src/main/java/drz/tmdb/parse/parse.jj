@@ -1,0 +1,426 @@
+options{
+  LOOKAHEAD = 3;
+  STATIC = false ;
+  DEBUG_PARSER = true;
+}
+ 
+PARSER_BEGIN(parse)
+package drz.tmdb.parse;
+import java.util.*;
+public class parse {
+  
+public static final int OPT_CREATE_ORIGINCLASS    = 1;
+public static final int OPT_CREATE_SELECTDEPUTY   = 2;
+public static final int OPT_DROP                  = 3;
+public static final int OPT_INSERT                = 4;
+public static final int OPT_DELETE                = 5;
+public static final int OPT_SELECT_DERECTSELECT   = 6;
+public static final int OPT_SELECT_INDERECTSELECT = 7;
+public static final int OPT_CREATE_UPDATE         = 8;
+public static final int OPT_UNION                 = 9;
+public static final int OPT_CREATE_UNIONDEPUTY    = 10;
+
+	static Queue<String > st= new LinkedList<String>(); ;
+  public static void main(String args[]) throws ParseException {
+    parse parser = new parse(System.in);
+    parser.Run();
+     }
+
+}
+
+PARSER_END(parse)
+
+SKIP :
+{
+  " "
+| "/t"
+| "/n"
+| "/r"
+}
+
+TOKEN:
+{
+<SEMICOLON:";">
+|<CREATE:"CREATE"|"create">
+|<DROP:"DROP"|"drop">
+|<CLASS:"CLASS"|"class">
+|<INSERT:"INSERT"|"insert">
+|<INTO:"INTO"|"into">
+|<VALUES:"VALUES"|"values">
+|<LEFT_BRACKET:"(">
+|<COMMA:",">
+|<RIGHT_BRACKET:")">
+|<DELETE:"DELETE">
+|<FROM:"FROM"|"from">
+|<WHERE:"WHERE"|"where">
+|<SELECT:"SELECT"|"select">
+|<SELECTDEPUTY:"SELECTDEPUTY"|"selectdeputy">
+|<UNIONDEPUTY:"UNIONDEPUTY"|"uniondeputy">
+|<AS:"AS"|"as">
+|<UPDATE:"UPDATE"|"update">
+|<SET:"SET"|"set">
+|<UNION:"UNION"|"union">
+|<ID: ["a"-"z"](["a"-"z","A"-"Z","0"-"9"])* >
+|<EQUAL:"=">
+|<INT: "0"|(["1"-"9"](["0"-"9"])*) >
+|<STRING: "\""(["a"-"z","A"-"Z","1"-"9"])*"\"" >
+|<CROSS:"->">
+|<DOT:".">
+|<PLUS:"+">
+}
+
+
+String[] Run():
+{
+	String[] s;
+}
+{
+  s = sql()
+  {
+    //System.out.println(s+"\n");
+    return s ;
+  } 
+}
+
+String[] sql() :
+{
+	String sql_s;
+	String create_s;
+	String drop_s;
+	String select_s;
+	String insert_s;
+	String delete_s;
+	String update_s;
+}
+{
+   create_s = create() {sql_s = create_s;System.out.println(sql_s+"\n");return sql_s.split(","); }
+   |drop_s = drop() {sql_s = drop_s;System.out.println(sql_s+"\n");return sql_s.split(","); }
+   |select_s = select(){sql_s = select_s;System.out.println(sql_s+"\n");return sql_s.split(",");  }
+   |insert_s = insert2(){sql_s = insert_s;System.out.println(sql_s+"\n");return sql_s.split(",");  }
+   |delete_s = delete(){sql_s = delete_s;System.out.println(sql_s+"\n");return sql_s.split(",");  }
+   |update_s = update() {sql_s = update_s;System.out.println(sql_s+"\n");return sql_s.split(","); }
+}
+
+String create() :
+{
+	String create_s;
+	int count;
+}
+{
+    (<CREATE> count = originclass() <SEMICOLON>)
+    {
+      create_s = OPT_CREATE_ORIGINCLASS+",";
+      create_s += count;
+      while(!st.isEmpty())
+      {
+        create_s +=",";
+        create_s += st.poll();
+        
+      }
+      return create_s;
+    }
+    |
+    (<CREATE> count = selectdeputy() <SEMICOLON>)
+    {
+      create_s = OPT_CREATE_SELECTDEPUTY+",";
+      create_s += count;
+      while(!st.isEmpty())
+      {
+        create_s +=",";
+        create_s += st.poll();
+        
+      }
+      return create_s;
+    }
+    |
+    (<CREATE> count = uniondeputy() <SEMICOLON>)
+    {
+      create_s = OPT_CREATE_UNIONDEPUTY+",";
+      create_s += count;
+      while(!st.isEmpty())
+      {
+        create_s +=",";
+        create_s += st.poll();
+      }
+      return create_s;
+    }
+}
+
+String drop() :
+{
+	String cln;
+	String drop_s;
+}
+{
+    <DROP> <CLASS> cln = classname() <SEMICOLON> {drop_s = OPT_DROP+","+cln;return drop_s; }
+}
+String insert2():
+{
+    String insert_s;
+	int count;
+}
+{
+	count = insert()
+	{
+	  insert_s = OPT_INSERT+",";
+      insert_s += count;
+      while(!st.isEmpty())
+      {
+        insert_s +=",";
+        insert_s += st.poll();
+        
+      }
+      return insert_s;
+	}
+}
+
+int insert() :
+{
+	String cln;
+	String vl;
+	int count = 0;
+}
+{
+    <INSERT>
+    <INTO>
+    cln = classname(){st.add(cln);}
+    <VALUES>
+    <LEFT_BRACKET>
+     vl = value() {count++;st.add(vl); }
+     (<COMMA> vl = value() {count++;st.add(vl); })*
+	<RIGHT_BRACKET>
+	<SEMICOLON> {return count; }
+}
+
+String delete() :
+{
+    String cln;
+	String delete_s;
+	String cond;
+}
+{
+    <DELETE> {delete_s = OPT_DELETE+","; }
+    <FROM>
+    cln = classname() {delete_s += cln+","; }
+    <WHERE>
+    cond = condition() {delete_s += cond;}
+    <SEMICOLON> {return delete_s; }
+}
+
+String select() :
+{
+  String select_s;
+	int count;
+  int union_count = 0;
+  String union_s; // 用于判断是否是union
+}
+{
+    <SELECT> count = directselect() 
+    {
+
+      select_s = OPT_SELECT_DERECTSELECT+",";
+      select_s += count;
+      while(!st.isEmpty()){
+          select_s +=",";
+          select_s += st.poll();
+      }
+    }
+    union_s = union()
+    {
+      if (union_s == "END") return select_s;
+      else {
+        select_s = select_s.substring(1);
+        select_s = OPT_UNION + select_s;
+        select_s += union_s;
+        return select_s;
+      }
+    }
+
+    |
+    (<SELECT> count = indirectselect() <SEMICOLON>)
+    {
+	  select_s = OPT_SELECT_INDERECTSELECT+",";
+      select_s += count;
+      while(!st.isEmpty())
+      {
+        select_s +=",";
+        select_s += st.poll();
+        
+      }
+      return select_s;
+    }
+}
+
+int originclass() :
+{
+	String cln;
+	String attr_s;
+	String attrtype_s;
+	int count = 0;
+}
+{
+    <CLASS> 
+    cln = classname() {st.add(cln); }
+    <LEFT_BRACKET> 
+    attr_s = attr()  {st.add(attr_s); }
+    attrtype_s = attrtype() {st.add(attrtype_s); count++; }
+    (<COMMA> attr_s = attr() {st.add(attr_s); } attrtype_s = attrtype() {st.add(attrtype_s); count++; })* 
+    <RIGHT_BRACKET>
+    {return count;}
+
+}
+
+int selectdeputy() :
+{
+	String cln;
+	int count;
+}
+{
+    <SELECTDEPUTY> cln = classname() {st.add(cln); }  <SELECT> count = directselect() { return count;}
+}
+
+int uniondeputy() :
+{
+  String cln;
+  int count;
+}
+{
+    <UNIONDEPUTY> cln = classname() {st.add(cln); } <SELECT> count = directselect() (<UNION> <SELECT> count = directselect())+ {return count;}
+}
+
+String classname() :
+{  Token s;}
+{
+   s=<ID>
+   { return s.image;}
+}
+
+String attrtype() :
+{  Token s;}
+
+{
+   s=<ID>
+   { return s.image;}
+}
+
+String attr() :
+{  Token s;}
+{
+   s=<ID>
+   { return s.image;}
+}
+
+String dattr():
+{  Token s;}
+{
+   s=<ID>
+   { return s.image;}
+}
+
+String condition() :
+{
+  	String attr_s;
+	String cond;
+	Token s;
+}
+{
+    (attr_s = attr() <EQUAL> s = <INT>) {cond = attr_s+",=,"+s.image; return cond;}
+    |
+    (attr_s = attr() <EQUAL> s = <STRING>) { cond = attr_s+",=,"+s.image; return cond;}
+}
+
+String value() :
+{
+	Token s;
+}
+{
+    s = <INT> {return s.image; }
+    |
+    s = <STRING> { return s.image; }
+}
+
+int directselect() :
+{
+  String dattr_s;
+	String attr_s;
+	String value_s = "";
+	boolean plus = false;
+	String cln;
+	String cond;
+	int count = 0;
+}
+{
+    attr_s = attr() {st.add(attr_s);count++;}
+    (< PLUS >  value_s = value() {plus = true; })? {if(plus) { st.add("1"); st.add(value_s);}else {st.add("0"); st.add("0"); } plus = false; }
+    <AS>
+    dattr_s = dattr() {st.add(dattr_s);}
+    (<COMMA>  attr_s = attr() {st.add(attr_s);count++; } (< PLUS >  value_s = value() {plus = true; })?{if(plus) { st.add("1"); st.add(value_s);}else {st.add("0"); st.add("0"); } plus = false; } <AS> dattr_s = dattr(){st.add(dattr_s);})*
+    <FROM>
+    cln = classname() {st.add(cln); }
+    <WHERE>
+    cond = condition() {st.add(cond);return count; }
+}
+
+int indirectselect() :
+{
+    String cln;
+	int count = 0;
+	String attr_s;
+	String cond;
+}
+{
+    cln = classname() {st.add(cln);count++; }
+    (<CROSS> cln = classname() {st.add(cln);count++; })*
+    <DOT>
+     attr_s = attr() {st.add(attr_s); }
+     <FROM>
+     cln = classname() {st.add(cln); }
+     <WHERE>
+     cond = condition() {st.add(cond); return count;}
+}
+
+String update():
+{
+	String cln;
+	String value_s;
+	String attr_s;
+	String cond;
+	String update_s;
+}
+{
+  <UPDATE> { update_s = OPT_CREATE_UPDATE+",";}
+  cln = classname() {update_s += cln + ","; }
+  <SET>
+  attr_s = attr() { update_s += attr_s+","; }
+  <EQUAL> 
+  value_s = value() { update_s += value_s+","; }
+  <WHERE>
+  cond = condition() { update_s += cond;}
+  <SEMICOLON> {return update_s;}
+}
+
+String union():
+{
+  String union_s ="";
+  int count;
+}
+{
+  <SEMICOLON>
+  {
+    union_s = "END";
+    return union_s;
+  }
+  |
+  // 后面部分至少出现一次并且可以循环下去的,所以使用了 +
+  (<UNION> <SELECT> count = directselect()
+  {
+    union_s += ",";
+    union_s += count;
+    while(!st.isEmpty()){
+      union_s +=",";
+      union_s += st.poll();
+    }
+  })+
+  <SEMICOLON>
+  {return union_s;}
+}

@@ -33,7 +33,7 @@
 
 4. 回到我的应用,添加
 
-   > 其中包名是[build.gradle](../app/build.gradle)中的applicationId,本项目是`drz.oddb`
+   > 其中包名是[build.gradle](../app/build.gradle)中的applicationId,本项目是`drz.tmdb`
 
    ![20220504205420](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504205420.png)
 
@@ -130,7 +130,7 @@
 
     其中`xmlns:android`是提供一个作用域,类似namespace,`android:id`是用来给一个名字,可以通过id找到这个视图,用于切换页面显示页面
 
-13. 在app/src/main/java/drz/oddb 下创建一个文件,命名为`gaodemap.java`,用于实现功能
+13. 在app/src/main/java/drz/tmdb 下创建一个文件,命名为`gaodemap.java`,用于实现功能
 
     其基础功能如下所示,需要继承安卓的AppCompatActivity类并重写(override)其方法
 
@@ -230,7 +230,7 @@
 
     第二个按钮就是跳转到轨迹追踪的界面.这两个按钮可以在右侧的background属性中选择一个合适的图片,也可以自定义目录位置如`@drawable/xxx`使用一张图片
 
-    然后在主函数[MainActivity.java](../app/src/main/java/drz/oddb/MainActivity.java)中添加两个方法
+    然后在主函数[MainActivity.java](../app/src/main/java/drz/tmdb/MainActivity.java)中添加两个方法
 
     ```java
     // 清除文本框内数据
@@ -257,7 +257,7 @@
 
     ```java
     // 不要忘记import包
-    import drz.oddb.gaodemap;
+    import drz.tmdb.gaodemap;
 
     public void show_map(boolean whu){
         Intent intent = new Intent(context, gaodemap.class);

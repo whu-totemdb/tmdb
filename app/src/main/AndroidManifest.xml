@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="drz.oddb">
+    package="drz.tmdb">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -16,27 +16,27 @@
         <meta-data
             android:name="com.google.android.actions"
             android:resource="@xml/echart" />
-        <service android:name=".MusicServer">
+        <service android:name="drz.tmdb.MusicServer">
             <intent-filter>
                 <action android:name="com.angel.Android.MUSIC"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </service>
-        <activity android:name=".MainActivity">
+        <activity android:name="drz.tmdb.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".echart">
+        <activity android:name="drz.tmdb.echart">
             <intent-filter>
                 <action android:name="android.intent.action.echart" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <activity android:name=".gaodemap">
+        <activity android:name="drz.tmdb.gaodemap">
             <intent-filter>
                 <action android:name="android.intent.action.gaodemap" />
 
@@ -44,7 +44,7 @@
             </intent-filter>
         </activity>
         <activity 
-            android:name=".show.PrintResult"
+            android:name="drz.tmdb.show.PrintResult"
             android:label="Print Result">
             <intent-filter>
                 <action android:name="android.intent.action.PRINTRST"/>
@@ -54,36 +54,36 @@
         </activity>
 
         <activity
-            android:name=".show.ShowTable"
+            android:name="drz.tmdb.show.ShowTable"
             android:label="ShowTable"
             android:theme="@style/AppTheme.NoActionBar" >
         </activity>
         <activity
-            android:name=".show.ShowObj"
+            android:name="drz.tmdb.show.ShowObj"
             android:label="ShowObj"
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
         <activity
-            android:name=".show.ShowSwi"
+            android:name="drz.tmdb.show.ShowSwi"
             android:label="ShowSwi"
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
         <activity
-            android:name=".show.ShowDep"
+            android:name="drz.tmdb.show.ShowDep"
             android:label="ShowDep"
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
         <activity
-            android:name=".show.ShowBi"
+            android:name="drz.tmdb.show.ShowBi"
             android:label="ShowBi"
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
         <activity
-            android:name=".show.ShowCla"
+            android:name="drz.tmdb.show.ShowCla"
             android:label="ShowCla"
             android:theme="@style/AppTheme.NoActionBar">
 
