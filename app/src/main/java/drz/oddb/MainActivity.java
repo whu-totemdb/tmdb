@@ -14,6 +14,7 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.io.Serializable;
 
 import drz.oddb.Memory.*;
@@ -36,7 +37,18 @@ public class MainActivity extends AppCompatActivity {
     Intent music = null;
 
     private boolean whu_trace_select = false;
-
+//    @Override
+//    protected void onCreate(Bundle savedInstanceState) {
+//
+//        super.onCreate(savedInstanceState);
+//        String sql="CREATE CLASS company (name char,age int, salary int);";
+////      String sql="Select name from company;";
+////        trans.query(sql);
+//        trans.query(sql);
+////        trans.query2(sql);
+////        System.out.println(trans.classt);
+////        trans.SaveAll();
+//    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         music = new Intent(MainActivity.this,MusicServer.class);
@@ -54,7 +66,14 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 //onStop();
                 //trans.Test();
-               trans.query(editText.getText().toString());
+//                trans.query(editText.getText().toString());
+////                trans.Test();
+//                try {
+//                    trans.clear();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+                trans.query2(editText.getText().toString());
             }
         });
 
@@ -92,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
         draw_trace.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
-                trans.show_map(whu_trace_select);
+//                trans.show_map(whu_trace_select);
 
                 //int id[] = {1,1,1,1};
                 //trans.Printechart(id);

@@ -25,7 +25,8 @@ public class PrintResult extends AppCompatActivity {
         setContentView(R.layout.print_result);
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
-        Print((TupleList) bundle.getSerializable("tupleList"),bundle.getStringArray("attrname"),bundle.getIntArray("attrid"),bundle.getStringArray("type"),bundle.getString("removeDuplicate"));
+//        Print((TupleList) bundle.getSerializable("tupleList"),bundle.getStringArray("attrname"),bundle.getIntArray("attrid"),bundle.getStringArray("type"),bundle.getString("removeDuplicate"));
+        Print((TupleList) bundle.getSerializable("tupleList"),bundle.getStringArray("attrname"),bundle.getIntArray("attrid"),bundle.getStringArray("type"),"true");
     }
 
      public void Print(TupleList tpl,String[] attrname,int[] attrid,String[] type,String removeDuplicate){
