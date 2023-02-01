@@ -38,6 +38,10 @@ public class FileData {
     // SSTable的文件名
     private String fileName;
 
+    // todo: need to be deleted
+    public String indexFileName;
+    public String dateFileName;
+
     // 最大key与最小key
     private String maxKey = "";
     private String minKey = "";
@@ -48,6 +52,7 @@ public class FileData {
     // 索引-B树的根节点
     // key , value为"offset-length"
     public BTree<String, String> root = new BTree<>();
+    public Map<String, String> indexMap;
 
     // constructor
     // 将文件读到内存中
