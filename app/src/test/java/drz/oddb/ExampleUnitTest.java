@@ -12,10 +12,15 @@ import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 
+import drz.oddb.sync.Sync;
 import drz.oddb.sync.config.GossipConfig;
 import drz.oddb.sync.node.Node;
+import drz.oddb.sync.node.database.Action;
+import drz.oddb.sync.node.database.OperationType;
 import drz.oddb.sync.statistics.WriteCSV;
 import drz.oddb.sync.timeTest.SendTimeTest;
+import drz.oddb.sync.util.NetworkUtil;
+import drz.oddb.sync.util.NodeUtil;
 
 
 /**
@@ -39,7 +44,8 @@ public class ExampleUnitTest {
 
         String nodeSelf = InetAddress.getLocalHost().getHostAddress();
         InetAddress ip = InetAddress.getByName(nodeSelf);
-        Node initialNode = new Node(ip, 9090, gossipConfig);
+        String nodeID = NodeUtil.obtainNodeID();
+        Node initialNode = new Node(nodeID, ip, 9090, gossipConfig);
         nodeCluster.add(initialNode.getSocketAddress());
         initialNode.start();
 
@@ -78,7 +84,8 @@ public class ExampleUnitTest {
                             new InetSocketAddress("127.0.0.1", 9090 + i - 1), gossipConfig);
             gossipService.start(true,initialNode.generateGossipRequest(key));*/
             //InetAddress otherIP = InetAddress.getByName(nodeSelf);
-            Node otherNode = new Node(ip,9090+i, gossipConfig);
+            String otherNodeID = NodeUtil.obtainNodeID();
+            Node otherNode = new Node(otherNodeID, ip,9090+i, gossipConfig);
             nodeCluster.add(otherNode.getSocketAddress());
             otherNode.start();
             /*initialNode.getGossipController().getNodes().putIfAbsent(otherNode.getNodeID(), otherNode);
@@ -88,11 +95,23 @@ public class ExampleUnitTest {
 
         initialNode.broadcast1(nodeCluster);
 
+        //insert into test values("a",1,10.0);
+        Action action = new Action(
+                OperationType.insert,
+                "test",
+                "test",
+                1,
+                1,
+                3,
+                new String[]{"name", "age", "num"},
+                new String[]{"String", "Integer", "Double"},
+                new String[]{"a", "1", "10.0"});
 
         for (int m = 1; m <= 3; m++) {
 
             for (int n = 1; n <= m ; n++){
-                initialNode.updateVectorClock(key);
+                //initialNode.updateVectorClock(key);
+                initialNode.getDataManager().putAction(action);
             }
 
             try {
@@ -135,7 +154,7 @@ public class ExampleUnitTest {
     }
 
     @Test
-    public void testBroadcast() throws SocketException, UnknownHostException {
+    public void testBroadcast() throws Exception {
         GossipConfig gossipConfig = new GossipConfig(
                 Duration.ofSeconds(3),
                 Duration.ofSeconds(3),
@@ -145,11 +164,13 @@ public class ExampleUnitTest {
         );
 
 
-        String nodeSelf = InetAddress.getLocalHost().getHostAddress();
+        //String nodeSelf = InetAddress.getLocalHost().getHostAddress();
+        String nodeSelf = NetworkUtil.getLocalHostIP();
         InetAddress ip = InetAddress.getByName(nodeSelf);
         System.out.println("IP地址为：" + ip);
 
-        Node initialNode = new Node(ip, 9091, gossipConfig);
+        String nodeID = NodeUtil.obtainNodeID();
+        Node initialNode = new Node(nodeID, ip, 9091, gossipConfig);
 
         initialNode.start();
 
@@ -164,6 +185,11 @@ public class ExampleUnitTest {
         while (true){}
 
 
+    }
+
+    @Test
+    public void testUUID(){
+        System.out.println(NodeUtil.obtainNodeID());
     }
 
 
