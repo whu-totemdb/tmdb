@@ -82,6 +82,7 @@ public class VectorClock implements Serializable {
     }
 
 
+    //向量时钟两两比较算法
     public VectorClock merge(VectorClock clock){
         VectorClock newClock = new VectorClock();
 

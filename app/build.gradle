@@ -1,10 +1,9 @@
 apply plugin: 'com.android.application'
-
 android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "drz.oddb"
-        minSdkVersion 21
+        minSdkVersion 26
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -26,11 +25,18 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:28.0.0-alpha1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.0'
-    implementation files('libs\\AMap3DMap_9.4.0_AMapSearch_9.4.0_AMapLocation_6.1.0_20220808.jar')
-//    implementation files('libs\\jsqlparser-4.6-SNAPSHOT.jar')
+//    implementation files('libs\\AMap3DMap_9.2.0_AMapSearch_9.2.0_20220414.jar')
+    implementation files('libs\\AMap3DMap_9.4.0_AMapSearch_9.4.0_AMapLocation_6.1.0_20220801.jar')
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-    
+    implementation 'org.apache.lucene:lucene-core:4.0.0'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'com.alibaba:fastjson:1.2.62'
+    implementation 'com.opencsv:opencsv:5.4'
+
 }
+
+    
+

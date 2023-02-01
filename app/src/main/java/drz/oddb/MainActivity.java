@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.UnknownHostException;
 
 import drz.oddb.Memory.*;
 import drz.oddb.Transaction.SystemTable.BiPointerTable;
@@ -25,6 +26,10 @@ import drz.oddb.Transaction.SystemTable.DeputyTable;
 import drz.oddb.Transaction.SystemTable.ObjectTable;
 import drz.oddb.Transaction.SystemTable.SwitchingTable;
 import drz.oddb.Transaction.TransAction;
+import drz.oddb.sync.Sync;
+import drz.oddb.sync.node.Node;
+import drz.oddb.sync.node.database.Action;
+import drz.oddb.sync.node.database.OperationType;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,25 +40,30 @@ public class MainActivity extends AppCompatActivity {
     private TextView text_view;
     TransAction trans = new TransAction(this);
     Intent music = null;
+    //Node node;
 
     private boolean whu_trace_select = false;
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//
-//        super.onCreate(savedInstanceState);
-//        String sql="CREATE CLASS company (name char,age int, salary int);";
-////      String sql="Select name from company;";
-////        trans.query(sql);
-//        trans.query(sql);
-////        trans.query2(sql);
-////        System.out.println(trans.classt);
-////        trans.SaveAll();
-//    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         music = new Intent(MainActivity.this,MusicServer.class);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+        new Thread(()->{
+
+            try {
+                Sync.initialNode(9090);
+                Sync.start();
+                //node.start();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+        },"initialNodeThread").start();
+
+
 
         //播放BGM
         startService(music);
@@ -66,14 +76,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 //onStop();
                 //trans.Test();
-//                trans.query(editText.getText().toString());
-////                trans.Test();
-//                try {
-//                    trans.clear();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-                trans.query2(editText.getText().toString());
+               trans.query(editText.getText().toString());
             }
         });
 
@@ -111,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
         draw_trace.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
-//                trans.show_map(whu_trace_select);
+                //trans.show_map(whu_trace_select);
 
                 //int id[] = {1,1,1,1};
                 //trans.Printechart(id);
@@ -131,7 +134,56 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+
+        //广播按钮
+        Button broadcast_button = findViewById(R.id.broadcast_button);
+
+        broadcast_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new Thread(() -> {
+                    try {
+                        Sync.broadcast();
+                    }catch (UnknownHostException e){
+                        e.printStackTrace();
+                    }
+                },"broadcastThread").start();
+
+
+            }
+        });
+
+
+
+        //同步按钮
+        Button sync_button = findViewById(R.id.sync_button);
+        sync_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                //insert into test values("a",1,10.0);
+                Action action = new Action(
+                    OperationType.insert,
+                    "test",
+                    "test",
+                    1,
+                    1,
+                    3,
+                    new String[]{"name", "age", "num"},
+                    new String[]{"String", "Integer", "Double"},
+                    new String[]{"a", "1", "10.0"});
+
+                Sync.syncStart(action);
+
+            }
+        });
+
+
+
     }
+
+
     protected void onStop(){
         Intent intent = new Intent(MainActivity.this,MusicServer.class);
         stopService(intent);

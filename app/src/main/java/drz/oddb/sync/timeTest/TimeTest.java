@@ -1,103 +1,72 @@
 package drz.oddb.sync.timeTest;
 
 public class TimeTest {
-    private static long writeObjectTime;
+    private int dataSize;
 
-    private static long objectInputStreamInitialTime;
+    //发送过程
+    private long writeObjectTime;
 
-    private static long readObjectTime;
+    private long sendRequestAverageTime;
 
-    private static long processQueueTimeOnce;
+    private long processQueueTimeOnce;
 
-    private static long mergeVectorClockTime;
+    //接收过程
+    private long readObjectTime;
 
-    private static long generateRequestTime;
+    private long mergeVectorClockTime;
 
-    private static long getAliveNodesTime;
 
-    private static long requestsHasSent;
 
-    private static long sendRequestTime;
 
-    public static long getWriteObjectTime() {
-        return writeObjectTime;
+
+    public TimeTest(){}
+
+    public TimeTest(int dataSize) {
+        this.dataSize = dataSize;
     }
 
-    public static void setWriteObjectTime(long writeObjectTime) {
-        TimeTest.writeObjectTime = writeObjectTime;
+    public long getWriteObjectTime() {
+        return writeObjectTime;
+    }
+    public void setWriteObjectTime(long writeObjectTime) {
+        this.writeObjectTime = writeObjectTime;
         System.out.println(Thread.currentThread().getName() + "：序列化对象需要花费的时间为："+writeObjectTime+"ms");
     }
 
-    public static long getObjectInputStreamInitialTime() {
-        return objectInputStreamInitialTime;
-    }
-
-    public static void setObjectInputStreamInitialTime(long objectInputStreamInitialTime) {
-        TimeTest.objectInputStreamInitialTime = objectInputStreamInitialTime;
-        System.out.println(Thread.currentThread().getName() + "：对象输入流初始化需要花费的时间为："+objectInputStreamInitialTime+"ms");
-    }
-
-    public static long getReadObjectTime() {
+    public long getReadObjectTime() {
         return readObjectTime;
     }
 
-    public static void setReadObjectTime(long readObjectTime) {
-        TimeTest.readObjectTime = readObjectTime;
+    public void setReadObjectTime(long readObjectTime) {
+        this.readObjectTime = readObjectTime;
         System.out.println(Thread.currentThread().getName() + "：反序列化对象需要花费的时间为："+readObjectTime+"ms");
     }
 
-    public static long getProcessQueueTimeOnce() {
+    public long getProcessQueueTimeOnce() {
         return processQueueTimeOnce;
     }
 
-    public static void setProcessQueueTimeOnce(long processQueueTimeOnce) {
-        TimeTest.processQueueTimeOnce = processQueueTimeOnce;
+    public void setProcessQueueTimeOnce(long processQueueTimeOnce) {
+        this.processQueueTimeOnce = processQueueTimeOnce;
         System.out.println(Thread.currentThread().getName() + "：同步队列处理一次需要花费的时间为："+processQueueTimeOnce+"ms");
     }
 
-    public static long getMergeVectorClockTime() {
+    public long getMergeVectorClockTime() {
         return mergeVectorClockTime;
     }
 
-    public static void setMergeVectorClockTime(long mergeVectorClockTime) {
-        TimeTest.mergeVectorClockTime = mergeVectorClockTime;
+    public void setMergeVectorClockTime(long mergeVectorClockTime) {
+        this.mergeVectorClockTime = mergeVectorClockTime;
         System.out.println(Thread.currentThread().getName() + "：合并一次向量时钟花费的时间为："+mergeVectorClockTime+"ms");
     }
 
-    public static long getGenerateRequestTime() {
-        return generateRequestTime;
+    public long getSendRequestAverageTime() {
+        return sendRequestAverageTime;
     }
 
-    public static void setGenerateRequestTime(long generateRequestTime) {
-        TimeTest.generateRequestTime = generateRequestTime;
-        System.out.println(Thread.currentThread().getName() + "：生成一次请求花费的时间为："+generateRequestTime+"ms");
-    }
-
-    public static long getGetAliveNodesTime() {
-        return getAliveNodesTime;
-    }
-
-    public static void setGetAliveNodesTime(long getAliveNodesTime) {
-        TimeTest.getAliveNodesTime = getAliveNodesTime;
-        System.out.println(Thread.currentThread().getName() + "：获取一次活跃节点花费的时间为："+getAliveNodesTime+"ms");
-    }
-
-    public static long getRequestsHasSent() {
-        return requestsHasSent;
-    }
-
-    public static void setRequestsHasSent(long requestsHasSent) {
-        TimeTest.requestsHasSent = requestsHasSent;
-        System.out.println(Thread.currentThread().getName() + "：请求完成向所有待发节点的发送所需时间为："+requestsHasSent+"ms");
-    }
-
-    public static long getSendRequestTime() {
-        return sendRequestTime;
-    }
-
-    public static void setSendRequestTime(long sendRequestTime) {
-        TimeTest.sendRequestTime = sendRequestTime;
-        System.out.println(Thread.currentThread().getName() + "：发送一次请求耗费的时间为："+sendRequestTime+"ms");
+    public void setSendRequestAverageTime(long sendRequestAverageTime) {
+        this.sendRequestAverageTime = sendRequestAverageTime;
+        System.out.println(Thread.currentThread().getName() + "：发送请求给所有节点耗费的平均时间为："+sendRequestAverageTime+"ms");
     }
 
     public static long calculate(long start, long end){

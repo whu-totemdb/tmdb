@@ -12,13 +12,11 @@ public class SendInfo {
 
     private ConcurrentLinkedQueue<GossipRequest> requestToSend;//待发送的请求
 
-    private ConcurrentHashMap<Integer,Boolean> requestSendOver;//请求是否发送完成
 
     public SendInfo(int structureSize) {
         this.structureSize = structureSize;
         targets = new ConcurrentLinkedQueue<>();
         requestToSend = new ConcurrentLinkedQueue<>();
-        requestSendOver = new ConcurrentHashMap<>(structureSize);
     }
 
     public ConcurrentLinkedQueue<Object[]> getTargets() {
@@ -29,15 +27,12 @@ public class SendInfo {
         return requestToSend;
     }
 
-    public ConcurrentHashMap<Integer, Boolean> getRequestSendOver() {
-        return requestSendOver;
-    }
 
     public boolean structureIsFull(){
-        return requestSendOver.size() >= structureSize;
+        return targets.size() >= structureSize;
     }
 
     public boolean structureIsEmpty(){
-        return targets.isEmpty();
+        return requestToSend.isEmpty();
     }
 }
