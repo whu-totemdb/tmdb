@@ -3,19 +3,39 @@ package drz.tmdb.sync.network;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 
+import drz.tmdb.sync.node.database.Action;
+import drz.tmdb.sync.share.ResponseType;
+import drz.tmdb.sync.vectorClock.VectorClock;
+
 public class Response implements Serializable {
+    private ResponseType responseType;
+
+    private Action action;
+
+    private VectorClock vectorClock;
+
     private InetSocketAddress source;
 
     private InetSocketAddress target;
 
-    private boolean broadcast;
-
     public Response(){}
 
-    public Response(InetSocketAddress source, InetSocketAddress target, boolean broadcast) {
+    public Response(ResponseType responseType, InetSocketAddress source, InetSocketAddress target) {
+        this.responseType = responseType;
         this.source = source;
         this.target = target;
-        this.broadcast = broadcast;
+    }
+
+    public Response(ResponseType responseType, Action action, VectorClock vectorClock, InetSocketAddress source, InetSocketAddress target) {
+        this.responseType = responseType;
+        this.action = action;
+        this.vectorClock = vectorClock;
+        this.source = source;
+        this.target = target;
+    }
+
+    public ResponseType getResponseType() {
+        return responseType;
     }
 
     public InetSocketAddress getSource() {
@@ -26,11 +46,4 @@ public class Response implements Serializable {
         return target;
     }
 
-    public boolean isBroadcast() {
-        return broadcast;
-    }
-
-    public void setBroadcast(boolean broadcast) {
-        this.broadcast = broadcast;
-    }
 }

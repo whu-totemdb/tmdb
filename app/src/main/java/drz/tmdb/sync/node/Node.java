@@ -1,5 +1,6 @@
 package drz.tmdb.sync.node;
 
+import drz.tmdb.sync.arbitration.Arbitration;
 import drz.tmdb.sync.arbitration.ArbitrationController;
 import drz.tmdb.sync.config.GossipConfig;
 import drz.tmdb.sync.network.GossipController;
@@ -11,6 +12,7 @@ import drz.tmdb.sync.node.database.DataManager;
 import drz.tmdb.sync.node.database.OperationType;
 import drz.tmdb.sync.share.ReceiveDataArea;
 import drz.tmdb.sync.share.RequestType;
+import drz.tmdb.sync.share.ResponseType;
 import drz.tmdb.sync.share.SendInfo;
 import drz.tmdb.sync.share.SendWindow;
 import drz.tmdb.sync.share.WindowEntry;
@@ -38,9 +40,9 @@ public class Node implements Serializable {
 
     public static final int broadcastPort = 10010;//广播端口
 
-    private static int requestID = 0;
+    private static int requestNum = 0;
 
-    private static int maxRequestID = 65536;
+    private static int maxRequestNum = 65536;
 
     private static int receiveAreaSize = 65536;
 
@@ -68,9 +70,9 @@ public class Node implements Serializable {
     //统计使用
     public static HashMap<Integer,SendTimeTest> sendTimeTest = new HashMap<>();//批次号batch_id与测试对象的映射
 
-    public static HashMap<Integer,ArrayList<Integer>> batch_id_map = new HashMap<>();//批次号batch_id与该批请求的映射
+    public static HashMap<Integer,ArrayList<String>> batch_id_map = new HashMap<>();//批次号batch_id与该批请求的映射
 
-    public static HashMap<Integer,ReceiveTimeTest> receiveTimeTest = new HashMap<>();//请求id与接收时间测试对象的映射
+    public static HashMap<String,ReceiveTimeTest> receiveTimeTest = new HashMap<>();//请求id与接收时间测试对象的映射
 
     public static int batch_num = 0;
 
@@ -91,6 +93,9 @@ public class Node implements Serializable {
         dataManager = new DataManager();
         arbitrationController = new ArbitrationController();
 
+        //初始化仲裁模块的配置参数
+        //Arbitration.initialConfig();
+
 
         initialVectorClockMap();//初始化应用数据库
 
@@ -102,7 +107,7 @@ public class Node implements Serializable {
             nodeStateTable.putIfAbsent(socketAddress,true);
 
 
-        gossipController = new GossipController(maxRequestID,receiveAreaSize,socketAddress,gossipConfig);
+        gossipController = new GossipController(maxRequestNum,receiveAreaSize,socketAddress,gossipConfig);
 
         sendWindow = new SendWindow(65536,10);
 
@@ -140,7 +145,7 @@ public class Node implements Serializable {
 
         try {
             addresses = NetworkUtil.getBroadcastAddresses();
-            GossipRequest gossipRequest = new GossipRequest(getSocketAddress(),true);
+            GossipRequest gossipRequest = new GossipRequest(RequestType.broadcastRequest, getSocketAddress());
             byte[] data = SocketService.getDataToTransport(gossipRequest);
 
             for (InetAddress address : addresses){
@@ -414,12 +419,14 @@ public class Node implements Serializable {
 
         long key = entry.getAction().getKey();
 
-        if (requestID < maxRequestID){
-            requestID++;
+        if (requestNum < maxRequestNum){
+            requestNum++;
         }
         else {
-            requestID = 1;
+            requestNum = 1;
         }
+
+        String requestID = getNodeID() + requestNum;
 
         System.out.println(Thread.currentThread().getName() + "：本次处理的请求的id为" + requestID );
 
@@ -440,11 +447,11 @@ public class Node implements Serializable {
 
 
         //生成一个仲裁判定器
+        Arbitration arbitration =new Arbitration(entry.getRequestType());
+        arbitrationController.putArbitration(requestID,arbitration);
 
 
-
-
-        GossipRequest request = new GossipRequest(requestID,key,action,getVectorClock(key),getSocketAddress(),false);
+        GossipRequest request = new GossipRequest(entry.getRequestType(),requestID,key,action,getVectorClock(key),getSocketAddress());
         request.batch_id = batch_num;
 
         return request;
@@ -506,7 +513,7 @@ public class Node implements Serializable {
         }
 
         //接收到其他节点发来的广播请求，向该节点返回响应，响应中包含本节点的IP套接字信息（IP地址+接收端口号）
-        if(gossipRequest.isBroadcast()) {
+        if(gossipRequest.getRequestType() == RequestType.broadcastRequest) {
             InetSocketAddress source = getSocketAddress();//本机的IP套接字
             //System.out.println("本机的IP套接字为："+source);
             InetSocketAddress target = gossipRequest.getSourceIPAddress();
@@ -514,7 +521,7 @@ public class Node implements Serializable {
             showNodeStateTable();
 
             Thread sendResponseThread = new Thread(() -> {
-                Response response = new Response(source,target,true);
+                Response response = new Response(ResponseType.broadcastResponse,source,target);
                 byte[] data = SocketService.getDataToTransport(response);
 
                 try {
@@ -531,15 +538,33 @@ public class Node implements Serializable {
             //不是广播请求
             long primaryKey = gossipRequest.getKey();//主键
             InetSocketAddress socketAddress1 = gossipRequest.getSourceIPAddress();
-            int id = gossipRequest.getRequestID();//请求的id号
+            String id = gossipRequest.getRequestID();//请求的id号
 
             nodeStateTable.put(socketAddress1,true);
+            /*arbitrationController.putReceivedRequest(id,gossipRequest);
+            Thread judgeThread = new Thread(() -> {
+                Arbitration arbitration = arbitrationController.getArbitrationByID(id);
+                arbitration.increase();
+                if(arbitration.getRequestType() == RequestType.readRequest){
+                    if (arbitration.readSuccess()){
+                        //读成功，调用向量时钟算法处理收集到的所有请求，找到其中最新的版本
+
+                    }
+                }
+                else {
+                    if (arbitration.writeSuccess()){
+                        //写成功，则此次同步认为完成（但可能还有部分节点还没收到）
+                    }
+                }
+
+            },"judgeThread");
+            judgeThread.start();*/
 
             //如果请求更新的数据不在本地数据库中->新的数据
             if (!vectorClockMap.containsKey(primaryKey)) {
 
             } else {
-                System.out.println(Thread.currentThread().getName() + "：节点" + IPAddress.toString() + "成功接收到来自" + socketAddress1.getAddress().toString() + "的向量时钟");
+                /*System.out.println(Thread.currentThread().getName() + "：节点" + IPAddress.toString() + "成功接收到来自" + socketAddress1.getAddress().toString() + "的向量时钟");
                 VectorClock oldClock = getVectorClock(primaryKey);
                 long l1 = System.currentTimeMillis();
                 VectorClock newClock = oldClock.merge(gossipRequest.getVectorClock());//合并向量时钟
@@ -547,7 +572,8 @@ public class Node implements Serializable {
                 receiveTimeTest.get(id).setMergeVectorClockTime(SendTimeTest.calculate(l1, l2));
                 //等待后续补充其他对向量时钟更加复杂操作的实现
 
-                vectorClockMap.put(primaryKey, newClock);
+                vectorClockMap.put(primaryKey, newClock);*/
+
 
             }
             setLastUpdateTime();
@@ -572,7 +598,7 @@ public class Node implements Serializable {
             receiveDataArea.getReceivedResponseQueue().notifyAll();
         }
 
-        if (response.isBroadcast()){
+        if (response.getResponseType() == ResponseType.broadcastResponse){
             //如果是广播请求的响应
             InetSocketAddress inetSocketAddress = response.getSource();//获取其他节点的IP套接字（IP地址+接收端口号）
             nodeStateTable.putIfAbsent(inetSocketAddress,true);//更新节点状态表

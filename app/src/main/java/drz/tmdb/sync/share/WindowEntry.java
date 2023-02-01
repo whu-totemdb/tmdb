@@ -14,6 +14,10 @@ public class WindowEntry {
         this.action = action;
     }
 
+    public RequestType getRequestType() {
+        return requestType;
+    }
+
     public Action getAction() {
         return action;
     }

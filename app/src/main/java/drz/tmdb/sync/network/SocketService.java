@@ -185,7 +185,7 @@ public class SocketService {
 
                 if (message instanceof GossipRequest){
                     GossipRequest request = (GossipRequest) message;
-                    int id = request.getRequestID();
+                    String id = request.getRequestID();
 
                     if (!Node.receiveTimeTest.containsKey(id)){
                         ReceiveTimeTest r = new ReceiveTimeTest();

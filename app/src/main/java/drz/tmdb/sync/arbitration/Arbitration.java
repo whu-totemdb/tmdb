@@ -1,5 +1,7 @@
 package drz.tmdb.sync.arbitration;
 
+import drz.tmdb.sync.share.RequestType;
+
 public class Arbitration {
     private static int copyNum;//副本数量
 
@@ -9,7 +11,15 @@ public class Arbitration {
 
     private int count = 0;//计数器
 
+    private RequestType requestType;
 
+    public Arbitration(RequestType requestType) {
+        this.requestType = requestType;
+    }
+
+    public RequestType getRequestType() {
+        return requestType;
+    }
 
     public static void setCopyNum(int copyNum) {
         Arbitration.copyNum = copyNum;
@@ -32,5 +42,25 @@ public class Arbitration {
         Arbitration.copyNum = copyNum;
         Arbitration.minWriteNum = minWriteNum;
         Arbitration.minReadNum = minReadNum;
+    }
+
+    public void increase(){
+        count++;
+    }
+
+    public boolean readSuccess(){
+        return (count >= minReadNum);
+    }
+
+    public boolean writeSuccess(){
+        return (count >= minWriteNum);
+    }
+
+    public boolean writeAllNodes(){
+        return (count == copyNum);
+    }
+
+    public boolean readAllNodes(){
+        return (count == copyNum);
     }
 }
