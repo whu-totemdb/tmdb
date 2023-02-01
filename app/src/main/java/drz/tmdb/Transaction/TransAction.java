@@ -1,4 +1,4 @@
-package drz.oddb.Transaction;
+package drz.tmdb.Transaction;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -10,16 +10,18 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import drz.oddb.Level.LevelManager;
-import drz.oddb.Log.*;
-import drz.oddb.Memory.*;
+import drz.tmdb.Level.LevelManager;
+import drz.tmdb.Log.LogManager;
+import drz.tmdb.Memory.MemManage;
+import drz.tmdb.Memory.MemManager;
+import drz.tmdb.Memory.Tuple;
+import drz.tmdb.Memory.TupleList;
+import drz.tmdb.Transaction.SystemTable.BiPointerTable;
+import drz.tmdb.Transaction.SystemTable.ClassTable;
+import drz.tmdb.Transaction.SystemTable.DeputyTable;
+import drz.tmdb.Transaction.SystemTable.ObjectTable;
+import drz.tmdb.Transaction.SystemTable.SwitchingTable;
 
-
-import drz.oddb.show.PrintResult;
-import drz.oddb.show.ShowTable;
-import drz.oddb.Transaction.SystemTable.*;
-
-import drz.oddb.parse.*;
 
 public class TransAction {
     public TransAction(Context context) {
@@ -36,7 +38,7 @@ public class TransAction {
     public BiPointerTable biPointerT = mem.loadBiPointerTable();
     public SwitchingTable switchingT = mem.loadSwitchingTable();
 
-    LogManage log = new LogManage(this);
+    LogManager log = new LogManager(this);
 
     public MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
             deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);

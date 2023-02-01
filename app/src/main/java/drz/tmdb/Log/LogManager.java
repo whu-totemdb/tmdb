@@ -1,4 +1,4 @@
-package drz.oddb.Log;
+package drz.tmdb.Log;
 
 import org.json.JSONObject;
 
@@ -9,9 +9,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import drz.oddb.Level.Constant;
-import drz.oddb.Transaction.TransAction;
-import drz.oddb.sync.node.database.ObjectTableItem;
+import drz.tmdb.Level.Constant;
+import drz.tmdb.Transaction.TransAction;
+import drz.tmdb.sync.node.database.ObjectTableItem;
+import drz.tmdb.Level.Constant;
 
 public class LogManager {
     final private int attrstringlen=8; //属性最大字符串长度为8Byte

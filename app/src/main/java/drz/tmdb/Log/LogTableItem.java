@@ -1,4 +1,4 @@
-package drz.oddb.Log;
+package drz.tmdb.Log;
 
 public class LogTableItem {
     public int length=0;
