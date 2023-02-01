@@ -36,7 +36,7 @@ public class TransAction {
     public BiPointerTable biPointerT = mem.loadBiPointerTable();
     public SwitchingTable switchingT = mem.loadSwitchingTable();
 
-    LogManage log = new LogManage(this);
+    LogManager log = new LogManager(this);
 
     public MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
             deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
@@ -49,9 +49,9 @@ public class TransAction {
         mem.saveDeputyTable(deputyt);
         mem.saveBiPointerTable(biPointerT);
         mem.saveSwitchingTable(switchingT);
-        mem.saveLog(log.LogT);
+        log.writeLogItemToSSTable(log.LogT);
         while(!mem.flush());
-        while(!mem.setLogCheck(log.LogT.logID));
+        while(!log.setLogCheck(log.LogT.logID));
         mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
 
         memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
@@ -97,10 +97,11 @@ public class TransAction {
         if((redo=log.GetReDo())!=null) {
             int redonum = redo.logTable.size();   //先把redo指令加前面
             for (int i = 0; i < redonum; i++) {
-                String s = redo.logTable.get(i).str;
-
-                log.WriteLog(s);
-                query(s);
+                String k=redo.logTable.get(i).key;
+                int op=redo.logTable.get(i).op;
+                String s = redo.logTable.get(i).value;
+                log.WriteLog(k,op,s);
+                query(k,op,s);
             }
         }else{
             return false;
@@ -108,7 +109,7 @@ public class TransAction {
         return true;
     }
 
-    public String query(String s) {
+    public String query(String k,int op,String s) {
 
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         parse p = new parse(byteArrayInputStream);
@@ -117,27 +118,27 @@ public class TransAction {
 
             switch (Integer.parseInt(aa[0])) {
                 case parse.OPT_CREATE_ORIGINCLASS:
-                    log.WriteLog(s);
+                    log.WriteLog(k,op,s);
                     CreateOriginClass(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     break;
                 case parse.OPT_CREATE_SELECTDEPUTY:
-                    log.WriteLog(s);
+                    log.WriteLog(k,op,s);
                     CreateSelectDeputy(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     break;
                 case parse.OPT_DROP:
-                    log.WriteLog(s);
+                    log.WriteLog(k,op,s);
                     Drop(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case parse.OPT_INSERT:
-                    log.WriteLog(s);
+                    log.WriteLog(k,op,s);
                     Insert(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
                     break;
                 case parse.OPT_DELETE:
-                    log.WriteLog(s);
+                    log.WriteLog(k,op,s);
                     Delete(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
@@ -148,7 +149,7 @@ public class TransAction {
                     InDirectSelect(aa);
                     break;
                 case parse.OPT_CREATE_UPDATE:
-                    log.WriteLog(s);
+                    log.WriteLog(k,op,s);
                     Update(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
                 default:

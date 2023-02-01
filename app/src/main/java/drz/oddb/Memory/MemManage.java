@@ -564,85 +564,8 @@ public class MemManage implements Serializable {
         updateBufferPointerSequence(p);
     }
 
-    //存日志块
-    public boolean saveLog(LogTable log){
-        File file=new File("/data/data/drz.oddb/Log/"+log.logID);
-        if(!file.exists()){
-            File path=file.getParentFile();
-            if(!path.exists()){
-                if(path.mkdirs())System.out.println("创建路径/data/data/drz.oddb/Log/成功！");
-            }
-            try {
-                if(file.createNewFile())System.out.println("创建成功！");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        try {
-            BufferedOutputStream output=new BufferedOutputStream(new FileOutputStream(file));
-            byte[] header=int2Bytes(log.check,4);
-            output.write(header,0,4);
-            for(int i=0;i<log.logTable.size();i++){
-                byte[] in1=int2Bytes(log.logTable.get(i).length,4);
-                output.write(in1,0,4);
-                byte[] logstr=log.logTable.get(i).str.getBytes();
-                output.write(logstr,0,log.logTable.get(i).str.length());
-            }
-            output.flush();
-            output.close();
-            return true;
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
 
-    //加载日志块
-    public  LogTable loadLog(int logid){
-        LogTable log=new LogTable();
-        LogTableItem temp;
-        File file=new File("/data/data/drz.oddb/Log/"+logid);
-        if(!file.exists()){
-            return null;
-        }else{
-            try {
-                FileInputStream input=new FileInputStream(file);
-                byte[] x=new byte[4];
-                input.read(x,0,4);
-                log.check=bytes2Int(x,0,4);
-                while((input.read(x,0,4)!=-1)){
-                    temp=new LogTableItem();
-                    temp.length=bytes2Int(x,0,4);
-                    byte[] y=new byte[temp.length];
-                    input.read(y,0,temp.length);
-                    temp.str=new String(y,0,temp.length);
-                    log.logTable.add(temp);
-                }
-                input.close();
-                log.logID=logid;
-                return log;
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-    }
 
-    //设置日志块检查点为1
-    public boolean setLogCheck(int logid){
-        LogTable l;
-        if((l=this.loadLog(logid))!=null){
-            l.check=1;
-            this.saveLog(l);
-            return true;
-        }else{
-            return false;
-        }
-    }
 
     //设置检查点号
     public boolean setCheckPoint(int logid){
