@@ -47,12 +47,17 @@ public class TransAction {
 
     Context context;
     public static MemManage mem = new MemManage();
-    public static ObjectTable topt = mem.loadObjectTable();
-    public static ClassTable classt = mem.loadClassTable();
-    public static DeputyTable deputyt = mem.loadDeputyTable();
-    public static BiPointerTable biPointerT = mem.loadBiPointerTable();
-    public static SwitchingTable switchingT = mem.loadSwitchingTable();
-    MemConnect memConnect=new MemConnect();
+//    public static ObjectTable topt = mem.loadObjectTable();
+//    public static ClassTable classt = mem.loadClassTable();
+//    public static DeputyTable deputyt = mem.loadDeputyTable();
+//    public static BiPointerTable biPointerT = mem.loadBiPointerTable();
+//    public static SwitchingTable switchingT = mem.loadSwitchingTable();
+    static MemConnect memConnect=new MemConnect();
+    public static ObjectTable topt = memConnect.getTopt();
+    public static ClassTable classt = memConnect.getClasst();
+    public static DeputyTable deputyt = memConnect.getDeputyt();
+    public static BiPointerTable biPointerT = memConnect.getBiPointerT();
+    public static SwitchingTable switchingT = memConnect.getSwitchingT();
 
     LogManager log = new LogManager(this);
 
@@ -61,8 +66,8 @@ public class TransAction {
     public LevelManager levelManager = memManager.levelManager;
 
     public void clear() throws IOException {
-        File classtab=new File("/data/data/drz.tmdb/transaction/classtable");
-        classtab.delete();
+//        File classtab=new File("/data/data/drz.tmdb/transaction/classtable");
+//        classtab.delete();
         File objtab=new File("/data/data/drz.tmdb/transaction/objecttable");
         objtab.delete();
     }
@@ -75,9 +80,9 @@ public class TransAction {
 //        mem.saveDeputyTable(deputyt);
 //        mem.saveBiPointerTable(biPointerT);
 //        mem.saveSwitchingTable(switchingT);
-//        mem.saveLog(log.LogT);
-//        while(!mem.flush());
-//        while(!mem.setLogCheck(log.LogT.logID));
+////        mem.saveLog(log.LogT);
+////        while(!mem.flush());
+////        while(!mem.setLogCheck(log.LogT.logID));
 //        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
 //
 //        memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
@@ -979,6 +984,7 @@ public class TransAction {
         context.startActivity(intent);
     }
     public void PrintTab(){
+//        memConnect.reload();
         PrintTab(memConnect.getTopt(),memConnect.getSwitchingT(),memConnect.getDeputyt(),memConnect.getBiPointerT(),memConnect.getClasst());
     }
 }

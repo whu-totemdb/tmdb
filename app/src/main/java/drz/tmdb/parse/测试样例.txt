@@ -17,6 +17,8 @@ INSERT INTO test VALUES ("ff",30,1000);
 
 select name,test.age from company left join test on company.name=test.name;
 
+select name from company where name="aa" and age=10 or age=11 and salary in (10,11);
+
 INSERT INTO UNIONTEST VALUES ("aa",20,1000);
 INSERT INTO UNIONTEST VALUES ("bb",30,8000);
 INSERT INTO UNIONTEST VALUES ("cc",30,8000);

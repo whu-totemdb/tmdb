@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import drz.tmdb.Level.LevelManager;
+import drz.tmdb.Log.LogManager;
 import drz.tmdb.Memory.MemManage;
 import drz.tmdb.Memory.MemManager;
 import drz.tmdb.Memory.Tuple;
@@ -25,6 +26,7 @@ import drz.tmdb.Transaction.SystemTable.ObjectTable;
 import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
 import drz.tmdb.Transaction.SystemTable.SwitchingTable;
 import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
+import drz.tmdb.Transaction.TransAction;
 
 public class MemConnect {
     private static MemManage mem = new MemManage();
@@ -33,13 +35,10 @@ public class MemConnect {
     private static DeputyTable deputyt = mem.loadDeputyTable();
     private static BiPointerTable biPointerT = mem.loadBiPointerTable();
     private static SwitchingTable switchingT = mem.loadSwitchingTable();
-    private static MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
-            deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
-    private static LevelManager levelManager = memManager.levelManager;
-    //    LogManage log = new LogManage(this);
+
+//        LogManager log = new LogManager(this);
 
     public MemConnect(){
-        this.reload();
     };
 
     public Tuple GetTuple(int id, int offset) {
@@ -131,6 +130,7 @@ public class MemConnect {
         for (int i = 0; i < count; i++) {
             classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori"));
         }
+//        this.SaveAll();
         return true;
     }
 
@@ -155,6 +155,8 @@ public class MemConnect {
                 break;
             }
         }
+        if(classid==0) return -1;
+
 
         for(int j = 0;j<count;j++){
             tuple_[j] = p[j+3];
@@ -167,9 +169,7 @@ public class MemConnect {
         topt.maxTupleId++;
         int tupleid = topt.maxTupleId;
         topt.objectTable.add(new ObjectTableItem(classid,tupleid,a[0],a[1]));
-
         //向代理类加元组
-
         for(DeputyTableItem item:deputyt.deputyTable){
             if(classid == item.originid){
                 //判断代理规则
@@ -259,6 +259,7 @@ public class MemConnect {
 
     public void SaveAll( )
     {
+
         mem.saveObjectTable(topt);
         mem.saveClassTable(classt);
         mem.saveDeputyTable(deputyt);
@@ -268,7 +269,9 @@ public class MemConnect {
 //        while(!mem.flush());
 //        while(!mem.setLogCheck(log.LogT.logID));
 //        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
-
+        MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
+                deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
+        LevelManager levelManager = memManager.levelManager;
         memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
         levelManager.saveIndexToFile();
     }

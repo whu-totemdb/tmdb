@@ -55,6 +55,8 @@ public class Select {
             return plainSelect(stmt);
         }
         SelectResult selectResult=from(plainSelect);
+//        Where where=new Where();
+//        selectResult=where.where(plainSelect,selectResult);
         selectResult=elicit(plainSelect,selectResult);
         return selectResult;
     }
@@ -205,33 +207,37 @@ public class Select {
         TupleList leftTupleList=left.tpl;
         TupleList rightTupleList=right.tpl;
         LinkedList<Expression> expressionLinkedList=(LinkedList<Expression>)join.getOnExpressions();
-        EqualsTo equals=(EqualsTo) expressionLinkedList.get(0);
-        Column leftExpression=(Column) equals.getLeftExpression();
-        Column rightExpression=(Column) equals.getRightExpression();
-        int leftIndex=0;
-        int rightIndex=0;
-        for(int i=0;i<left.attrname.length;i++){
-            if(leftExpression.getColumnName().equals(left.attrname[i])){
-                leftIndex=i;
-                break;
+        if(!expressionLinkedList.isEmpty()){
+            EqualsTo equals=(EqualsTo) expressionLinkedList.get(0);
+            Column leftExpression=(Column) equals.getLeftExpression();
+            Column rightExpression=(Column) equals.getRightExpression();
+            int leftIndex=0;
+            int rightIndex=0;
+            for(int i=0;i<left.attrname.length;i++){
+                if(leftExpression.getColumnName().equals(left.attrname[i])){
+                    leftIndex=i;
+                    break;
+                }
+            }
+            for(int i=0;i<right.attrname.length;i++){
+                if(rightExpression.getColumnName().equals(right.attrname[i])){
+                    rightIndex=i;
+                    break;
+                }
+            }
+            if(join.isNatural() || join.isInner()){
+                leftTupleList=naturalJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
+            }
+            else if(join.isLeft()){
+                leftTupleList=leftJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
+            }
+            else if(join.isRight()){
+                leftTupleList=leftJoin(rightTupleList,leftTupleList,rightIndex,leftIndex);
+            }
+            else{
+                leftTupleList=naturalJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
             }
         }
-        for(int i=0;i<right.attrname.length;i++){
-            if(rightExpression.getColumnName().equals(right.attrname[i])){
-                rightIndex=i;
-                break;
-            }
-        }
-        if(join.isNatural() || join.isInner()){
-            leftTupleList=naturalJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
-        }
-        if(join.isLeft()){
-            leftTupleList=leftJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
-        }
-        else if(join.isRight()){
-            leftTupleList=leftJoin(rightTupleList,leftTupleList,rightIndex,leftIndex);
-        }
-
         return leftTupleList;
     }
 
@@ -296,6 +302,7 @@ public class Select {
         }
         return tupleList;
     }
+
 
     public SelectResult getSelectResult(ArrayList<ClassTableItem> classTableItemList,TupleList tupleList){
         SelectResult selectResult=new SelectResult();
