@@ -77,7 +77,7 @@ public class Select {
         for(Column column:selectColumnList){
             for(int i=0;i<selectResult.attrname.length;i++){
                 if(selectResult.attrname[i].equals(column.getColumnName())) {
-                    if (column.getTable()!=null && selectResult.className[i].equals(column.getTable().toString())) {
+                    if (column.getTable()==null || selectResult.className[i].equals(column.getTable().toString())) {
                         elicitIndexList.add(i);
                         break;
                     }
@@ -107,7 +107,7 @@ public class Select {
                 temp[i]=tuple.tuple[elicitIndexList.get(i)];
             }
             elicitTuple.tuple=temp;
-            elicitTupleList.addTuple(tuple);
+            elicitTupleList.addTuple(elicitTuple);
         }
 
         res.tpl=elicitTupleList;
@@ -121,8 +121,9 @@ public class Select {
         SelectResult selectResult=getSelectResult(classTableItemList,tupleList);
         if(!(plainSelect.getJoins() ==null)){
             for(Join join:plainSelect.getJoins()){
-                ArrayList<ClassTableItem> tempClassTableItem=memConnect.getSelectItem(fromItem);
-                SelectResult tempSelectResult=getSelectResult(classTableItemList,tupleList);
+                ArrayList<ClassTableItem> tempClassTableItem=memConnect.getSelectItem(join.getRightItem());
+                TupleList tempTupleList=memConnect.getTable(join.getRightItem());
+                SelectResult tempSelectResult=getSelectResult(tempClassTableItem,tempTupleList);
                 tupleList=join(selectResult,tempSelectResult,join);
                 classTableItemList=getJoinClassTableItem(classTableItemList,tempClassTableItem,join);
                 selectResult=getSelectResult(classTableItemList,tupleList);
@@ -224,7 +225,7 @@ public class Select {
         if(join.isNatural() || join.isInner()){
             leftTupleList=naturalJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
         }
-        else if(join.isLeft()){
+        if(join.isLeft()){
             leftTupleList=leftJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
         }
         else if(join.isRight()){
@@ -271,7 +272,7 @@ public class Select {
                     for(int i=0;i<leftTuple.tuple.length;i++){
                         tuple[i]=leftTuple.tuple[i];
                     }
-                    for(int i=leftTuple.tuple.length;i<rightTuple.tuple.length;i++){
+                    for(int i=leftTuple.tuple.length;i<leftTuple.tuple.length+rightTuple.tuple.length;i++){
                         if(i-leftTuple.tuple.length==rightIndex) continue;
                         if(i<leftIndex+rightIndex) tuple[i]=rightTuple.tuple[i-leftTuple.tuple.length];
                         else {
@@ -345,11 +346,18 @@ public class Select {
 
     public ArrayList<ClassTableItem> getJoinClassTableItem(ArrayList<ClassTableItem> list1, ArrayList<ClassTableItem> list2, Join join){
         LinkedList<Expression> expressionLinkedList=(LinkedList<Expression>)join.getOnExpressions();
-        EqualsTo equals=(EqualsTo) expressionLinkedList.get(0);
-        Column rightExpression=(Column) equals.getRightExpression();
-        for(ClassTableItem classTableItem:list2){
-            if(classTableItem.attrname!=rightExpression.getColumnName()) continue;
-            list1.add(classTableItem);
+        if(!expressionLinkedList.isEmpty()){
+            EqualsTo equals=(EqualsTo) expressionLinkedList.get(0);
+            Column rightExpression=(Column) equals.getRightExpression();
+            for(ClassTableItem classTableItem:list2){
+                if(classTableItem.attrname.equals(rightExpression.getColumnName())) continue;
+                list1.add(classTableItem);
+            }
+        }
+        else{
+            for(ClassTableItem classTableItem:list2){
+                list1.add(classTableItem);
+            }
         }
         return list1;
     }

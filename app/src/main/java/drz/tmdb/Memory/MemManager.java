@@ -23,6 +23,7 @@ public class MemManager {
     private final List<BiPointerTableItem> biPointerTable;
     private final List<SwitchingTableItem> switchingTable;
 
+
     private int currentMemSize = 0; // 当前数据占用内存大小
 
     public LevelManager levelManager = new LevelManager();

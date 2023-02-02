@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.net.UnknownHostException;
 
 import drz.tmdb.Transaction.TransAction;
@@ -63,7 +64,12 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 //onStop();
                 //trans.Test();
-               trans.query2(editText.getText().toString());
+//                try {
+//                    trans.clear();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+                trans.query2("",-1,editText.getText().toString());
             }
         });
 

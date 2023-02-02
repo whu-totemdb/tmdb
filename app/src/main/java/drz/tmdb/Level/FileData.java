@@ -15,6 +15,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +54,7 @@ public class FileData {
     // 索引-B树的根节点
     // key , value为"offset-length"
     public BTree<String, String> root = new BTree<>();
-    public Map<String, String> indexMap;
+    public Map<String, String> indexMap=new HashMap<>();
 
     // constructor
     // 将文件读到内存中

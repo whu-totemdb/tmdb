@@ -8,6 +8,14 @@ INSERT INTO company VALUES ("ff",30,1000);
 
 SELECT name from company UNION SELECT name from company;
 create CLASS test (name char,age int, salary int);
+INSERT INTO test VALUES ("aa",20,1000);
+INSERT INTO test VALUES ("bb",30,8000);
+INSERT INTO test VALUES ("cc",30,8000);
+INSERT INTO test VALUES ("dd",20,1000);
+INSERT INTO test VALUES ("ee",20,1000);
+INSERT INTO test VALUES ("ff",30,1000);
+
+select name,test.age from company left join test on company.name=test.name;
 
 INSERT INTO UNIONTEST VALUES ("aa",20,1000);
 INSERT INTO UNIONTEST VALUES ("bb",30,8000);
@@ -16,29 +24,29 @@ INSERT INTO UNIONTEST VALUES ("cc",30,8000);
 SELECT * FROM UNIONTEST UNION ALL SELECT * FROM company;
 
 SELECT name AS n1 from company where age = 20 UNION SELECT name AS n2 from company where age = 30;
-//╨щ╩Ї╨╘
-//┤┤╜и┤·└э└р
+//я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜
+//я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜
 CREATE SELECTDEPUTY nandb SELECT name AS n1,age+5 AS birth,salary AS s1 FROM company WHERE age=20;
 
 CREATE SELECTDEPUTY nands SELECT name AS n,salary+10 AS s FROM company WHERE salary=1000;
 
-//╕№╨┬╟и╥╞
-//╘Ў
+//я┐╜я┐╜я┐╜я┐╜╟ия┐╜я┐╜
+//я┐╜я┐╜
 INSERT INTO company VALUES ("gg",20,3000);
 //╔╛
 DELETE FROM company WHERE name="aa";
-//╕─
+//я┐╜я┐╜
 UPDATE company SET salary=8000 WHERE name="gg";
-//▓щ
+//я┐╜я┐╜
 SELECT n1 AS names,birth AS births,s1 AS salarys FROM nandb WHERE n1="gg";
 
 
-//┐ч└р▓щ╤п
+//я┐╜я┐╜я┐╜я┐╜я┐╜╤п
 SELECT company -> nandb.n1 FROM company WHERE salary=1000;
 
-//╔╛│¤└р
+//╔╛я┐╜я┐╜я┐╜я┐╜
 DROP CLASS nandb;
-//╔╛│¤└рги═м╩▒╔╛│¤┤·└э└ргй
+//╔╛я┐╜я┐╜я┐╜рги═м╩▒╔╛я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜я┐╜ргй
 DROP CLASS company; 
 
 

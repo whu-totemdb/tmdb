@@ -5,33 +5,37 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserDefaultVisitor;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.parser.CCJSqlParserVisitor;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.StatementVisitor;
+import net.sf.jsqlparser.statement.StatementVisitorAdapter;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectBody;
+
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+//import drz.tmdb.Level.LevelManager;
 import drz.tmdb.Level.LevelManager;
-import drz.tmdb.Log.LogManager;
-import drz.tmdb.Log.LogTable;
-import drz.tmdb.Memory.MemManage;
-import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Transaction.SystemTable.BiPointerTable;
-import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
-import drz.tmdb.Transaction.SystemTable.ClassTable;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.DeputyTable;
-import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTable;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTable;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
-import drz.tmdb.parse.ParseException;
-import drz.tmdb.parse.parse;
+import drz.tmdb.Log.*;
+import drz.tmdb.Memory.*;
+
+
+import drz.tmdb.Transaction.Transactions.Create;
+import drz.tmdb.Transaction.Transactions.Insert;
+import drz.tmdb.Transaction.Transactions.MemConnect;
+import drz.tmdb.Transaction.Transactions.Select;
+import drz.tmdb.Transaction.Transactions.SelectResult;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
-
+import drz.tmdb.Transaction.SystemTable.*;
 
 public class TransAction {
     public TransAction(Context context) {
@@ -39,14 +43,16 @@ public class TransAction {
         RedoRest();
     }
 
-    Context context;
-    public MemManage mem = new MemManage();
+    public TransAction(){}
 
-    public ObjectTable topt = mem.loadObjectTable();
-    public ClassTable classt = mem.loadClassTable();
-    public DeputyTable deputyt = mem.loadDeputyTable();
-    public BiPointerTable biPointerT = mem.loadBiPointerTable();
-    public SwitchingTable switchingT = mem.loadSwitchingTable();
+    Context context;
+    public static MemManage mem = new MemManage();
+    public static ObjectTable topt = mem.loadObjectTable();
+    public static ClassTable classt = mem.loadClassTable();
+    public static DeputyTable deputyt = mem.loadDeputyTable();
+    public static BiPointerTable biPointerT = mem.loadBiPointerTable();
+    public static SwitchingTable switchingT = mem.loadSwitchingTable();
+    MemConnect memConnect=new MemConnect();
 
     LogManager log = new LogManager(this);
 
@@ -54,20 +60,32 @@ public class TransAction {
             deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
     public LevelManager levelManager = memManager.levelManager;
 
+    public void clear() throws IOException {
+        File classtab=new File("/data/data/drz.tmdb/transaction/classtable");
+        classtab.delete();
+        File objtab=new File("/data/data/drz.tmdb/transaction/objecttable");
+        objtab.delete();
+    }
+
     public void SaveAll( )
     {
-        mem.saveObjectTable(topt);
-        mem.saveClassTable(classt);
-        mem.saveDeputyTable(deputyt);
-        mem.saveBiPointerTable(biPointerT);
-        mem.saveSwitchingTable(switchingT);
-        log.writeLogItemToSSTable(log.LogT);
-        while(!mem.flush());
-        while(!log.setLogCheck(log.LogT.logID));
-        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
+        memConnect.SaveAll();
+//        mem.saveObjectTable(topt);
+//        mem.saveClassTable(classt);
+//        mem.saveDeputyTable(deputyt);
+//        mem.saveBiPointerTable(biPointerT);
+//        mem.saveSwitchingTable(switchingT);
+//        mem.saveLog(log.LogT);
+//        while(!mem.flush());
+//        while(!mem.setLogCheck(log.LogT.logID));
+//        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
+//
+//        memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
+//        levelManager.saveIndexToFile();
+    }
 
-        memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
-        levelManager.saveIndexToFile();
+    public void reload(){
+        memConnect.reload();
     }
 
     public void Test(){
@@ -114,7 +132,8 @@ public class TransAction {
                 String s = redo.logTable.get(i).value;
 
                 log.WriteLog(k,op,s);
-                query(k,op,s);
+                query2(k,op,s);
+//                query2(s);
             }
         }else{
             return false;
@@ -122,135 +141,148 @@ public class TransAction {
         return true;
     }
 
-    public String query(String k,int op,String s) {
-
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
-        parse p = new parse(byteArrayInputStream);
-        try {
-            String[] aa = p.Run();
-
-            switch (Integer.parseInt(aa[0])) {
-                case parse.OPT_CREATE_ORIGINCLASS:
-                    log.WriteLog(k,op,s);
-                    CreateOriginClass(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
-                    break;
-                case parse.OPT_CREATE_SELECTDEPUTY:
-                    log.WriteLog(k,op,s);
-                    CreateSelectDeputy(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
-                    break;
-                case parse.OPT_DROP:
-                    log.WriteLog(k,op,s);
-                    Drop(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
-                    break;
-                case parse.OPT_INSERT:
-                    log.WriteLog(k,op,s);
-                    Insert(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
-                    break;
-                case parse.OPT_DELETE:
-                    log.WriteLog(k,op,s);
-                    Delete(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
-                    break;
-                case parse.OPT_SELECT_DERECTSELECT:
-                    DirectSelect(aa);
-                    break;
-                case parse.OPT_SELECT_INDERECTSELECT:
-                    InDirectSelect(aa);
-                    break;
-                case parse.OPT_CREATE_UPDATE:
-                    log.WriteLog(k,op,s);
-                    Update(aa);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
-                default:
-                    break;
-
-            }
-        } catch (ParseException e) {
-
-            e.printStackTrace();
-        }
-
-        //        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+//    public String query(String s) {
+//        this.reload();
+//        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+//        parse p = new parse(byteArrayInputStream);
 //        try {
-//            Statement stmt=CCJSqlParserUtil.parse(byteArrayInputStream);
-//            String[] aa = new String[2];
-//            String sqlType=stmt.getClass().getSimpleName();
+//            String[] aa = p.Run();
 //
-//            switch (sqlType) {
-//                case "CreateTable":
+//            switch (Integer.parseInt(aa[0])) {
+//                case parse.OPT_CREATE_ORIGINCLASS:
 //                    log.WriteLog(s);
-//                    CreateOriginClass(aa);
-//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+//                    if(CreateOriginClass(aa)) new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+//                    else new AlertDialog.Builder(context).setTitle("提示").setMessage("创建失败").setPositiveButton("确定",null).show();
 //                    break;
-//                case "CreateDeputyClass":
-////                    switch
+//                case parse.OPT_CREATE_SELECTDEPUTY:
 //                    log.WriteLog(s);
 //                    CreateSelectDeputy(aa);
 //                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
 //                    break;
-////                case "Create":
-////                    log.WriteLog(s);
-////                    CreateUnionDeputy(aa);
-////                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建Union代理类成功").setPositiveButton("确定",null).show();
-////                    break;
-//                case "Drop":
+//                case parse.OPT_DROP:
 //                    log.WriteLog(s);
 //                    Drop(aa);
 //                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
 //                    break;
-//                case "Insert":
+//                case parse.OPT_INSERT:
 //                    log.WriteLog(s);
 //                    Insert(aa);
 //                    new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
 //                    break;
-//                case "Delete":
+//                case parse.OPT_DELETE:
 //                    log.WriteLog(s);
 //                    Delete(aa);
 //                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
 //                    break;
-//                case "Select":
+//                case parse.OPT_SELECT_DERECTSELECT:
 //                    DirectSelect(aa);
 //                    break;
-////                case parse.OPT_SELECT_INDERECTSELECT:
-////                    InDirectSelect(aa);
-////                    break;
-//                case "Update":
+//                case parse.OPT_SELECT_INDERECTSELECT:
+//                    InDirectSelect(aa);
+//                    break;
+//                case parse.OPT_CREATE_UPDATE:
 //                    log.WriteLog(s);
 //                    Update(aa);
 //                    new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
-//                    break;
-////                case :
-////                    log.WriteLog(s);
-////                    Union(aa);
-////                    //new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
-////                    break;
 //                default:
 //                    break;
 //
 //            }
-//        } catch (JSQLParserException e) {
+//        } catch (ParseException e) {
 //
 //            e.printStackTrace();
 //        }
+//
+//        return s;
+//    }
 
+    public String query2(String k,int op,String s) {
+//        memConnect.reload();
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+        try {
+            Statement stmt= CCJSqlParserUtil.parse(byteArrayInputStream);
+            String[] aa = new String[2];
+            String sqlType=stmt.getClass().getSimpleName();
+            switch (sqlType) {
+                case "CreateTable":
+//                    log.WrteLog(s);
+                    Create create=new Create();
+                    if(create.create(stmt)) new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+                    else new AlertDialog.Builder(context).setTitle("提示").setMessage("创建失败").setPositiveButton("确定",null).show();
+                    break;
+                case "CreateDeputyClass":
+//                    switch
+                    log.WriteLog(k,op,s);
+                    CreateSelectDeputy(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+                    break;
+//                case "Create":
+//                    log.WriteLog(s);
+//                    CreateUnionDeputy(aa);
+//                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建Union代理类成功").setPositiveButton("确定",null).show();
+//                    break;
+                case "Drop":
+                    log.WriteLog(k,op,s);
+                    Drop(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
+                    break;
+                case "Insert":
+                    log.WriteLog(k,op,s);
+                    Insert insert=new Insert();
+                    if(insert.insert(stmt)) new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
+                    else new AlertDialog.Builder(context).setTitle("提示").setMessage("插入失败").setPositiveButton("确定",null).show();
+                    break;
+                case "Delete":
+                    log.WriteLog(k,op,s);
+                    Delete(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
+                    break;
+                case "Select":
+                    Select select=new Select();
+                    SelectResult selectResult=select.select((net.sf.jsqlparser.statement.select.Select) stmt);
+                    this.PrintSelectResult(selectResult);
+                    break;
+//                case parse.OPT_SELECT_INDERECTSELECT:
+//                    InDirectSelect(aa);
+//                    break;
+                case "Update":
+                    log.WriteLog(k,op,s);
+                    Update(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
+                    break;
+//                case :
+//                    log.WriteLog(s);
+//                    Union(aa);
+//                    //new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
+//                    break;
+                default:
+                    break;
+
+            }
+        } catch (JSQLParserException e) {
+            e.printStackTrace();
+        }
         return s;
-
     }
 
     //CREATE CLASS dZ123 (nB1 int,nB2 char) ;
     //1,2,dZ123,nB1,int,nB2,char
-    private void CreateOriginClass(String[] p) {
+    private boolean CreateOriginClass(String[] p) {
         String classname = p[2];
         int count = Integer.parseInt(p[1]);
         classt.maxid++;
         int classid = classt.maxid;
+        for(ClassTableItem item : classt.classTable){
+            if(item.classname.equals(classname)){
+                return false;
+            }
+        }
         for (int i = 0; i < count; i++) {
             classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori"));
         }
+//        this.SaveAll();
+        mem.loadClassTable();
+        return true;
     }
 
     //INSERT INTO aa VALUES (1,2,"3");
@@ -273,6 +305,7 @@ public class TransAction {
         {
             if(item.classname.equals(classname)){
                 classid = item.classid;
+                break;
             }
         }
 
@@ -353,16 +386,10 @@ public class TransAction {
                     int deojid=Insert(ss);
                     //插入Bi
                     biPointerT.biPointerTable.add(new BiPointerTableItem(classid,tupleid,item.deputyid,deojid));
-
-
-
                 }
             }
         }
         return tupleid;
-
-
-
     }
 
     private boolean Condition(String attrtype,Tuple tuple,int attrid,String value1){
@@ -583,7 +610,6 @@ public class TransAction {
                     attrtype[i] = item.attrtype;
                     attrname[i] = p[5+4*i];
                     //重命名
-
                     break;
                 }
             }
@@ -606,7 +632,6 @@ public class TransAction {
                 Tuple tuple = GetTuple(item.blockid,item.offset);
                 if(Condition(sattrtype,tuple,sattrid,p[4*attrnumber+5])){
                     //Switch
-
                     for(int j = 0;j<attrnumber;j++){
                         if(Integer.parseInt(p[3+4*j])==1){
                             int value = Integer.parseInt(p[4+4*j]);
@@ -614,11 +639,7 @@ public class TransAction {
                             Object ob = value+orivalue;
                             tuple.tuple[attrid[j]] = ob;
                         }
-
                     }
-
-
-
                     tpl.addTuple(tuple);
                 }
             }
@@ -626,11 +647,10 @@ public class TransAction {
         for(int i =0;i<attrnumber;i++){
             attrid[i]=i;
         }
-        PrintSelectResult(tpl,attrname,attrid,attrtype);
+//        PrintSelectResult(new SelectResult(tpl,attrname,attrid,attrtype));
         return tpl;
 
     }
-
 
     //CREATE SELECTDEPUTY aa SELECT  b1+2 AS c1,b2 AS c2,b3 AS c3 FROM  bb WHERE t1="1" ;
     //2,3,aa,b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
@@ -791,7 +811,7 @@ public class TransAction {
         name[0] = attrname;
         int[] id = new int[1];
         id[0] = 0;
-        PrintSelectResult(tpl,name,id,attrtype);
+//        PrintSelectResult(new SelectResult(tpl,name,id,attrtype));
         return tpl;
 
 
@@ -843,7 +863,6 @@ public class TransAction {
             }
         }
     }
-
     private void UpdatebyID(int tupleid,int attrid,String value){
         for(ObjectTableItem item: topt.objectTable){
             if(item.tupleid ==tupleid){
@@ -889,20 +908,8 @@ public class TransAction {
         }
 
     }
-
-
-
-
-
     //INSERT INTO aa VALUES (1,2,"3");
     //4,3,aa,1,2,"3"
-
-
-
-
-
-
-
     private class OandB{
         public List<ObjectTableItem> o= new ArrayList<>();
         public List<BiPointerTableItem> b= new ArrayList<>();
@@ -917,10 +924,6 @@ public class TransAction {
             this.b = b;
         }
     }
-
-
-
-
     private Tuple GetTuple(int id, int offset) {
 
         return mem.readTuple(id,offset);
@@ -954,10 +957,19 @@ public class TransAction {
 
     }
 
+    private void PrintSelectResult(SelectResult selectResult) {
+        Intent intent = new Intent(context, PrintResult.class);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("tupleList", selectResult.getTpl());
+        bundle.putStringArray("attrname", selectResult.getAttrname());
+        bundle.putIntArray("attrid", selectResult.getAttrid());
+        bundle.putStringArray("type", selectResult.getType());
+        intent.putExtras(bundle);
+        context.startActivity(intent);
+    }
+
     private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, String[] type) {
         Intent intent = new Intent(context, PrintResult.class);
-
-
         Bundle bundle = new Bundle();
         bundle.putSerializable("tupleList", tpl);
         bundle.putStringArray("attrname", attrname);
@@ -965,10 +977,8 @@ public class TransAction {
         bundle.putStringArray("type", type);
         intent.putExtras(bundle);
         context.startActivity(intent);
-
-
     }
     public void PrintTab(){
-        PrintTab(topt,switchingT,deputyt,biPointerT,classt);
+        PrintTab(memConnect.getTopt(),memConnect.getSwitchingT(),memConnect.getDeputyt(),memConnect.getBiPointerT(),memConnect.getClasst());
     }
 }

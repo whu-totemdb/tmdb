@@ -25,7 +25,7 @@ public class PrintResult extends AppCompatActivity {
         Intent intent = getIntent();
         Bundle bundle = intent.getExtras();
 //        Print((TupleList) bundle.getSerializable("tupleList"),bundle.getStringArray("attrname"),bundle.getIntArray("attrid"),bundle.getStringArray("type"),bundle.getString("removeDuplicate"));
-        Print((TupleList) bundle.getSerializable("tupleList"),bundle.getStringArray("attrname"),bundle.getIntArray("attrid"),bundle.getStringArray("type"),"true");
+        Print((TupleList) bundle.getSerializable("tupleList"),bundle.getStringArray("attrname"),bundle.getIntArray("attrid"),bundle.getStringArray("type"),"false");
     }
 
      public void Print(TupleList tpl,String[] attrname,int[] attrid,String[] type,String removeDuplicate){
@@ -94,6 +94,7 @@ public class PrintResult extends AppCompatActivity {
                         switch (type[c]){
                             case "int":
                                 //itemp = Integer.parseInt(oj.toString());
+                                if(oj==null) oj="null";
                                 tv.setText(oj.toString()+"");
                                 break;
                             case "char":
