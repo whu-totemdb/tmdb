@@ -1,311 +1,95 @@
-# TASK-1: 实现对象Union操作
+# TASK1——SSTable读写流程
 
-SQL的[UNION](https://www.runoob.com/sql/sql-union.html)操作符是用来合并两个或多个SELECT语句的结果,UNION 内部的每个 SELECT 语句必须拥有相同数量的列。列也必须拥有相似的数据类型。同时，每个 SELECT 语句中的列的顺序必须相同.
+### 1 LSM-Tree介绍
 
-SQL语句的用法
+​		LSM-Tree的英文全称为Log-structured Merge Tree，即日志结构合并树，这是一种分层、有序、面向磁盘的key-value存储结构，其结构如图所示。从其名称出发来理解LSM-Tree，一方面，它是一种基于日志的结构，即所有的操作都要首先写入日志(称为WAL: write ahead log)，这样方便进行数据恢复和异常处理；另一方面，在LSM-Tree中涉及大量合并(merge，也称compaction)操作，数据首先写入内存，如图中的C0所示，随后通过不断的合并过程，在磁盘上从小文件C1不断合并到大文件CL中。
 
-```SQL
-SELECT column_name(s) FROM table1
-UNION
-SELECT column_name(s) FROM table2;
-```
+![https://docimg9.docs.qq.com/image/AgAABWe4B1iT90UukmZEn4y1qqfSIoG3.png?w=497&h=190](file:///C:/Users/Lenovo/AppData/Local/Temp/msohtmlclip1/01/clip_image001.png)
 
-值得注意的是 `UNION` 是默认选取不同的值,所以我们还需要做一步去重的操作.
+​		与传统数据库的就地更新策略(in-place update，即先找到对应数据存储的位置，然后就地修改)不同，LSM-Tree采用一种追加更新(out-place update)的方式，即所有修改操作，都首先以写数据的形式写到内存中，再从内存中顺序刷新(flush)到磁盘。
 
-或者使用UNION ALL(未实现)
+​		
 
----
+​		LSM-Tree的具体结构如下图所示。
 
-实现UNION操作需要修改两个文件 [parse.jj](../app/src/main/java/drz/tmdb/parse/parse.jj) 和 [Transaction.java](../app/src/main/java/drz/tmdb/Transaction/TransAction.java)
+![https://docimg2.docs.qq.com/image/AgAABWe4B1iEpfP9R61ItLAYm6C34Woy.png?w=436&h=242](file:///C:/Users/Lenovo/AppData/Local/Temp/msohtmlclip1/01/clip_image002.png)
 
-> 如果尚不熟悉javacc语法,自己去学
+​		在内存中，LSM-Tree的数据保存在MemTable中，MemTable又分为immutable MemTable和mutable MemTable，前者不可修改，后者可修改。数据写入时，会写入mutable MemTable中，当mutable MemTable写满时会转化为immutable MemTable，再写入数据需要等待空闲的mutable MemTable。每个immutable MemTable都会等待合适的时机，进行compaction操作合并到外存中，随后转化为mutable MemTable再次变得可写入。
 
-**每一次parse.jj的修改之后都需要重新编译**生成java的class文件
+​		在外存中，LSM-Tree的数据保存在SSTable(Sorted-String Table)中，每个SSTable中的数据按照key排序。这些SSTable分层存储，从level-0到level-n，对应SSTable的数量越来越多，大小越来越大。从内存中的immutable MemTable进行compaction时首先转换为level-0中的SSTable，当level-i的大小达到上限时，会进行compaction到level-(i+1)，经过一系列compaction最终到达level-n。
 
-```bash
-javacc parse.jj
-javac *.java
-```
 
-一个简单的脚本见[recompile.sh](../recompile.sh)
 
-## javacc中需要注意的地方
+​		这样的设计带来了很多优点，比如：
 
-- TOKEN加一个 `<UNION:"UNION">`
-- 开头补一个 `public static final int OPT_UNION= 9;`
+​		·卓越的写性能：out-place update不需要首先找到旧数据的实际存储位置，直接写入一条新数据，充分利用磁盘顺序写比随机写效率高；
 
-## 基本思路,设计union函数
+​		·高空间利用率：按level组织数据，并通过compaction操作将新数据从上层传播到底层，这些compaction操作过滤掉旧版本数据，减少冗余数据大小，从而减少所需的存储空间，提高空间利用率；
 
-```javacc
-String union():
-{
-  String union_s;
-  int count;
-}
-{
-  <SELECT> count = directselect()
-  {
-    union_s = OPT_UNION + ",";
-    union_s += count;
-    while(!st.isEmpty()){
-      union_s +=",";
-      union_s += st.poll();
-    }
-  }
-  // 后面部分至少出现一次并且可以循环下去的,所以使用了 +
-  (<UNION> <SELECT> count = directselect()
-  {
-    union_s += ",";
-    union_s += count;
-    while(!st.isEmpty()){
-      union_s +=",";
-      union_s += st.poll();
-    }
-  })+
-  <SEMICOLON>
-  {return union_s;}
-}
-```
+​		·版本控制的简化：不同的level提供了天然的版本控制信息，假设level-i中有数据k1-v1， level-(i+1)中有相同key的数据k1-v2，通过层级信息就能判断level-1中的数据是最新版本的数据；
 
-但是这样会有一个问题,在sql中需要判断是选择那个语句
+​		·简易的数据恢复：由于WAL的存在，在遇到异常情况时可以通过WAL快速恢复内存中的数据。
 
-```javacc
-String[] sql() :
-{
-    String sql_s;
-    String create_s;
-    String drop_s;
-    String select_s;
-    String insert_s;
-    String delete_s;
-    String update_s;
-    String union_s;
-}
-{
-   create_s = create() {sql_s = create_s;System.out.println(sql_s+"/n");return sql_s.split(","); }
-   |drop_s = drop() {sql_s = drop_s;System.out.println(sql_s+"/n");return sql_s.split(","); }
-   |select_s = select(){sql_s = select_s;System.out.println(sql_s+"/n");return sql_s.split(",");  }
-   |insert_s = insert2(){sql_s = insert_s;System.out.println(sql_s+"/n");return sql_s.split(",");  }
-   |delete_s = delete(){sql_s = delete_s;System.out.println(sql_s+"/n");return sql_s.split(",");  }
-   |update_s = update() {sql_s = update_s;System.out.println(sql_s+"/n");return sql_s.split(","); }
-   |union_s = union() {sql_s = union_s;System.out.println(sql_s+"/n");return sql_s.split(","); }
-}
-```
 
-但是 `union` 和 `select`具有相同的前缀,即左公因子,无法通过LOOKAHEAD来判断应该走哪个
 
-```javacc
-options{
-  LOOKAHEAD = 3;
-  STATIC = false ;
-  DEBUG_PARSER = true;
-}
-```
+​		当然，LSM-Tree这样的设计在获得高效的写性能时，也牺牲了其他方面的性能：
 
-options中LOOKAHEAD是3,相当于LL(3)文法,而 directinsert() 输入的字符串个数不确定,倒是可以通过改写 LOOKAHEAD = 12来实现对于单个基本SELECT的无限递归查询,但是由于SELECT中可以使用多个嵌套,AS这种无限数量的,所以增大 LOOKAHEAD是治标不治本,并没有实际解决这个问题
+​		·数据的最新程度mutable Memtable > immutable Table > Level-0 > Level-1 > Level-2 >…，因此在查询数据时，需要先扫描MemTable，如果没有命中，则需要从level-0开始一直扫描到level-6直到命中；
 
-## 最终解决方案
+​		·LSM-Tree的合并操作(compaction)将若干个SSTable的数据读到内存中，进行更新、去重、排序等一系列操作后重新写回SSTable，涉及到数据的解码、编码、比较、合并,是一个计算密集型的操作。一方面，合并操作在整理数据的过程中会移动数据的位置，导致数据对应的缓存失效，造成了读性能的抖动问题。另一方面，合并操作在整理LSM-Tree数据的同时造成了写放大,严重影响了LSM-Tree的写性能。
 
-修改SELECT,相当于消除左公因子,将其后操作合并为union()函数中解决
 
-```javacc
-String select() :
-{
-  String select_s;
-  int count;
-  int union_count = 0;
-  String union_s; // 用于判断是否是union
-}
-{
-    (<SELECT> count = directselect() union_s = union())
-    {
-      if (union_s == "END"){
-        select_s = OPT_SELECT_DERECTSELECT+",";
-        select_s += count;
-        while(!st.isEmpty()){
-            select_s +=",";
-            select_s += st.poll();
-        }
-      }
-      else {
-        select_s = OPT_UNION+",";
-        select_s += count;
-        while(!st.isEmpty()){
-            select_s +=",";
-            select_s += st.poll();
-        }
-        select_s += union_s;
-      }
-	    
-      return select_s;
-    }
 
-    |
-    (<SELECT> count = indirectselect() <SEMICOLON>)
-    {
-	  select_s = OPT_SELECT_INDERECTSELECT+",";
-      select_s += count;
-      while(!st.isEmpty())
-      {
-        select_s +=",";
-        select_s += st.poll();
-        
-      }
-      return select_s;
-    }
-}
-```
+### 2 SSTable结构
 
-修改后的union函数,用于判断 `;` 和 `(UNION SELECT)+`
+SSTable (Sorted String Table) 是排序字符串表的简称，它是一个种高效的 key-value 型文件存储格式，其结构如图所示。
 
-如果union_s返回值是"END"那么就说明使用的是SELECT语句,否则就是UNION语句
+![https://docimg5.docs.qq.com/image/AgAABWe4B1hnYYGyBDZPhr_RjkSc9gKi.png?imageMogr2/thumbnail/1600x%3E/ignore-error/1](file:///C:/Users/Lenovo/AppData/Local/Temp/msohtmlclip1/01/clip_image004.jpg)
 
-```javacc
-String union():
-{
-  String union_s = "";
-  int count;
-}
-{
-  <SEMICOLON>
-  {
-    union_s = "END";
-    return union_s;
-  }
-  |
-  // 后面部分至少出现一次并且可以循环下去的,所以使用了 +
-  (<UNION> <SELECT> count = directselect()
-  {
-    union_s += count;
-    while(!st.isEmpty()){
-      union_s +=",";
-      union_s += st.poll();
-    }
-  })+
-  <SEMICOLON>
-  {return union_s;}
-}
-```
+​		首先在SSTable尾部有个Footer，它给出整个SSTable中其他各区域的物理偏移和长度，也是整个SSTable的访问入口。数据在SSTable中分为不同data block，每个data block为4KB。由于数据在SSTable中按照key排序，因此不同data block之间也严格按照key排序，并把每个data block的最大key保存到index block中。同时，为了优化读性能，我们还额外保存最大key、最小key，和一个Bloom Filter (将在第4小节进行详细介绍)。
 
-## 实现函数执行
+​		结合以上对SSTable结构的设计，查询SSTable中指定key的过程如下：
 
-这样我们就可以成功解析UNION的语句了,接下来我们需要为UNION完成函数实现,修改[Transaction.java](../app/src/main/java/drz/tmdb/Transaction/TransAction.java)
+​		①首先访问Footer，获得其他组件的偏移及长度；
 
-```java
+​		②访问最小key和最大key，判断要查询的数据在不在这个范围内，若不在则无须继续访问此SSTable；
 
-// query选择时补充上UNION的分支
-case parse.OPT_UNION:
-    log.WriteLog(s);
-    Union(aa);
-    //new AlertDialog.Builder(context).setTitle("提示").setMessage("合并成功").setPositiveButton("确定",null).show();
-    break;
-```
+​		③访问Bloom Filter，输入key值返回true/false，判断对应的数据在不在此SSTable中；
 
-接下来是UNION的操作,其实思路比较明确,就是输入是一个 `String []p`的一个列表,我们需要分析它.
+​		④访问index block，其中记录的每个数据块的最大key、偏移、长度，可以根据这些信息定位到目标key可能存在的数据块，随后遍历访问该数据块寻找目标key。
 
-这一步完全可以借鉴SELECT的做法(源文件的SELECT语句有问题,我已经向老师代码仓库提了PR,通过了但是一直没merge我很奇怪??)
 
-代码段我就不贴了, `union()`函数就是,有点长
 
-主要区别是做一个去重的操作,因为UNION本身是需要去重的,所以复制了一份`PrintSelectResult`用于重载
+### 3 B树实现索引
 
-> 似乎java并不支持默认参数,类似c++ `void f(int a,int b,int c = 10)`这种写法,所以只能多构造一个参数的
+​		在tmDB中，索引结构在内存中表现为B-Tree的形式，在磁盘上通过先根遍历B-Tree的所有节点，将其持久化到SSTable中的index block中。
 
-其中的 `removeDuplicate`这个键用于判断是否去重
+​		B-tree是一种自平衡的树，能够保持数据有序。这种数据结构能够让查找数据、顺序访问、插入数据及删除的动作，都在对数时间内完成，为系统大块数据的读写操作做了优化。B-tree通过减少定位记录时所经历的中间过程，从而加快存取速度。
 
-```java
-private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, String[] type) {
-    Intent intent = new Intent(context, PrintResult.class);
-    //System.out.println("PrintSelectResult");
+​		在SSTable的结构中，数据以4KB的大小分为不同data block，在将MemTable持久化为SSTable时，先将每个data block的最大key以及该data block在SSTable中的偏移量插入B-Tree中，得到一个能够记录此SSTable索引信息的B-Tree，如图所示，图中每结点的第一行记录的是data block的最大key，第二行记录的是对应的偏移量，第三行记录的是该结点的孩子结点指针。在此例中k1-k19是递增的。在查询时，假设我们的目标key在k7-k8之间，那么我们首先搜索B-Tree定位到k7和k8，同时确定了目标数据存在于data block 7中，通过偏移量即可进一步访问该data block。
 
-    Bundle bundle = new Bundle();
-    bundle.putSerializable("tupleList", tpl);
-    bundle.putStringArray("attrname", attrname);
-    bundle.putIntArray("attrid", attrid);
-    bundle.putStringArray("type", type);
-    bundle.putString("removeDuplicate", "false");
-    intent.putExtras(bundle);
-    context.startActivity(intent);
-}
+![img](file:///C:/Users/Lenovo/AppData/Local/Temp/msohtmlclip1/01/clip_image004.png)
 
-private void PrintSelectResult(TupleList tpl, String[] attrname, int[] attrid, String[] type,String removeDuplicate) {
-    Intent intent = new Intent(context, PrintResult.class);
-    //System.out.println("PrintSelectResult");
+​		在将B-Tree持久化保存到SSTable中的index block时，需要解决孩子结点如何保存的问题。在内存中的B-Tree，可以很方便地通过指针记录其孩子节点，但是在持久化到磁盘时，指针记录的是在内存中的地址，而我们需要的是孩子结点的磁盘上的物理地址，因此，我们先根遍历B-Tree，即先保存其孩子结点，得到每个孩子结点在SSTable中的物理偏移之后，再保存父节点。例如图中的B-Tree结构，我们先保存A、B、C、D、E结点，同时得到这些节点的偏移量，再记录F结点，同时将第三行的指针替换为实际的物理偏移量。
 
-    Bundle bundle = new Bundle();
-    bundle.putSerializable("tupleList", tpl);
-    bundle.putStringArray("attrname", attrname);
-    bundle.putIntArray("attrid", attrid);
-    bundle.putStringArray("type", type);
-    bundle.putString("removeDuplicate", "true");
-    intent.putExtras(bundle);
-    context.startActivity(intent);
-}
-```
 
-## 去重操作
 
-> ~~如果你不想去重,也可以直接改成 UNION ALL~~
+### 4 Bloom Filter
 
-接下来完善[PrintResult.java](../app/src/main/java/drz/tmdb/show/PrintResult.java)
+​		Bloom Filter是由Bloom在1970年提出的一种多哈希函数映射的快速查找算法。通常应用在一些需要快速判断某个元素是否属于集合，但是并不严格要求100%正确的场合。
 
-主要改进思路就是如果`removeDuplicate`是"true"就去重,采用了一个比较笨的方法判断是否重复
+​		我们在判断某个元素是否属于集合时，通常采用hash set的方法，能够在O(1)的时间复杂度内查询元素是否属于集合。但是随着数据量的增大，会出现大量的哈希冲突，若要减少哈希冲突的概率，则需要扩大哈希数组的大小。若要降低冲突发生的概率到1%以下，则需要将哈希数组的大小设置为100n以上(n为元素总个数)。如此庞大的空间消耗是我们不能接受的，为了拥有O(1)的时间效率，又希望尽量降低空间消耗，我们使用Bloom Filter。
 
-如果是"false"那就还是走原来的路线
+​		Bloom Filter通过使用多个哈希函数，每插入一个元素，将多个bit置为1，在查询时也相应检查对应的多个bit是否全为1，若是则返回true，否则返回false。如图所示，假设我们使用3个哈希函数、18个bit来实现Bloom Filter。当插入元素x时，3个哈希函数计算得到的值分别为1、5、13，相应的我们将这三个bit置为1，同理插入y和z时也会将哈希函数计算得到的bit置为1。此时，如果我们需要判断元素w是否存在集合中，3个哈希函数计算得到的值为4、13、15，我们检查对应的这三个bit，发现不全为1，因此给出结论，元素w不在集合中。
 
-> 值得一提的是java语言判断字符串是否相等使用 `a.equals(b)` 的方式,而不是 `a==b`
->
-> java写的不是很熟,比较讨厌这门语言
+![img](file:///C:/Users/Lenovo/AppData/Local/Temp/msohtmlclip1/01/clip_image005.png)
 
-```java
-...
-if (removeDuplicate.equals("true")) {
-    String [][]record_list = new String [tabH][tabCol];
-    System.out.println("removeDuplicate");
-    for (int i = 0; i < tabCol; i++) {
-        record_list[0][i] = (tpl.tuplelist.get(0).tuple[attrid[i]]).toString();
-    }
-    int index = 1; // 去重之后的数组长度
+​		当然，Bloom Filter并不能达到100%的正确率。假如在图中，我们需要判断的元素t恰好通过3个哈希函数计算得到的值为1、3、4，而这三个bit都为1，因此Bloom Filter返回true。但实际上元素t并不存在于集合中。这种情况我们称为假阳性(false positive)。
 
-    for(int i=1;i<tabH;i++){
-        String []temp_item = new String[tabCol];
-        for(int j=0;j<tabCol;j++){
-            temp_item[j] = (tpl.tuplelist.get(i).tuple[attrid[j]]).toString();
-        }
-        if(!isDuplicate(record_list,temp_item,index)){
-            for(int j=0;j<tabCol;j++){
-                record_list[index][j] = temp_item[j];
-            }
-            index++;
-        }
-    }
-...
-```
+​		设n为元素个数，p为假阳性概率。为了使p<1%，我们需要合理选择Bloom Filter的参数：
 
-## 测试执行结果
+​		·位数组大小m = ![img](file:///C:/Users/Lenovo/AppData/Local/Temp/msohtmlclip1/01/clip_image007.png) ≈ 20n；
 
-首先创建两个表
+​		·哈希函数的个数k =![img](file:///C:/Users/Lenovo/AppData/Local/Temp/msohtmlclip1/01/clip_image009.png) ≈ 14。
 
-> 需要一行一行执行,这个代码并没有做多行处理
-
-```SQL
-CREATE CLASS company1 (name char,age int, salary int);
-INSERT INTO company1 VALUES ("aa",20,1000);
-INSERT INTO company1 VALUES ("bb",30,8000);
-INSERT INTO company1 VALUES ("cc",30,8000);
-INSERT INTO company1 VALUES ("dd",20,1000);
-
-CREATE CLASS company2 (name char,age int, salary int);
-INSERT INTO company2 VALUES ("aa",20,1000);
-INSERT INTO company2 VALUES ("dd",30,1000);
-```
-
-合并操作
-
-```SQL
-SELECT name AS n FROM company1 WHERE age=20 UNION SELECT name AS n FROM company2 WHERE age=30;
-```
-
-结果: 执行正确
-
-![20220504021126](https://raw.githubusercontent.com/learner-lu/picbed/master/20220504021126.png)
+​		哈希函数的个数是固定的，只有位数组大小需要随着数据量的变化而变化。因此对于单个SSTable的Bloom Filter部分，我们只需要记录这20n个bit，即⌈20n/8⌉个字节。
