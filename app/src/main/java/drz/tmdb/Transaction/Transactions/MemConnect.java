@@ -61,8 +61,10 @@ public class MemConnect {
     public ArrayList<ClassTableItem> getSelectItem(FromItem fromItem){
         ArrayList<ClassTableItem> elicitAttrItemList=new ArrayList<>();
         for(ClassTableItem item : classt.classTable){
-            if(item.classname.equals(fromItem.toString())){
-                elicitAttrItemList.add(item);
+            if(item.classname.equals(((Table)fromItem).getName())){
+                ClassTableItem temp=item.getCopy();
+                if(fromItem.getAlias()!=null) temp.classname=fromItem.getAlias().getName();
+                elicitAttrItemList.add(temp);
             }
         }
         return elicitAttrItemList;
@@ -77,7 +79,7 @@ public class MemConnect {
                 boolean flag=false;
                 for(Column column:columnList){
                     Column c=(Column) column;
-                    if(c.getTable()!=null && !(c.getTable().equals(fromItem.toString())&& c.getTable().equals(fromItem.getAlias()))) continue;
+                    if(c.getTable()!=null && !(c.getTable().equals(fromItem.toString())&& c.getTable().equals(fromItem.getAlias().getName()))) continue;
                     if(attrName.equals(c.getColumnName())) {
                         flag=true;
                         break;
@@ -99,7 +101,7 @@ public class MemConnect {
     }
 
     public TupleList getTable(FromItem fromItem){
-        int classid=this.getClassId(fromItem.toString());
+        int classid=this.getClassId(((Table) fromItem).getName());
         TupleList res=new TupleList();
         for(ObjectTableItem item : topt.objectTable) {
             if (item.classid == classid) {

@@ -98,6 +98,7 @@ public class PrintResult extends AppCompatActivity {
                                 tv.setText(oj.toString()+"");
                                 break;
                             case "char":
+                                if(oj==null) oj="null";
                                 stemp = oj.toString();
                                 tv.setText(stemp);
                                 break;

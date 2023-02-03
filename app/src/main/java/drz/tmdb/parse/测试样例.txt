@@ -17,7 +17,16 @@ INSERT INTO test VALUES ("ff",30,1000);
 
 select name,test.age from company left join test on company.name=test.name;
 
+create uniondeputy uniondeputyclass as select .. from .. where.. union select .. from.. where..
+
 select name from company where name="aa" and age=10 or age=11 and salary in (10,11);
+
+select name from company where age=20 and salary=1000;
+
+select name from company as c where c.age*c.age+c.age=420 and salary=1000
+and (age+c.age)/c.age=2 and c.salary-c.age=980 and c.salary%c.age=0;
+
+select name from company as c where c.age*c.age+c.age=420 and salary=1000;
 
 INSERT INTO UNIONTEST VALUES ("aa",20,1000);
 INSERT INTO UNIONTEST VALUES ("bb",30,8000);

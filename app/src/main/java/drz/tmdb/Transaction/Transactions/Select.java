@@ -12,6 +12,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.*;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -55,8 +56,8 @@ public class Select {
             return plainSelect(stmt);
         }
         SelectResult selectResult=from(plainSelect);
-//        Where where=new Where();
-//        selectResult=where.where(plainSelect,selectResult);
+        Where where=new Where();
+        selectResult=where.where(plainSelect,selectResult);
         selectResult=elicit(plainSelect,selectResult);
         return selectResult;
     }
@@ -119,7 +120,7 @@ public class Select {
     public SelectResult from(PlainSelect plainSelect){
         FromItem fromItem=plainSelect.getFromItem();
         TupleList tupleList=memConnect.getTable(fromItem);
-        ArrayList<ClassTableItem> classTableItemList=memConnect.getSelectItem(fromItem);
+         ArrayList<ClassTableItem> classTableItemList=memConnect.getSelectItem(fromItem);
         SelectResult selectResult=getSelectResult(classTableItemList,tupleList);
         if(!(plainSelect.getJoins() ==null)){
             for(Join join:plainSelect.getJoins()){

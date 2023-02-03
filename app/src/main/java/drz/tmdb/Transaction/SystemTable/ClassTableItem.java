@@ -2,6 +2,8 @@ package drz.tmdb.Transaction.SystemTable;
 
 import java.io.Serializable;
 
+import drz.tmdb.Transaction.Transactions.SelectResult;
+
 public class ClassTableItem implements Serializable {
     public String classname = null;        //类名
     public int classid = 0;                //类id
@@ -21,5 +23,10 @@ public class ClassTableItem implements Serializable {
         this.classtype = classtype;
     }
     public ClassTableItem(){}
+
+    public ClassTableItem getCopy(){
+        return new ClassTableItem(this.classname,this.classid,this.attrnum,this.attrid,this.attrname,this.attrtype,this.classtype);
+    }
+
 
 }
