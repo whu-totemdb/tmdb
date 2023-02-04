@@ -75,9 +75,6 @@ public class Select {
         int length=selectItemList.size();
         for(int i=0;i<selectItemList.size();i++) {
             if (selectItemList.get(i).getClass().getSimpleName().equals("AllColumns")) {
-                for(int j=0;j<selectResult.attrid.length;j++){
-                    selectResult.attrid[j]=j;
-                }
                 return selectResult;
             }
             else if(selectItemList.get(i).getClass().getSimpleName().equals("AllTableColumns")){
