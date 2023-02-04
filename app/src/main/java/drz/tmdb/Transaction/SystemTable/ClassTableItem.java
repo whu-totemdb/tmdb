@@ -12,8 +12,9 @@ public class ClassTableItem implements Serializable {
     public String attrname = null;         //属性名
     public String attrtype = null;         //属性类型
     public String classtype = null;
+    public String alias=null;
 
-    public ClassTableItem(String classname, int classid, int attrnum,int attrid, String attrname, String attrtype,String classtype) {
+    public ClassTableItem(String classname, int classid, int attrnum,int attrid, String attrname, String attrtype,String classtype,String alias) {
         this.classname = classname;
         this.classid = classid;
         this.attrnum = attrnum;
@@ -21,11 +22,12 @@ public class ClassTableItem implements Serializable {
         this.attrtype = attrtype;
         this.attrid = attrid;
         this.classtype = classtype;
+        this.alias = alias;
     }
     public ClassTableItem(){}
 
     public ClassTableItem getCopy(){
-        return new ClassTableItem(this.classname,this.classid,this.attrnum,this.attrid,this.attrname,this.attrtype,this.classtype);
+        return new ClassTableItem(this.classname,this.classid,this.attrnum,this.attrid,this.attrname,this.attrtype,this.classtype,this.alias);
     }
 
 

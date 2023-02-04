@@ -82,9 +82,10 @@ public class Select {
             }
             else if(selectItemList.get(i).getClass().getSimpleName().equals("AllTableColumns")){
                 AllTableColumns selectItem= (AllTableColumns) selectItemList.get(i);
-                for(String s:selectResult.className){
-                    if (s.equals(selectItem.getTable().getName()) ||
-                            (selectItem.getTable().getAlias() != null && selectItem.getTable().getAlias().getName().equals(s))) {
+                for(int y=0;y<selectResult.className.length;y++){
+                    String s=selectResult.className[y];
+                    String alias=selectResult.alias[y];
+                    if (s.equals(selectItem.getTable().getName()) || selectItem.getTable().getAlias().getName().equals(alias)) {
                         length++;
                     }
                 }
@@ -123,8 +124,8 @@ public class Select {
                 AllTableColumns selectItem= (AllTableColumns) selectItemList.get(index);
                 for(int j=0;j<selectResult.className.length;j++){
                     String s=selectResult.className[j];
-                    if (s.equals(selectItem.getTable().getName()) ||
-                            (selectItem.getTable().getAlias() != null && selectItem.getTable().getAlias().getName().equals(s))) {
+                    String alias=selectResult.alias[j];
+                    if (s.equals(selectItem.getTable().getName()) || selectItem.getTable().getName().equals(alias)) {
                         result.attrname[i]=selectResult.attrname[j];
                         for(int x=0;x<resTupleList.tuplelist.size();x++){
                             resTupleList.tuplelist.get(x).tuple[i]=selectResult.tpl.tuplelist.get(x).tuple[j];
@@ -312,7 +313,7 @@ public class Select {
         }
         ArrayList<ClassTableItem> classTableItemArrayList=new ArrayList<>();
         for(int i=0;i<tupleList.tuplelist.get(0).tuple.length;i++){
-            ClassTableItem classTableItem=new ClassTableItem("", -1, tupleList.tuplelist.get(0).tuple.length,i, "attr"+i,tupleList.tuplelist.get(0).tuple.getClass().getSimpleName(),"");
+            ClassTableItem classTableItem=new ClassTableItem("", -1, tupleList.tuplelist.get(0).tuple.length,i, "attr"+i,tupleList.tuplelist.get(0).tuple.getClass().getSimpleName(),"","");
             classTableItemArrayList.add(classTableItem);
         }
         return getSelectResult(classTableItemArrayList,tupleList);
@@ -582,8 +583,10 @@ public class Select {
         selectResult.attrname=new String[classTableItemList.size()];
         selectResult.attrid=new int[classTableItemList.size()];
         selectResult.type=new String[classTableItemList.size()];
+        selectResult.alias=new String[classTableItemList.size()];
         for(int i=0;i<classTableItemList.size();i++){
             selectResult.className[i]=classTableItemList.get(i).classname;
+            selectResult.alias[i]=classTableItemList.get(i).alias;
             selectResult.attrid[i]=classTableItemList.get(i).attrid;
             selectResult.attrname[i]=classTableItemList.get(i).attrname;
             selectResult.type[i]=classTableItemList.get(i).attrtype;

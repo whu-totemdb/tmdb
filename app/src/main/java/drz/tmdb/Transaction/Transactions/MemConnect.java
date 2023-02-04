@@ -63,7 +63,7 @@ public class MemConnect {
         for(ClassTableItem item : classt.classTable){
             if(item.classname.equals(((Table)fromItem).getName())){
                 ClassTableItem temp=item.getCopy();
-                if(fromItem.getAlias()!=null) temp.classname=fromItem.getAlias().getName();
+                if(fromItem.getAlias()!=null) temp.alias=fromItem.getAlias().getName();
                 elicitAttrItemList.add(temp);
             }
         }
@@ -130,7 +130,7 @@ public class MemConnect {
             }
         }
         for (int i = 0; i < count; i++) {
-            classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori"));
+            classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori",null));
         }
 //        this.SaveAll();
         return true;
@@ -315,7 +315,7 @@ public class MemConnect {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de",null));
                     //swi
                     if(Integer.parseInt(p[4+4*i]) == 1){
                         switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));

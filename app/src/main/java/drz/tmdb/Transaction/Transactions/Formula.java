@@ -35,7 +35,9 @@ public class Formula {
         int index=-1;
         for(int i=0;i<selectResult.className.length;i++){
             if(selectResult.attrname[i].equals(columnName)){
-                if(column.getTable()==null || column.getTable().toString().equals(selectResult.className[i])){
+                if(column.getTable()==null
+                        || column.getTable().getName().equals(selectResult.className[i])
+                        || column.getTable().getName().equals(selectResult.alias[i])){
                     index=i;
                     break;
                 }

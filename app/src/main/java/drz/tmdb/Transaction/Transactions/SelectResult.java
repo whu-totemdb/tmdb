@@ -6,13 +6,15 @@ public class SelectResult {
     TupleList tpl;
     String[] className;
     String[] attrname;
+    String[] alias;
     int[] attrid;
     String[] type;
 
-    public SelectResult(TupleList tpl, String[] className,String[] attrname, int[] attrid, String[] type) {
+    public SelectResult(TupleList tpl, String[] className,String[] attrname, String[] alias,int[] attrid, String[] type) {
         this.className=className;
         this.tpl = tpl;
         this.attrname = attrname;
+        this.alias= alias;
         this.attrid = attrid;
         this.type = type;
     }
@@ -21,6 +23,14 @@ public class SelectResult {
 
     public String[] getClassName() {
         return className;
+    }
+
+    public String[] getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String[] alias) {
+        this.alias = alias;
     }
 
     public void setClassName(String[] className) {
