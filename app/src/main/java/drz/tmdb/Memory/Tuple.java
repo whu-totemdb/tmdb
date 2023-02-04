@@ -31,6 +31,11 @@ public class Tuple implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.tupleHeader,this.tuple);
+        int result = 17;
+        result = 31 * result + Objects.hash(this.tupleHeader);
+        for(int i=0;i<this.tuple.length;i++){
+            result = 31 * result + Objects.hash(this.tuple[i]);
+        }
+        return result;
     }
 }

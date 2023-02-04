@@ -11,13 +11,17 @@ import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SubSelect;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
@@ -39,7 +43,7 @@ public class Where {
         switch (expression.getClass().getSimpleName()){
             case "OrExpression": res=orExpression((OrExpression) expression,selectResult); break;
             case "AndExpression": res=andExpression((AndExpression) expression,selectResult); break;
-            case "INExpression": res=inExpression((InExpression) expression,selectResult); break;
+            case "InExpression": res=inExpression((InExpression) expression,selectResult); break;
             case "EqualsTo": res=equalsToExpression((EqualsTo) expression,selectResult); break;
             case "MinorThan": res=minorThan((MinorThan) expression,selectResult);
         }
@@ -75,14 +79,26 @@ public class Where {
     }
 
     public SelectResult inExpression(InExpression expression, SelectResult selectResult){
-        Expression left=expression.getLeftExpression();
-        Expression right=expression.getRightExpression();
-        SelectResult selectResult1=execute(left,selectResult);
-        SelectResult selectResult2=execute(right,selectResult);
-        HashSet<Tuple> selectResultSet1=getTupleSet(selectResult1);
-        HashSet<Tuple> selectResultSet2=getTupleSet(selectResult2);
-        SelectResult res=new SelectResult();
-        return res;
+        ArrayList<Object> left=formula.formulaExecute(expression.getLeftExpression(),selectResult);
+        List<Object> right=new ArrayList<>();
+        if(expression.getRightItemsList()!=null){
+            for(Expression expression1:((ExpressionList)expression.getRightItemsList()).getExpressions()){
+                ArrayList<Object> temp2=formula.formulaExecute(expression1,selectResult);
+                right.add(transType(temp2.get(0)));
+            }
+        }
+        else if(expression.getRightExpression().getClass().getSimpleName().equals("SubSelect")){
+            SelectResult temp=(new Select()).select(expression.getRightExpression());
+            for(int i=0;i<temp.tpl.tuplelist.size();i++){
+                right.add(transType(temp.tpl.tuplelist.get(i).tuple[0]));
+            }
+        }
+        ArrayList<Tuple> resTuple=new ArrayList<>();
+        for(int i=0;i<left.size();i++){
+            if(right.contains(transType(left.get(i)))) resTuple.add(selectResult.tpl.tuplelist.get(i));
+        }
+        selectResult.tpl.tuplelist=resTuple;
+        return selectResult;
     }
 
     public SelectResult equalsToExpression(EqualsTo expression,SelectResult selectResult){
@@ -108,7 +124,6 @@ public class Where {
         }
         return getSelectResultFromSet(selectResult,set);
     }
-    
     
 
     public HashSet<Tuple> getTupleSet(SelectResult selectResult){

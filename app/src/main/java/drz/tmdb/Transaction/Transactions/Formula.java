@@ -25,7 +25,7 @@ public class Formula {
             case "Multiplication": res= multiplication((Multiplication) expression,selectResult); break;
             case "LongValue": res=longValue((LongValue) expression,selectResult); break;
             case "Column": res=column((Column) expression,selectResult); break;
-            case "Parenthesis": res=parenthesis((Parenthesis) expression,selectResult);
+            case "Parenthesis": res=parenthesis((Parenthesis) expression,selectResult); break;
         }
         return res;
     }
@@ -42,8 +42,17 @@ public class Formula {
             }
         }
         ArrayList<Object> res=new ArrayList<>();
-        for(Tuple tuple:selectResult.tpl.tuplelist){
-            res.add(tuple.tuple[index]);
+        if(index>selectResult.className.length || index==-1){
+            if(column.getColumnName().charAt(0)=='"'){
+                for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
+                    res.add(columnName.replace("\"",""));
+                }
+            }
+        }
+        else {
+            for (Tuple tuple : selectResult.tpl.tuplelist) {
+                res.add(tuple.tuple[index]);
+            }
         }
         return res;
     }

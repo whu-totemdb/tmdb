@@ -8,15 +8,19 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.parser.SimpleNode;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.*;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.BinaryOperator;
 
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
@@ -35,15 +39,17 @@ public class Select {
     private static MemConnect memConnect=new MemConnect();
     public Select(){}
 
-    public SelectResult select(net.sf.jsqlparser.statement.select.Select stmt){
-        stmt=(net.sf.jsqlparser.statement.select.Select)stmt;
+    public SelectResult select(Object stmt){
+        SelectBody selectBody = null;
+        if(stmt.getClass().getSimpleName().equals("Select")) selectBody=((net.sf.jsqlparser.statement.select.Select)stmt).getSelectBody();
+        else if(stmt.getClass().getSimpleName().equals("SubSelect")) selectBody=((SubSelect)stmt).getSelectBody();
         SelectResult res=new SelectResult();
-        if(((net.sf.jsqlparser.statement.select.Select) stmt).getSelectBody().getClass().getSimpleName().equals("SetOperationList")){
-            SetOperationList setOperationList= (SetOperationList) ((net.sf.jsqlparser.statement.select.Select) stmt).getSelectBody();
+        if((selectBody.getClass().getSimpleName().equals("SetOperationList"))){
+            SetOperationList setOperationList= (SetOperationList) selectBody;
             return setOperation(setOperationList);
         }
-        else if(((net.sf.jsqlparser.statement.select.Select) stmt).getSelectBody().getClass().getSimpleName().equals("PlainSelect")){
-            res=plainSelect(((net.sf.jsqlparser.statement.select.Select) stmt).getSelectBody());
+        else if(selectBody.getClass().getSimpleName().equals("PlainSelect")){
+            res=plainSelect(selectBody);
         }
         return res;
     }
@@ -56,66 +62,126 @@ public class Select {
             return plainSelect(stmt);
         }
         SelectResult selectResult=from(plainSelect);
-        Where where=new Where();
-        selectResult=where.where(plainSelect,selectResult);
+        if(plainSelect.getWhere()!=null){
+            Where where=new Where();
+            selectResult=where.where(plainSelect,selectResult);
+        }
         selectResult=elicit(plainSelect,selectResult);
         return selectResult;
     }
 
-    public TupleList normalSelect(FromItem fromItem){
-        TupleList tupleList=memConnect.getTable(fromItem);
-        return tupleList;
-    }
-
     public SelectResult elicit(PlainSelect plainSelect,SelectResult selectResult){
         ArrayList<SelectItem> selectItemList= (ArrayList<SelectItem>) plainSelect.getSelectItems();
-        HashMap<SelectItem,ArrayList<Column>> selectItemToColumn=getSelectItemColumn(selectItemList);
-        List<Column> selectColumnList=getSelectColumnList(selectItemToColumn);
-        ArrayList<Integer> elicitIndexList=getElicitIndexList(selectColumnList,selectResult);
-        return getElicitSelectResult(elicitIndexList,selectResult);
-    }
-
-    public ArrayList<Integer> getElicitIndexList(List<Column> selectColumnList,SelectResult selectResult){
-        ArrayList<Integer> elicitIndexList=new ArrayList<>();
-        for(Column column:selectColumnList){
-            for(int i=0;i<selectResult.attrname.length;i++){
-                if(selectResult.attrname[i].equals(column.getColumnName())) {
-                    if (column.getTable()==null || selectResult.className[i].equals(column.getTable().toString())) {
-                        elicitIndexList.add(i);
-                        break;
+        int length=selectItemList.size();
+        for(int i=0;i<selectItemList.size();i++) {
+            if (selectItemList.get(i).getClass().getSimpleName().equals("AllColumns")) {
+                for(int j=0;j<selectResult.attrid.length;j++){
+                    selectResult.attrid[j]=j;
+                }
+                return selectResult;
+            }
+            else if(selectItemList.get(i).getClass().getSimpleName().equals("AllTableColumns")){
+                AllTableColumns selectItem= (AllTableColumns) selectItemList.get(i);
+                for(String s:selectResult.className){
+                    if (s.equals(selectItem.getTable().getName()) ||
+                            (selectItem.getTable().getAlias() != null && selectItem.getTable().getAlias().getName().equals(s))) {
+                        length++;
                     }
                 }
+                length--;
             }
         }
-        return elicitIndexList;
-    }
-
-    public SelectResult getElicitSelectResult(ArrayList<Integer> elicitIndexList,SelectResult selectResult){
-        SelectResult res=new SelectResult();
-        res.className=new String[elicitIndexList.size()];
-        res.attrname=new String[elicitIndexList.size()];
-        res.attrid=new int[elicitIndexList.size()];
-        res.type=new String[elicitIndexList.size()];
-        for(int i=0;i<elicitIndexList.size();i++){
-            res.className[i]=selectResult.className[elicitIndexList.get(i)];
-            res.attrid[i]=selectResult.attrid[elicitIndexList.get(i)];
-            res.attrname[i]=selectResult.attrname[elicitIndexList.get(i)];
-            res.type[i]=selectResult.type[elicitIndexList.get(i)];
+        TupleList resTupleList=new TupleList();
+        SelectResult result=new SelectResult();
+        result.attrname=new String[length];
+        result.attrid=new int[length];
+        result.type=new String[length];
+        for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
+            Tuple tuple=new Tuple();
+            tuple.tuple=new Object[length];
+            resTupleList.addTuple(tuple);
         }
-        TupleList elicitTupleList=new TupleList();
-        for(Tuple tuple:selectResult.tpl.tuplelist) {
-            Tuple elicitTuple=new Tuple();
-            Object[] temp=new Object[elicitIndexList.size()];
-            for(int i=0;i<elicitIndexList.size();i++) {
-                temp[i]=tuple.tuple[elicitIndexList.get(i)];
+        int i=0;
+        int index=0;
+        while(i<length){
+            if(selectItemList.get(index).getClass().getSimpleName().equals("SelectExpressionItem")){
+                SelectExpressionItem selectItem=(SelectExpressionItem) selectItemList.get(index);
+                if(selectItem.getAlias()!=null){
+                    result.attrname[i]=selectItem.getAlias().getName();
+                }
+                else result.attrname[i]=selectItem.toString();
+                ArrayList<Object> thisColumn=(new Formula()).formulaExecute(selectItem.getExpression(),selectResult);
+                for(int j=0;j<resTupleList.tuplelist.size();j++){
+                    resTupleList.tuplelist.get(j).tuple[i]=thisColumn.get(j);
+                }
+                result.type[i]="char";
+                result.attrid[i]=i;
+                i++;
+                index++;
             }
-            elicitTuple.tuple=temp;
-            elicitTupleList.addTuple(elicitTuple);
+            else if(selectItemList.get(index).getClass().getSimpleName().equals("AllTableColumns")){
+                AllTableColumns selectItem= (AllTableColumns) selectItemList.get(index);
+                for(int j=0;j<selectResult.className.length;j++){
+                    String s=selectResult.className[j];
+                    if (s.equals(selectItem.getTable().getName()) ||
+                            (selectItem.getTable().getAlias() != null && selectItem.getTable().getAlias().getName().equals(s))) {
+                        result.attrname[i]=selectResult.attrname[j];
+                        for(int x=0;x<resTupleList.tuplelist.size();x++){
+                            resTupleList.tuplelist.get(x).tuple[i]=selectResult.tpl.tuplelist.get(x).tuple[j];
+                        }
+                        result.type[i]="char";
+                        result.attrid[i]=i;
+                        i++;
+                    }
+                }
+                index++;
+            }
         }
-
-        res.tpl=elicitTupleList;
-        return res;
+        result.tpl=resTupleList;
+        return result;
     }
+
+//    public ArrayList<Integer> getElicitIndexList(List<Column> selectColumnList,SelectResult selectResult){
+//        ArrayList<Integer> elicitIndexList=new ArrayList<>();
+//        for(Column column:selectColumnList){
+//            for(int i=0;i<selectResult.attrname.length;i++){
+//                if(selectResult.attrname[i].equals(column.getColumnName())) {
+//                    if (column.getTable()==null || selectResult.className[i].equals(column.getTable().toString())) {
+//                        elicitIndexList.add(i);
+//                        break;
+//                    }
+//                }
+//            }
+//        }
+//        return elicitIndexList;
+//    }
+//
+//    public SelectResult getElicitSelectResult(ArrayList<Integer> elicitIndexList,SelectResult selectResult){
+//        SelectResult res=new SelectResult();
+//        res.className=new String[elicitIndexList.size()];
+//        res.attrname=new String[elicitIndexList.size()];
+//        res.attrid=new int[elicitIndexList.size()];
+//        res.type=new String[elicitIndexList.size()];
+//        for(int i=0;i<elicitIndexList.size();i++){
+//            res.className[i]=selectResult.className[elicitIndexList.get(i)];
+//            res.attrid[i]=selectResult.attrid[elicitIndexList.get(i)];
+//            res.attrname[i]=selectResult.attrname[elicitIndexList.get(i)];
+//            res.type[i]=selectResult.type[elicitIndexList.get(i)];
+//        }
+//        TupleList elicitTupleList=new TupleList();
+//        for(Tuple tuple:selectResult.tpl.tuplelist) {
+//            Tuple elicitTuple=new Tuple();
+//            Object[] temp=new Object[elicitIndexList.size()];
+//            for(int i=0;i<elicitIndexList.size();i++) {
+//                temp[i]=tuple.tuple[elicitIndexList.get(i)];
+//            }
+//            elicitTuple.tuple=temp;
+//            elicitTupleList.addTuple(elicitTuple);
+//        }
+//
+//        res.tpl=elicitTupleList;
+//        return res;
+//    }
 
     public SelectResult from(PlainSelect plainSelect){
         FromItem fromItem=plainSelect.getFromItem();
@@ -128,7 +194,7 @@ public class Select {
                 TupleList tempTupleList=memConnect.getTable(join.getRightItem());
                 SelectResult tempSelectResult=getSelectResult(tempClassTableItem,tempTupleList);
                 tupleList=join(selectResult,tempSelectResult,join);
-                classTableItemList=getJoinClassTableItem(classTableItemList,tempClassTableItem,join);
+                classTableItemList.addAll(tempClassTableItem);
                 selectResult=getSelectResult(classTableItemList,tupleList);
             }
         }
@@ -168,18 +234,66 @@ public class Select {
     }
 
     public SelectResult union(SelectResult selectResult1,SelectResult selectResult2){
+        TupleList tupleList=new TupleList();
+        HashSet<Tuple> set=new HashSet<>();
+        for(Tuple tuple:selectResult1.tpl.tuplelist){
+            set.add(tuple);
+        }
+        for(Tuple tuple:selectResult2.tpl.tuplelist){
+            set.add(tuple);
+        }
+        List<Tuple> res = new ArrayList<Tuple>(set);
+        tupleList.tuplelist=res;
+        tupleList.tuplenum=set.size();
+        selectResult1.tpl=tupleList;
         return selectResult1;
     }
 
     public SelectResult intersect(SelectResult selectResult1,SelectResult selectResult2){
+        TupleList tupleList=new TupleList();
+        HashSet<Tuple> set=new HashSet<>();
+        List<Tuple> res=new ArrayList<>();
+        for(Tuple tuple:selectResult1.tpl.tuplelist){
+            set.add(tuple);
+        }
+        for(Tuple tuple:selectResult2.tpl.tuplelist){
+            if(set.contains(tuple)) res.add(tuple);
+        }
+        tupleList.tuplelist=res;
+        tupleList.tuplenum=res.size();
+        selectResult1.tpl=tupleList;
         return selectResult1;
     }
 
     public SelectResult except(SelectResult selectResult1,SelectResult selectResult2){
+        TupleList tupleList=new TupleList();
+        HashSet<Tuple> set=new HashSet<>();
+        for(Tuple tuple:selectResult1.tpl.tuplelist){
+            set.add(tuple);
+        }
+        for(Tuple tuple:selectResult2.tpl.tuplelist){
+            if(set.contains(tuple)) set.remove(tuple);
+        }
+        List<Tuple> res = new ArrayList<Tuple>(set);
+        tupleList.tuplelist=res;
+        tupleList.tuplenum=set.size();
+        selectResult1.tpl=tupleList;
         return selectResult1;
     }
 
     public SelectResult minus(SelectResult selectResult1,SelectResult selectResult2){
+        TupleList tupleList=new TupleList();
+        HashSet<Tuple> set=new HashSet<>();
+        for(Tuple tuple:selectResult1.tpl.tuplelist){
+            set.add(tuple);
+        }
+        for(Tuple tuple:selectResult2.tpl.tuplelist){
+            if(set.contains(tuple)) set.remove(tuple);
+        }
+        List<Tuple> res = new ArrayList<Tuple>(set);
+        tupleList.tuplelist=res;
+        tupleList.tuplenum=set.size();
+        selectResult1.tpl=tupleList;
         return selectResult1;
     }
 
@@ -233,7 +347,10 @@ public class Select {
                 leftTupleList=leftJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
             }
             else if(join.isRight()){
-                leftTupleList=leftJoin(rightTupleList,leftTupleList,rightIndex,leftIndex);
+                leftTupleList=rightJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
+            }
+            else if(join.isOuter()){
+                leftTupleList=outerJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
             }
             else{
                 leftTupleList=naturalJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
@@ -248,17 +365,13 @@ public class Select {
             for(Tuple rightTuple:right.tuplelist){
                 if(leftTuple.tuple[leftIndex].equals(rightTuple.tuple[rightIndex])){
                     Tuple tempTuple=new Tuple();
-                    int newLength=leftTuple.tuple.length+rightTuple.tuple.length-1;
-                    Object[] tuple=new Object[newLength];
-                    for(int i=0;i<leftTuple.tuple.length;i++){
-                        tuple[i]=leftTuple.tuple[i];
+                    int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    for (int i = 0; i < leftTuple.tuple.length; i++) {
+                        tuple[i] = leftTuple.tuple[i];
                     }
-                    for(int i=leftTuple.tuple.length;i<rightTuple.tuple.length;i++){
-                        if(i-leftTuple.tuple.length==rightIndex) continue;
-                        if(i<leftIndex+rightIndex) tuple[i]=rightTuple.tuple[i-leftTuple.tuple.length];
-                        else {
-                            tuple[i-1]=rightTuple.tuple[i-leftTuple.tuple.length];
-                        }
+                    for (int i = leftTuple.tuple.length; i < newLength; i++) {
+                        tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
                     }
                     tempTuple.tuple=tuple;
                     tupleList.addTuple(tempTuple);
@@ -270,32 +383,190 @@ public class Select {
 
     public TupleList leftJoin(TupleList left,TupleList right,int leftIndex, int rightIndex){
         TupleList tupleList=new TupleList();
-        for(Tuple leftTuple:left.tuplelist){
-            for(Tuple rightTuple:right.tuplelist){
-                if(leftTuple.tuple[leftIndex].equals(rightTuple.tuple[rightIndex])){
-                    Tuple tempTuple=new Tuple();
-                    int newLength=leftTuple.tuple.length+rightTuple.tuple.length-1;
-                    Object[] tuple=new Object[newLength];
-                    for(int i=0;i<leftTuple.tuple.length;i++){
-                        tuple[i]=leftTuple.tuple[i];
+        if(left.tuplelist.isEmpty()) return tupleList;
+        HashMap<Object,ArrayList<Integer>> map=new HashMap<>();
+        HashMap<Object, Boolean> check=new HashMap<>();
+        for(int i=0;i<left.tuplelist.size();i++){
+            Tuple leftT=left.tuplelist.get(i);
+            if(map.containsKey(leftT.tuple[leftIndex])){
+                map.get(leftT.tuple[leftIndex]).add(i);
+            }
+            else {
+                ArrayList<Integer> list=new ArrayList<>();
+                list.add(i);
+                map.put(leftT.tuple[leftIndex], list);
+                check.put(leftT.tuple[leftIndex],false);
+            }
+        }
+        for(Tuple rightTuple:right.tuplelist){
+            if(map.containsKey(rightTuple.tuple[rightIndex])){
+                check.replace(rightTuple.tuple[rightIndex],true);
+                for(int index:map.get(rightTuple.tuple[rightIndex])) {
+                    Tuple leftTuple=left.tuplelist.get(index);
+                    Tuple tempTuple = new Tuple();
+                    int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    for (int i = 0; i < leftTuple.tuple.length; i++) {
+                        tuple[i] = leftTuple.tuple[i];
                     }
-                    for(int i=leftTuple.tuple.length;i<leftTuple.tuple.length+rightTuple.tuple.length;i++){
-                        if(i-leftTuple.tuple.length==rightIndex) continue;
-                        if(i<leftIndex+rightIndex) tuple[i]=rightTuple.tuple[i-leftTuple.tuple.length];
-                        else {
-                            tuple[i-1]=rightTuple.tuple[i-leftTuple.tuple.length];
-                        }
+                    for (int i = leftTuple.tuple.length; i < newLength; i++) {
+                        tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
                     }
+                    tempTuple.tuple = tuple;
+                    tupleList.addTuple(tempTuple);
+                }
+            }
+        }
+        for(Object obj:check.keySet()){
+            if(check.get(obj)==false){
+                for(int index:map.get(obj)){
+                    int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    Tuple tempLeft=left.tuplelist.get(index);
+                    for(int i=0;i<left.tuplelist.get(0).tuple.length;i++){
+                        tuple[i]=tempLeft.tuple[i];
+                    }
+                    Tuple tempTuple = new Tuple();
                     tempTuple.tuple=tuple;
                     tupleList.addTuple(tempTuple);
                 }
-                else{
-                    Tuple tempTuple=new Tuple();
-                    int newLength=leftTuple.tuple.length+rightTuple.tuple.length-1;
-                    Object[] tuple=new Object[newLength];
-                    for(int i=0;i<leftTuple.tuple.length;i++){
-                        tuple[i]=leftTuple.tuple[i];
+            }
+        }
+
+        return tupleList;
+    }
+
+    public TupleList rightJoin(TupleList left,TupleList right,int leftIndex, int rightIndex){
+        TupleList tupleList=new TupleList();
+        if(right.tuplelist.isEmpty()) return tupleList;
+        HashMap<Object,ArrayList<Integer>> map=new HashMap<>();
+        HashMap<Object, Boolean> check=new HashMap<>();
+        for(int i=0;i<right.tuplelist.size();i++){
+            Tuple rightT=right.tuplelist.get(i);
+            if(map.containsKey(rightT.tuple[rightIndex])){
+                map.get(rightT.tuple[rightIndex]).add(i);
+            }
+            else {
+                ArrayList<Integer> list=new ArrayList<>();
+                list.add(i);
+                map.put(rightT.tuple[rightIndex], list);
+                check.put(rightT.tuple[rightIndex],false);
+            }
+        }
+        for(Tuple leftTuple:left.tuplelist){
+            if(map.containsKey(leftTuple.tuple[leftIndex])){
+                check.replace(leftTuple.tuple[leftIndex],true);
+                for(int index:map.get(leftTuple.tuple[leftIndex])) {
+                    Tuple rightTuple=right.tuplelist.get(index);
+                    Tuple tempTuple = new Tuple();
+                    int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    for (int i = 0; i < leftTuple.tuple.length; i++) {
+                        tuple[i] = leftTuple.tuple[i];
                     }
+                    for (int i = leftTuple.tuple.length; i < newLength; i++) {
+                        tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
+                    }
+                    tempTuple.tuple = tuple;
+                    tupleList.addTuple(tempTuple);
+                }
+            }
+        }
+        for(Object obj:check.keySet()){
+            if(check.get(obj)==false){
+                for(int index:map.get(obj)){
+                    int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    Tuple tempRight=right.tuplelist.get(index);
+                    for(int i=left.tuplelist.get(0).tuple.length;i<newLength;i++){
+                        tuple[i]=tempRight.tuple[i-left.tuplelist.get(0).tuple.length];
+                    }
+                    Tuple tempTuple = new Tuple();
+                    tempTuple.tuple=tuple;
+                    tupleList.addTuple(tempTuple);
+                }
+            }
+        }
+
+        return tupleList;
+    }
+
+    public TupleList outerJoin(TupleList left,TupleList right,int leftIndex, int rightIndex){
+        TupleList tupleList=new TupleList();
+        if(left.tuplelist.isEmpty()) return tupleList;
+        HashMap<Object,ArrayList<Integer>> mapLeft=new HashMap<>();
+        HashMap<Object,ArrayList<Integer>> mapRight=new HashMap<>();
+        HashMap<Object, Boolean> checkLeft=new HashMap<>();
+        HashMap<Object, Boolean> checkRight=new HashMap<>();
+        for(int i=0;i<left.tuplelist.size();i++){
+            Tuple leftT=left.tuplelist.get(i);
+            if(mapLeft.containsKey(leftT.tuple[leftIndex])){
+                mapLeft.get(leftT.tuple[leftIndex]).add(i);
+            }
+            else {
+                ArrayList<Integer> list=new ArrayList<>();
+                list.add(i);
+                mapLeft.put(leftT.tuple[leftIndex], list);
+                checkLeft.put(leftT.tuple[leftIndex],false);
+            }
+        }
+        for(int i=0;i<right.tuplelist.size();i++){
+            Tuple rightT=right.tuplelist.get(i);
+            if(mapRight.containsKey(rightT.tuple[rightIndex])){
+                mapRight.get(rightT.tuple[rightIndex]).add(i);
+            }
+            else {
+                ArrayList<Integer> list=new ArrayList<>();
+                list.add(i);
+                mapRight.put(rightT.tuple[rightIndex], list);
+                checkRight.put(rightT.tuple[rightIndex],false);
+            }
+        }
+        for(Tuple rightTuple:right.tuplelist){
+            if(mapLeft.containsKey(rightTuple.tuple[rightIndex])){
+                checkLeft.replace(rightTuple.tuple[rightIndex],true);
+                checkRight.replace(rightTuple.tuple[rightIndex],true);
+                for(int index:mapLeft.get(rightTuple.tuple[rightIndex])) {
+                    Tuple leftTuple=left.tuplelist.get(index);
+                    Tuple tempTuple = new Tuple();
+                    int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    for (int i = 0; i < leftTuple.tuple.length; i++) {
+                        tuple[i] = leftTuple.tuple[i];
+                    }
+                    for (int i = leftTuple.tuple.length; i < newLength; i++) {
+                        tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
+                    }
+                    tempTuple.tuple = tuple;
+                    tupleList.addTuple(tempTuple);
+                }
+            }
+        }
+        for(Object obj:checkLeft.keySet()){
+            if(checkLeft.get(obj)==false){
+                for(int index:mapLeft.get(obj)){
+                    int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    Tuple tempLeft=left.tuplelist.get(index);
+                    for(int i=0;i<left.tuplelist.get(0).tuple.length;i++){
+                        tuple[i]=tempLeft.tuple[i];
+                    }
+                    Tuple tempTuple = new Tuple();
+                    tempTuple.tuple=tuple;
+                    tupleList.addTuple(tempTuple);
+                }
+            }
+        }
+        for(Object obj:checkRight.keySet()){
+            if(checkRight.get(obj)==false){
+                for(int index:mapRight.get(obj)){
+                    int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
+                    Object[] tuple = new Object[newLength];
+                    Tuple tempRight=right.tuplelist.get(index);
+                    for(int i=left.tuplelist.get(0).tuple.length;i<newLength;i++){
+                        tuple[i]=tempRight.tuple[i-left.tuplelist.get(0).tuple.length];
+                    }
+                    Tuple tempTuple = new Tuple();
                     tempTuple.tuple=tuple;
                     tupleList.addTuple(tempTuple);
                 }
@@ -352,21 +623,4 @@ public class Select {
         return res;
     }
 
-    public ArrayList<ClassTableItem> getJoinClassTableItem(ArrayList<ClassTableItem> list1, ArrayList<ClassTableItem> list2, Join join){
-        LinkedList<Expression> expressionLinkedList=(LinkedList<Expression>)join.getOnExpressions();
-        if(!expressionLinkedList.isEmpty()){
-            EqualsTo equals=(EqualsTo) expressionLinkedList.get(0);
-            Column rightExpression=(Column) equals.getRightExpression();
-            for(ClassTableItem classTableItem:list2){
-                if(classTableItem.attrname.equals(rightExpression.getColumnName())) continue;
-                list1.add(classTableItem);
-            }
-        }
-        else{
-            for(ClassTableItem classTableItem:list2){
-                list1.add(classTableItem);
-            }
-        }
-        return list1;
-    }
 }
