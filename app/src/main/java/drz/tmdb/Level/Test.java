@@ -1,6 +1,9 @@
 package drz.tmdb.Level;
 
 
+import java.io.File;
+import java.io.IOException;
+
 public class Test {
     public static void test(){
 
@@ -94,22 +97,38 @@ public class Test {
 //        long y = Constant.BYTES_TO_LONG(b);
 
 
-//        // B树测试
-        long t1 = System.currentTimeMillis();
-        BTree<String, String> btree = new BTree<String, String>(5);
-        for (int i = 0; i < 100; ++i) {
-            String k = "k" + i;
-            String v = "v" + i;
-            btree.insert(k, v);
-        }
-        long t2 = System.currentTimeMillis();
-        //System.out.println("存储1w个键值对，耗时" + (t2 - t1) + "ms");
+//        // B树性能测试
+//        long t1 = System.currentTimeMillis();
+//        BTree<String, String> btree = new BTree<String, String>(5);
+//        for (int i = 0; i < 10000; ++i) {
+//            String k = "k" + i;
+//            String v = "v" + i;
+//            btree.insert(k, v);
+//        }
+//        long t2 = System.currentTimeMillis();
+//        System.out.println("存储1w个键值对，耗时" + (t2 - t1) + "ms");
 
 
         // B数读写磁盘测试
-
-
-
+        BTree<String, Long> btree = new BTree<String, Long>(5);
+        for (int i = 0; i < 1000; ++i) {
+            String k = "k" + i;
+            long v = 123L * i;
+            btree.insert(k, v);
+        }
+        try{
+            File f = new File(Constant.DATABASE_DIR + "test");
+            f.createNewFile();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        long t1 = System.currentTimeMillis();
+        long rootOffset = btree.write(Constant.DATABASE_DIR + "test", 0);
+        long t2 = System.currentTimeMillis();
+        System.out.println("BTNode存储1000个键值对，耗时" + (t2 - t1) + "ms");
+        BTree<String, String> btree2 = new BTree<>(Constant.DATABASE_DIR + "test", rootOffset);
+        long t3 = System.currentTimeMillis();
+        System.out.println("BTNode读取1000个键值对，耗时" + (t3 - t2) + "ms");
         return;
 
     }

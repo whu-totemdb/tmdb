@@ -42,7 +42,7 @@ public class BloomFilter {
             // 先读itemCount
             byte[] buffer = new byte[4];
             input.read(buffer, 0, 4);
-            this.itemCount = Constant.BYTES_TO_INT(buffer, 0 , 8);
+            this.itemCount = Constant.BYTES_TO_INT(buffer, 0 , 4);
             this.bitCount = 20 * itemCount;
             this.byteCount = bitCount / 8 + 1;
             // 再读byteArray
