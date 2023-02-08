@@ -21,6 +21,9 @@ public class BloomFilter {
     // 使用字节数组代替bit数组,转化关系：bit数组第n位 = byte数组第(n/8)个元素的第(n%8)位
     private byte[] byteArray;
 
+    public int getByteCount() {
+        return byteCount;
+    }
 
     // constructor 1 通过bit数组位数初始化
     public BloomFilter(int itemCount) {

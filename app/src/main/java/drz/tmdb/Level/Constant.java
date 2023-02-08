@@ -29,6 +29,9 @@ public class Constant {
     // todo 取消该参数
     public static final long MAX_FILE_SIZE = 4L * 1024 * 1024;
 
+    // data block大小限制 4KB
+    public static final long MAX_DATA_BLOCK_SIZE = 4 * 1024;
+
     // 允许各level的总大小 8MB 10MB 100MB 1000MB
     public static final long MAX_LEVEL0_SIZE = 8L * 1024 * 1024;
     public static final long MAX_LEVEL1_SIZE = 10L * 1024 * 1024;
