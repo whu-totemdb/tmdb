@@ -13,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -66,20 +67,21 @@ public class FileData {
             this.fileName = fileName;
         }
         if(mode == 2){
+            this.fileName = fileName;
             // 读Footer
             long[] info = readFooter();
             long zoneMapOffset = info[0];
             long zoneMapLength = info[1];
             long bloomFilterOffset = info[2];
             long bloomFilterLength = info[3];
-            long indexBlockOffset = info[4];
+            long bTreeRootOffset = info[4];
             long indexBlockLength = info[5];
             // 读zone map
             readZoneMap(zoneMapOffset, zoneMapLength);
             // 初始化BloomFilter
             readBloomFilter(bloomFilterOffset, bloomFilterLength);
             // 初始化index block
-            readIndexBlock(indexBlockOffset, indexBlockLength);
+            readIndexBlock(bTreeRootOffset, indexBlockLength);
         }
     }
 
@@ -87,12 +89,11 @@ public class FileData {
     private long[] readFooter(){
         long[] ret = new long[6];
         try{
-            // 打开SSTable
             File f = new File(Constant.DATABASE_DIR + this.fileName);
             FileInputStream input = new FileInputStream(f);
             // 移到文件末尾
             long fileLength = f.length();
-            long startIndex = fileLength - 1 - 48;
+            long startIndex = fileLength - 48;
             input.skip(startIndex);
             // 读取48B
             byte[] buffer = new byte[48];
@@ -150,8 +151,8 @@ public class FileData {
         this.bloomFilter = new BloomFilter(itemCount);
 
         // 1. 分data block写入
-        int currentDataBlockSize = 0; // 当前data block的大小
-        long currentOffset = 0; // 记录偏移
+        long dataBlockStartOffset = 0; // 此data block的开始偏移（记录B树结点时有用）
+        long totalOffset = 0; // 总偏移
         // 遍历所有k-v
         for(Entry<String, Object> entry : this.data.entrySet()){
             String key = entry.getKey();
@@ -163,25 +164,24 @@ public class FileData {
             // buffer = key_b + value_b;
             System.arraycopy(key_b, 0, buffer, 0, key_b.length);
             System.arraycopy(value_b, 0, buffer, key_b.length, value_b.length);
-            if(currentDataBlockSize < Constant.MAX_DATA_BLOCK_SIZE){
-                // 更新 data block size
-                currentDataBlockSize += buffer.length;
-
-            }else{
-                // 更新 offset
-                currentOffset += currentDataBlockSize;
-                // 创建新data block, 同时记录上一个写满的data block的信息到B-Tree中
-                currentDataBlockSize = 0;
-                this.bTree.insert(key, currentOffset);
+            totalOffset += buffer.length;
+            // 如果data block写满，则开启新data block，将旧data block的最大key和起始偏移记录到B树中
+            if(totalOffset - dataBlockStartOffset > Constant.MAX_DATA_BLOCK_SIZE){
+                this.bTree.insert(key, dataBlockStartOffset);
+                dataBlockStartOffset = totalOffset;
             }
             // k-v 写入SSTable
             Constant.writeBytesToFile(buffer, this.fileName);
             // 更新Bloom Filter
             this.bloomFilter.add(key);
         }
+        //  遍历结束时，未满的data block信息也写入B-Tree
+        if(dataBlockStartOffset != totalOffset){
+            this.bTree.insert(this.data.lastKey(), dataBlockStartOffset);
+        }
 
         // 3. 写zone map
-        long zoneMapStartOffset = currentOffset; // zone map的开始偏移
+        long zoneMapStartOffset = totalOffset; // zone map的开始偏移
         long zoneMapLength = Constant.MAX_KEY_LENGTH * 2; // zone map的长度
         this.minKey = this.data.firstKey();
         this.maxKey = this.data.lastKey();
@@ -192,16 +192,18 @@ public class FileData {
 
         // 4. 写Bloom filter
         long bloomFilterStartOffset = zoneMapStartOffset + zoneMapLength;
-        long bloomFilterLength = this.bloomFilter.getByteCount();
+        long bloomFilterLength = 4 + this.bloomFilter.getByteCount(); // +4 的原因见BloomFilter写文件的格式
         this.bloomFilter.writeToFile(this.fileName);
 
         // 5. 写index block
         long indexBlockStartOffset = bloomFilterStartOffset + bloomFilterLength;
-        long bTreeRootOffset = this.bTree.write(this.fileName, indexBlockStartOffset);
+        long[] info = this.bTree.write(this.fileName, indexBlockStartOffset);
+        long indexBlockLength = info[0];
+        long bTreeRootOffset = info[1];
+
 
         // 6. 写Footer
-        File f = new File(DATABASE_DIR + this.fileName);
-        long footerStartOffset = f.length(); // 由于写B-Tree node时没有记录index block占用的总长度，直接计算文件大小更简单
+        long footerStartOffset = indexBlockStartOffset + indexBlockLength;
         long footerLength = Long.BYTES * 6;
         buffer = new byte[(int) footerLength];
         System.arraycopy(Constant.LONG_TO_BYTES(zoneMapStartOffset), 0, buffer, 0, Long.BYTES);
@@ -209,6 +211,7 @@ public class FileData {
         System.arraycopy(Constant.LONG_TO_BYTES(bloomFilterStartOffset), 0, buffer, Long.BYTES * 2, Long.BYTES);
         System.arraycopy(Constant.LONG_TO_BYTES(bloomFilterLength), 0, buffer, Long.BYTES * 3, Long.BYTES);
         System.arraycopy(Constant.LONG_TO_BYTES(bTreeRootOffset), 0, buffer, Long.BYTES * 4, Long.BYTES);
+        System.arraycopy(Constant.LONG_TO_BYTES(indexBlockLength), 0, buffer, Long.BYTES * 5, Long.BYTES);
         Constant.writeBytesToFile(buffer, this.fileName);
 
         return footerStartOffset + footerLength;

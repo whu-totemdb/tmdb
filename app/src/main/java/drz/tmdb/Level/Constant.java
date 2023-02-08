@@ -178,7 +178,7 @@ public class Constant {
     // 将字节流data，以追加的形式，写到文件fileName中
     public static void writeBytesToFile(byte[] data, String fileName){
         try{
-            File file = new File(fileName);
+            File file = new File(DATABASE_DIR + fileName);
             // 写data
             BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
             output.write(data,0,data.length);
@@ -196,7 +196,7 @@ public class Constant {
         byte[] ret = new byte[length];
         try {
             // 打开文件
-            File f = new File(fileName);
+            File f = new File(DATABASE_DIR + fileName);
             FileInputStream input = new FileInputStream(f);
             // 移动到指定偏移并读取相应长度
             input.skip(offset);

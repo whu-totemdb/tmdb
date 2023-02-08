@@ -36,27 +36,14 @@ public class BloomFilter {
     // constructor 2 通过文件名读文件进行初始化
     // 前4字节记录itemCount，剩余部分记录byteArray
     public BloomFilter(String fileName, long offset, int length){
-        try{
-            // 打开SSTable
-            File f = new File(Constant.DATABASE_DIR + fileName);
-            FileInputStream input = new FileInputStream(f);
-            // 移动到指定偏移
-            input.skip(offset);
-            // 先读itemCount
-            byte[] buffer = new byte[4];
-            input.read(buffer, 0, 4);
-            this.itemCount = Constant.BYTES_TO_INT(buffer, 0 , 4);
-            this.bitCount = 20 * itemCount;
-            this.byteCount = bitCount / 8 + 1;
-            // 再读byteArray
-            buffer = new byte[length - 4];
-            input.read(buffer, 0, length - 4);
-            input.close();
-        }catch(FileNotFoundException e){
-            e.printStackTrace();
-        }catch(IOException e) {
-            e.printStackTrace();
-        }
+        byte[] buffer = Constant.readBytesFromFile(fileName, offset, length);
+        // 前4字节记录itemCount
+        this.itemCount = Constant.BYTES_TO_INT(buffer, 0 , 4);
+        this.bitCount = 20 * itemCount;
+        this.byteCount = bitCount / 8 + 1;
+        // 再读byteArray
+        this.byteArray = new byte[byteCount];
+        System.arraycopy(buffer, 4, this.byteArray, 0, this.byteCount);
     }
 
 
@@ -176,23 +163,13 @@ public class BloomFilter {
 
 
     // 将BloomFilter记录到文件中
+    // 先4B写itemCount，再写bytesArray
     public void writeToFile(String fileName){
-        // todo 需要重写
-        try{
-            File f = new File(Constant.DATABASE_DIR + fileName);
-
-            // 追加写
-            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(f, true));
-
-            output.write(this.byteArray,0,this.byteArray.length);
-            output.flush();
-            output.close();
-
-        }catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }catch (IOException e) {
-            e.printStackTrace();
-        }
+        byte[] buffer = new byte[4 + this.byteCount];
+        // 4字节int记录itemCount
+        System.arraycopy(Constant.INT_TO_BYTES(this.itemCount), 0, buffer, 0, Integer.BYTES);
+        System.arraycopy(this.byteArray, 0, buffer, Integer.BYTES, this.byteCount);
+        Constant.writeBytesToFile(buffer, fileName);
 
     }
 

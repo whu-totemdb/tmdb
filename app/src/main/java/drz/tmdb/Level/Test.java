@@ -135,12 +135,16 @@ public class Test {
 //        return;
 
 
-        // SSTable读写测试
+//        // SSTable读写测试
         MemManager memManager = new MemManager();
         for(int i=1; i<100; i++){
             memManager.add(new ObjectTableItem(i, i, i, i));
         }
+        // 写
         memManager.saveMemTableToFile();
+        // 读
+        FileData f = new FileData("SSTable1", 2);
+        return;
 
 
 

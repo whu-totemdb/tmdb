@@ -953,10 +953,25 @@ public class BTree<K, V> {
     }
 
 
-    // BTNodes的持久化保存, 写到fileName的开始偏移为offset的地方，返回值根节点的偏移
-    public long write(String fileName, long offset){
+    // BTNodes的持久化保存, 写到fileName的开始偏移为offset的地方，返回值 1.存储占用的总字节数 2.根节点所在偏移
+    public long[] write(String fileName, long offset){
         root.write(fileName, offset);
-        return root.offset;
+
+        // 计算占用总字节数
+        long totalSize;
+        if(root.leaf){
+            totalSize = Integer.BYTES * 2 + root.entrys.size() * (Constant.MAX_KEY_LENGTH + Long.BYTES);
+        }
+        else{
+            totalSize = Integer.BYTES * 3 +
+                    root.entrys.size() * (Constant.MAX_KEY_LENGTH + Long.BYTES) +
+                    root.children.size() * Long.BYTES;
+        }
+
+        long[] ret = new long[2];
+        ret[0] = root.offset + totalSize - offset;
+        ret[1] = root.offset;
+        return ret;
     }
 
 }
