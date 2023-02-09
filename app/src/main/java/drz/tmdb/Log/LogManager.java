@@ -1,75 +1,238 @@
 package drz.tmdb.Log;
 
-import org.json.JSONObject;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 
-import drz.tmdb.Level.Constant;
-import drz.tmdb.Transaction.TransAction;
-import drz.tmdb.sync.node.database.ObjectTableItem;
 import drz.tmdb.Level.Constant;
 
 public class LogManager {
+    final File logFile = new File("D:\\test_data\\" + "tmdbLog.txt");//日志文件
+
     final private int attrstringlen=8; //属性最大字符串长度为8Byte
-    final private int MAXSIZE=5;//logTable中最多五条语句
-    private TransAction trans;
-    private int checkpoint=-1;
-    private int logid=0;    //LogTable块id
-    public LogTable LogT = new LogTable();   //存放执行层创建LogManage时写入的日志
 
-    //构造方法
-    public LogManager(TransAction trans){
-        this.trans = trans;
-        LogT.logID = GetCheck() + 1;       //为新块分配id->检查点+1
-        logid = LogT.logID;
+    public static RandomAccessFile raf;
+    public static int checkpoint;//日志检查点
+    public static long check_off;//检查点在日志中偏移位置
+    static  long limitedSize=10*1024*1024;//日志文件限制大小
+    static long currentOffset;
+    static int currentId;
+
+    HashMap<Integer, LogTableItem> map = new HashMap<Integer, LogTableItem>(){
+        {
+            put(null,null);
+            put(null,null);
+        }
+    };//logid与日志对象对应
+
+    public LogManager() throws IOException {
+        raf = new RandomAccessFile(logFile, "rw");
+        checkpoint=-1;
+        check_off=-1;
+        currentOffset = 0;
+        currentId = 0;
     }
 
-    //若存够了20，需要调用该方法，初始化LogT为空
-    private boolean init(){
-        LogT = new LogTable();
-        return true;
-    }
-    //得到检查点号
-    private int GetCheck(){
-        int cpid = trans.mem.loadCheck();
-        return cpid;
+    //初始化新日志文件
+    public void init() throws IOException {
+        logFile.delete();
+        File logFile = new File("D:\\test_data\\" + "tmdbLog.txt");
+        logFile.createNewFile();
+        checkpoint=-1;
+        check_off=-1;
+        currentOffset = 0;
+        currentId = 0;
     }
 
-    //日志存入SStable
-    public void writeLogItemToSSTable(LogTable log){
+    public void writeLogItemToSSTable(LogTableItem log){
         try{
-            File logFile = new File(Constant.DATABASE_DIR + log.logID);
-            if(!logFile.exists()) {
-                logFile.createNewFile();
-            }
+            raf.seek(currentOffset);
 
-            // 写一条log
-            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(logFile, true));
-            byte[] header=int2Bytes(log.check,4);
-            output.write(header,0,4);
-            for(int i=0;i<log.logTable.size();i++){
-                byte[] operation=int2Bytes(log.logTable.get(i).op,1);
-                output.write(operation,0,1);
-                byte[] sta=int2Bytes(log.logTable.get(i).status,1);
-                output.write(sta,0,1);
-                byte[] Key=KEY_TO_BYTES(log.logTable.get(i).key);
-                output.write(Key,0,2);
-                byte[] Value=str2Bytes(log.logTable.get(i).value);
-                output.write(Value,0,Value.length);
-            }
-            output.flush();
-            output.close();
+            raf.writeInt(log.logid);
+            raf.writeByte(log.op);
+            raf.writeInt(log.length);
+            raf.writeUTF(log.key);
+            raf.writeUTF(log.value);
+            raf.writeLong(log.offset);
+             /**
+            byte[] lid=int2Bytes(log.logid, 4);
+            raf.write(lid);
+            raf.writeByte(log.op);
+            raf.writeUTF(log.key);
+            raf.writeUTF(log.value);
+            byte[] lof=long2Bytes(log.offset);
+            raf.write(lof);
+              **/
+            currentOffset = raf.getFilePointer();
         }catch (FileNotFoundException e) {
             e.printStackTrace();
         }catch (IOException e) {
             e.printStackTrace();
         }
     }
+    public void WriteLog(String k,Byte op,String v){
+        LogTableItem LogItem = new LogTableItem(currentId,op,k,v);     //把语句传入logItem，这个时候都是未完成
+        LogItem.offset=currentOffset;
+        map.put(LogItem.logid,LogItem);
+        currentId++;
+        writeLogItemToSSTable(LogItem);
+    }
+
+    //设置检查点
+    public void setCheckpoint(){
+        checkpoint = currentId;
+        check_off = currentOffset;
+    }
+
+    //REDO
+    public LogTableItem[] redo() throws IOException {
+        int redo_num = 0;
+        LogTableItem[] redo_log = new LogTableItem[currentId+2];
+        //数组初始化
+        for(int j=0;j<currentId+2;j++){
+            redo_log[j]=new LogTableItem(0, (byte) 0,null,null);
+        }
+        int i=0;
+        if(checkpoint==-1){//还没有检查点，从头开始redo
+            long readpos = 0;
+            redo_num = currentId+1;
+            while (redo_num!=0) {
+                raf.seek(readpos);
+
+                redo_log[i].logid = raf.readInt();
+                redo_log[i].op = raf.readByte();
+                redo_log[i].length=raf.readInt();
+                redo_log[i].key = raf.readUTF();
+                redo_log[i].value = raf.readUTF();
+                redo_log[i].offset = raf.readLong();
+                 /**
+                byte[] lid=new byte[4];
+                raf.read(lid);
+                redo_log[i].logid=bytes2Int(lid,0,4);
+                redo_log[i].op = raf.readByte();
+                redo_log[i].key = raf.readUTF();
+                redo_log[i].value = raf.readUTF();
+                byte[] lof=new byte[8];
+                raf.read(lof);
+                redo_log[i].offset=bytes2long(lof);
+                  **/
+                redo_num--;
+                i++;
+                readpos = raf.getFilePointer();
+            }
+        }else {
+            redo_num=currentId-checkpoint;
+            long readpos = check_off;
+            while (redo_num!=0) {
+                raf.seek(readpos);
+
+                redo_log[i].logid = raf.readInt();
+                redo_log[i].op = raf.readByte();
+                redo_log[i].length=raf.readInt();
+                redo_log[i].key = raf.readUTF();
+                redo_log[i].value = raf.readUTF();
+                redo_log[i].offset = raf.readLong();
+                 /**
+                byte[] lid=new byte[4];
+                raf.read(lid);
+                redo_log[i].logid=bytes2Int(lid,0,4);
+                redo_log[i].op = raf.readByte();
+                redo_log[i].key = raf.readUTF();
+                redo_log[i].value = raf.readUTF();
+                byte[] lof=new byte[8];
+                raf.read(lof);
+                redo_log[i].offset=bytes2long(lof);
+                  **/
+                redo_num--;
+                i++;
+                readpos = raf.getFilePointer();
+            }
+        }
+        return redo_log;
+    }
+
+    //检查日志文件大小是否超过限制
+    private boolean checkFileInSize() {
+        return logFile.length() <= limitedSize;
+    }
+
+    //删除不必要日志记录（检查点之前的）
+    /**
+    public void DeleteLog() throws IOException {
+        if(check_off!=-1) {
+            int n = currentId - checkpoint;
+            LogTableItem[] reserve_log = new LogTableItem[n+1];
+            //数组初始化
+            for(int j=0;j<=n;j++){
+                reserve_log[j]=new LogTableItem(0, (byte) 0,null,null);
+            }
+            int i = 0;
+            long readpos = check_off;
+            while (n!=0) {
+                raf.seek(readpos);
+                reserve_log[i].logid = raf.readInt();
+                reserve_log[i].op = raf.readByte();
+                reserve_log[i].key = raf.readUTF();
+                reserve_log[i].value = raf.readUTF();
+                reserve_log[i].offset = raf.readLong();
+                i++;
+                n--;
+                readpos = raf.getFilePointer();
+            }
+            init();
+            raf.seek(0);
+            for(int j=0;j<=i;j++){//重新写入需保存的日志
+                WriteLog(reserve_log[j].key,reserve_log[j].op,reserve_log[j].value);
+            }
+        }
+
+    }
+     **/
+
+    public void DeleteLog() throws IOException {
+        try {
+            raf.seek(0);
+            // 写文件的位置标记,从文件开头开始,后续读取文件内容从该标记开始
+            long writePosition = raf.getFilePointer();
+            for (int i = 0; i < check_off; i++) {
+                Byte b = raf.readByte();
+                if (b==null) {
+                    break;
+                }
+            }
+            // Shift the next lines upwards.
+            // 读文件的位置标记,写完之后回到该标记继续读该行
+            long readPosition = raf.getFilePointer();
+
+            // 利用两个标记,
+            byte[] buff = new byte[10];
+            int n;
+            currentOffset=0;
+            while (-1 != (n = raf.read(buff))) {
+                currentOffset=writePosition;
+                long off=currentOffset;
+                raf.seek(writePosition);
+                raf.write(buff, 0, n);
+                readPosition += n;
+                writePosition += n;
+                raf.seek(readPosition);
+            }
+            raf.setLength(writePosition);
+            raf.seek(logFile.length());//指针还原到更新日志文件末尾
+            currentOffset=raf.getFilePointer();//设置现在的currentOffset
+            //清除检查点
+            check_off=-1;
+            checkpoint=-1;
+        } catch (IOException e) {
+            throw e;
+        }
+    }
+
 
     //编码int为byte
     private byte[] int2Bytes(int value, int len){
@@ -79,40 +242,12 @@ public class LogManager {
         }
         return b;
     }
-    //编码key为byte
-    public static final byte[] KEY_TO_BYTES(String key){
-        byte[] ret = new byte[Constant.MAX_KEY_LENGTH];
-        byte[] temp = key.getBytes();
-        if(temp.length <= Constant.MAX_KEY_LENGTH){
-            for(int i=0;i<temp.length;i++){
-                ret[i]=temp[i];
-            }
-            for(int i=temp.length;i<Constant.MAX_KEY_LENGTH;i++){
-                // 不足的地方补全0
-                ret[i]=(byte)32;
-            }
-        }
-        return ret;
+
+    //编码long为byte
+    public static byte[] long2Bytes(long value) {
+        return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(value).array();
     }
-    //编码字符串为byte
-    private byte[] str2Bytes(String s){
-        byte[] ret=new byte[attrstringlen];
-        byte[] temp=s.getBytes();
-        if(temp.length>=attrstringlen){
-            for(int i=0;i<attrstringlen;i++){
-                ret[i]=temp[i];
-            }
-            return ret;
-        }else{
-            for(int i=0;i<temp.length;i++){
-                ret[i]=temp[i];
-            }
-            for(int i=temp.length;i<attrstringlen;i++){
-                ret[i]=(byte)32;
-            }
-            return ret;
-        }
-    }
+
 
     //解码byte为int
     private int bytes2Int(byte[] b, int start, int len) {
@@ -126,135 +261,12 @@ public class LogManager {
         return sum;
     }
 
-    // 解码byte[]为key
-    public static final String BYTES_TO_KEY(byte[] b){
-        String s;
-        int k=0;
-        for(int i=0;i<Constant.MAX_KEY_LENGTH;i++){
-            if(b[i]!=32){
-                k++;
-            }else{
-                break;
-            }
-        }
-        s=new String(b,0,k);
-        return s;
-    }
-
-    //写日志
-    public boolean WriteLog(String k,int op,String s){
-        int lognum = LogT.logTable.size();  //获得当前对象的logtable中有几条语句
-        LogTableItem LogItem = new LogTableItem(op,0,k,s);     //把语句传入logItem，这个时候都是未完成
-        if(lognum<MAXSIZE){  //List写得下
-            LogT.logTable.add(LogItem);
-            if(lognum == (MAXSIZE-1)){
-                writeLogItemToSSTable(LogT);
-                while(!trans.mem.flush());
-                while(!setLogCheck(LogT.logID));
-                trans.mem.setCheckPoint(LogT.logID);
-                DeleteLog();
-            }
-        }else{
-            writeLogItemToSSTable(LogT);
-            while(!trans.mem.flush());
-            while(!setLogCheck(LogT.logID));
-            trans.mem.setCheckPoint(LogT.logID);
-            DeleteLog();
-            init(); //新建一个日志块
-            LogT.logTable.add(LogItem);
-            LogT.logID=logid+1;
-        }
-        return true;
-    }
-
-    //设置日志块检查点为1
-    public boolean setLogCheck(int logid){
-        LogTable l;
-        if((l=this.readLog(logid))!=null){
-            l.check=1;
-            this.writeLogItemToSSTable(l);
-            return true;
-        }else{
-            return false;
-        }
-    }
-
-    //读取日志块
-    public  LogTable readLog(int logID){
-        LogTable log=new LogTable();
-        LogTableItem temp;
-        File file = new File(Constant.DATABASE_DIR + logID);
-        if(!file.exists()){
-            return null;
-        }else{
-            try {
-                FileInputStream input=new FileInputStream(file);
-                byte[] x=new byte[4];
-                input.read(x,0,4);
-                log.check=bytes2Int(x,0,4);
-                while((input.read(x,0,4)!=-1)){
-                    temp=new LogTableItem();
-                    byte[] y=new byte[1];
-                    temp.op=bytes2Int(y,0,1);
-                    byte[] z=new byte[1];
-                    input.read(z,0,1);
-                    temp.status=bytes2Int(z,0,1);
-                    byte[] p=new byte[2];
-                    input.read(p,0,2);
-                    temp.key=BYTES_TO_KEY(p);
-                    byte[] q=new byte[temp.value.length()];
-                    input.read(q,0,temp.value.length());
-                    temp.value=new String(q,0,temp.value.length());
-                    log.logTable.add(temp);
-                }
-                input.close();
-                log.logID=logid;
-                return log;
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-    }
-
-
-
-    //redo日志
-    public LogTable GetReDo(){
-        LogTable ret = null;
-        checkpoint = GetCheck();    //得到检查点id
-        ret = readLog(checkpoint+1);   //加载可能redo的日志
-
-        if(ret != null){
-            int lognum = ret.logTable.size();    //有几条语句需要redo
-            for(int i=0;i<lognum;i++){
-                LogTableItem temp = ret.logTable.get(i);
-                ret.logTable.add(temp);
-            }
-            ret.logID=checkpoint+1; //执行层写也可以，不可以写两次
-            return ret;
-        }
-        return ret;
-    }
-
-
-    //删除磁盘上检查点之前的文件
-    public void DeleteLog(){
-        File dir = new File(Constant.DATABASE_DIR);
-        File[] files = dir.listFiles();
-        if(files!=null && files.length > 0) {
-            for (File f : files) {
-                String filename=f.getName();
-                int logid=Integer.parseInt(filename);
-                if(logid<checkpoint){
-                    f.delete();
-                }
-
-            }
-        }
-
+    //解码byte为long
+    public static long bytes2long(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.allocate(8);
+        buffer.put(bytes, 0, bytes.length);
+        buffer.flip();
+        return buffer.getLong();
     }
 
 }

@@ -6,14 +6,8 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.parser.CCJSqlParserDefaultVisitor;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.parser.CCJSqlParserVisitor;
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.StatementVisitor;
-import net.sf.jsqlparser.statement.StatementVisitorAdapter;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SelectBody;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -38,12 +32,12 @@ import drz.tmdb.show.ShowTable;
 import drz.tmdb.Transaction.SystemTable.*;
 
 public class TransAction {
-    public TransAction(Context context) {
+    public TransAction(Context context) throws IOException {
         this.context = context;
-        RedoRest();
+//        RedoRest();
     }
 
-    public TransAction(){}
+    public TransAction() throws IOException {}
 
     Context context;
     public static MemManage mem = new MemManage();
@@ -59,7 +53,7 @@ public class TransAction {
     public static BiPointerTable biPointerT = memConnect.getBiPointerT();
     public static SwitchingTable switchingT = memConnect.getSwitchingT();
 
-    LogManager log = new LogManager(this);
+    LogManager log = new LogManager();
 
     public MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
             deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
@@ -126,18 +120,19 @@ public class TransAction {
         Tuple t4 = GetTuple(b[0],b[1]);
         System.out.println(t3);
     }
-
+/**
     private boolean RedoRest(){//redo
         LogTable redo;
         if((redo=log.GetReDo())!=null) {
             int redonum = redo.logTable.size();   //先把redo指令加前面
             for (int i = 0; i < redonum; i++) {
+                int id=redo.logTable.get(i).logid;
                 int op = redo.logTable.get(i).op;
                 String k = redo.logTable.get(i).key;
                 String s = redo.logTable.get(i).value;
 
-                log.WriteLog(k,op,s);
-                query2(k,op,s);
+                log.WriteLog(id,k,op,s);
+                query2(id,k,op,s);
 //                query2(s);
             }
         }else{
@@ -145,6 +140,7 @@ public class TransAction {
         }
         return true;
     }
+ **/
 
 //    public String query(String s) {
 //        this.reload();
@@ -201,7 +197,7 @@ public class TransAction {
 //        return s;
 //    }
 
-    public String query2(String k,int op,String s) {
+    public String query2(int id,String k,int op,String s) {
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         try {
@@ -217,7 +213,7 @@ public class TransAction {
                     break;
                 case "CreateDeputyClass":
 //                    switch
-                    log.WriteLog(k,op,s);
+ //                   log.WriteLog(id,k,op,s);
                     CreateSelectDeputy(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     break;
@@ -227,18 +223,18 @@ public class TransAction {
 //                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建Union代理类成功").setPositiveButton("确定",null).show();
 //                    break;
                 case "Drop":
-                    log.WriteLog(k,op,s);
+//                    log.WriteLog(id,k,op,s);
                     Drop(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Insert":
-                    log.WriteLog(k,op,s);
+//                    log.WriteLog(id,k,op,s);
                     Insert insert=new Insert();
                     if(insert.insert(stmt)) new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
                     else new AlertDialog.Builder(context).setTitle("提示").setMessage("插入失败").setPositiveButton("确定",null).show();
                     break;
                 case "Delete":
-                    log.WriteLog(k,op,s);
+ //                   log.WriteLog(id,k,op,s);
                     Delete(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
@@ -251,7 +247,7 @@ public class TransAction {
 //                    InDirectSelect(aa);
 //                    break;
                 case "Update":
-                    log.WriteLog(k,op,s);
+ //                   log.WriteLog(id,k,op,s);
                     Update(aa);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
                     break;

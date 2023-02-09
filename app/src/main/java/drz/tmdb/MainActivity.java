@@ -26,11 +26,14 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
 
     private TextView text_view;
-    TransAction trans = new TransAction(this);
+   TransAction trans = new TransAction(this);
     Intent music = null;
     //Node node;
 
     private boolean whu_trace_select = false;
+
+    public MainActivity() throws IOException {
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 //                } catch (IOException e) {
 //                    e.printStackTrace();
 //                }
-                trans.query2("",-1,editText.getText().toString());
+//                trans.query2("",-1,editText.getText().toString());
             }
         });
 
