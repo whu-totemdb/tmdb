@@ -46,7 +46,6 @@ public class MainActivity extends AppCompatActivity {
 
             try {
                 Sync.initialNode(9090);
-                Sync.start();
                 //node.start();
             }catch (Exception e){
                 e.printStackTrace();
