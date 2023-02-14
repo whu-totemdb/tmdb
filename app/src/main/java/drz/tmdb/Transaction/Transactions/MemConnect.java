@@ -289,7 +289,7 @@ public class MemConnect {
     //CREATE SELECTDEPUTY aa SELECT  b1+2 AS c1,b2 AS c2,b3 AS c3 FROM  bb WHERE t1="1" ;
     //2,3,aa,b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
     //0 1 2  3  4 5 6  7  8 9 10 11 121314 15 16 17 18
-    private void CreateSelectDeputy(String[] p) {
+    public void CreateSelectDeputy(String[] p) {
         int count = Integer.parseInt(p[1]);
         String classname = p[2];//代理类的名字
         String bedeputyname = p[4*count+3];//代理的类的名字
@@ -328,14 +328,11 @@ public class MemConnect {
             };
         }
 
-
-
         String[] con =new String[3];
         con[0] = p[4+4*count];
         con[1] = p[5+4*count];
         con[2] = p[6+4*count];
         deputyt.deputyTable.add(new DeputyTableItem(bedeputyid,classid,con));
-
 
         TupleList tpl= new TupleList();
 
