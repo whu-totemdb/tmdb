@@ -111,6 +111,9 @@ public class BTree<K, V> {
          */
         private Comparator<K> kComparator;
 
+        // 记录该节点在文件中的偏移
+        private long offset;
+
         private BTreeNode() {
             entrys = new ArrayList<Entry<K, V>>();
             children = new ArrayList<BTreeNode<K, V>>();
@@ -120,6 +123,100 @@ public class BTree<K, V> {
         public BTreeNode(Comparator<K> kComparator) {
             this();
             this.kComparator = kComparator;
+        }
+
+        // 构造函数，从文件fileName的offset偏移处读取节点，并递归读取子节点
+        // 单个BTNode的存储格式：
+        // type       int, 0表示非叶子节点，1表示叶子节点
+        // k-v        首先用一个int表示有多少个键值对，k长度在Constant文件中有限制，v为long
+        // children   type=1时不存在。首先用一个int表示有多少个子节点，每个子节点用一个long记录偏移
+        public BTreeNode(String fileName, long offset){
+            entrys = new ArrayList<Entry<K, V>>();
+            children = new ArrayList<BTreeNode<K, V>>();
+
+            // 首先读4字节判断节点的type
+            int type = Constant.BYTES_TO_INT(Constant.readBytesFromFile(fileName, offset, 4), 0, 4);
+            offset += 4;
+
+            // 叶子节点
+            if(type == 1){
+                leaf = true;
+                // 读4字节即一个int，得到有多少个entry
+                int entryCount = Constant.BYTES_TO_INT(Constant.readBytesFromFile(fileName, offset, 4), 0, 4);
+                offset += 4;
+                // 每个Entry即每个k-v占用的字节数
+                int singleEntryLength = Constant.MAX_KEY_LENGTH + Long.BYTES;
+                // 总占用字节数
+                int totalLength = entryCount * singleEntryLength;
+                // 读取entryCount个Entry
+                byte[] buffer = Constant.readBytesFromFile(fileName, offset, totalLength);
+                offset += totalLength;
+                // 构造entryCount个Entry
+                for(int i=0; i<entryCount; i++){
+                    byte[] b;
+                    // K
+                    b = new byte[Constant.MAX_KEY_LENGTH];
+                    System.arraycopy(buffer, singleEntryLength * i, b, 0, Constant.MAX_KEY_LENGTH);
+                    K k = (K) Constant.BYTES_TO_KEY(b);
+                    // V
+                    b = new byte[Long.BYTES];
+                    System.arraycopy(buffer, singleEntryLength * i + Constant.MAX_KEY_LENGTH, b, 0, Long.BYTES);
+                    long v = Constant.BYTES_TO_LONG(b);
+                    // 添加entry
+                    entrys.add((Entry<K, V>) new Entry<String, Long>((String) k, v));
+                }
+                return;
+            }
+            // 非叶子节点
+            else{
+                leaf = false;
+
+                // 后根遍历，先读子节点
+                // 1. 计算子节点所在的偏移
+                long entryStartOffset = offset; // 记录Entry开始的offset
+                // 读4字节即一个int，得到有多少个entry
+                int entryCount = Constant.BYTES_TO_INT(Constant.readBytesFromFile(fileName, entryStartOffset, 4), 0, 4);
+                // 每个Entry即每个k-v占用的字节数
+                int singleEntryLength = Constant.MAX_KEY_LENGTH + Long.BYTES;
+                // Entry总占用字节数
+                int totalEntryLength = entryCount * singleEntryLength;
+                long childrenStartOffset = offset + 4 + totalEntryLength; // 记录children开始的offset
+                // 读4字节即一个int，得到有多少个child
+                int childrenCount = Constant.BYTES_TO_INT(Constant.readBytesFromFile(fileName, childrenStartOffset, 4), 0, 4);
+                // 每个child占用一个long 8字节，共占用
+                int totalChildrenLength = childrenCount * Long.BYTES;
+
+                // 2.读取childrenCount个child
+                byte[] buffer = Constant.readBytesFromFile(fileName, childrenStartOffset + 4, totalChildrenLength);
+                // 递归构造childrenCount个child
+                for(int i=0; i<childrenCount; i++){
+                    // 读取long为孩子节点的地址
+                    byte[] b = new byte[Long.BYTES];
+                    System.arraycopy(buffer, Long.BYTES * i, b, 0, Long.BYTES);
+                    long address = Constant.BYTES_TO_LONG(b);
+                    // 递归
+                    children.add(new BTreeNode<>(fileName, address));
+                }
+
+                // 读取entryCount个Entry
+                buffer = Constant.readBytesFromFile(fileName, entryStartOffset + 4, totalEntryLength);
+                // 构造entryCount个Entry
+                for(int i=0; i<entryCount; i++){
+                    byte[] b;
+                    // K
+                    b = new byte[Constant.MAX_KEY_LENGTH];
+                    System.arraycopy(buffer, singleEntryLength * i, b, 0, Constant.MAX_KEY_LENGTH);
+                    String k = Constant.BYTES_TO_KEY(b);
+                    // V
+                    b = new byte[Long.BYTES];
+                    System.arraycopy(buffer, singleEntryLength * i + Constant.MAX_KEY_LENGTH, b, 0, Long.BYTES);
+                    long v = Constant.BYTES_TO_LONG(b);
+                    // 添加entry
+                    entrys.add((Entry<K, V>) new Entry<String, Long>(k, v));
+                }
+                return;
+            }
+
         }
 
         public boolean isLeaf() {
@@ -337,6 +434,94 @@ public class BTree<K, V> {
                 newChildren.add(children.get(i));
             children = newChildren;
         }
+
+
+        // BTNodes的持久化保存, 写到fileName偏移为offset处，返回值为该节点的长度
+        // 单个BTNode的存储格式：
+        // type       int, 0表示非叶子节点，1表示叶子节点
+        // k-v        首先用一个int表示有多少个键值对，k长度在Constant文件中有限制，v为long
+        // children   type=1时不存在。首先用一个int表示有多少个子节点，每个子节点用一个long记录偏移
+        public long write(String fileName, long offset){
+            // 更新offset
+            this.offset = offset;
+
+            // 叶子节点
+            if(leaf){
+                // 更新offset
+                this.offset = offset;
+                // 每个Entry即每个k-v占用的字节数
+                int singleEntryLength = Constant.MAX_KEY_LENGTH + Long.BYTES;
+                // 该节点所有Entry需要占用的字节数
+                // 额外的8个字节，一个字节记录该node的type，一个字节记录k-v对的个数
+                int totalLength = entrys.size() * singleEntryLength + 8;
+                byte[] data = new byte[totalLength];
+                int index = 0; // 用来记录当前填充的位置
+                // 首部4字节记录type
+                System.arraycopy(Constant.INT_TO_BYTES(1), 0, data, index, Integer.BYTES);
+                index += Integer.BYTES;
+                // 再4字节记录k-v对的个数
+                System.arraycopy(Constant.INT_TO_BYTES(entrys.size()), 0, data, index, Integer.BYTES);
+                index += Integer.BYTES;
+                // 依次写入各Entry
+                for(Entry entry : entrys){
+                    // 写key
+                    System.arraycopy(Constant.KEY_TO_BYTES(entry.key.toString()), 0, data, index, Constant.MAX_KEY_LENGTH);
+                    index += Constant.MAX_KEY_LENGTH;
+                    // 写value，其实是个记录offset的long
+                    System.arraycopy(Constant.LONG_TO_BYTES((long)entry.value), 0, data, index, Long.BYTES);
+                    index += Long.BYTES;
+                }
+                // 将byete[]写入文件
+                Constant.writeBytesToFile(data, fileName);
+                return totalLength;
+            }
+
+            // 非叶子节点
+            else{
+                // 后根遍历
+                for(BTreeNode child : children){
+                    long childLength = child.write(fileName, this.offset);
+                    this.offset = child.offset + childLength;
+                }
+                // 将其子节点都保存完后再保存该节点
+                // 每个Entry即每个k-v占用的字节数， 共有entrys.size()个
+                int singleEntryLength = Constant.MAX_KEY_LENGTH + Long.BYTES;
+                // 每个Children即一个记录偏移的龙占用的字节数，共有children.size()个
+                int singleChildLength = Long.BYTES;
+                // 额外还需要12字节，一个int记录节点type，一个int记录entry个数，一个int记录child个数
+                int totalLength = singleEntryLength * entrys.size() + singleChildLength * children.size() + 12;
+                byte[] data = new byte[totalLength];
+                int index = 0; // 用来记录当前填充的位置
+                // 首部4字节记录type
+                System.arraycopy(Constant.INT_TO_BYTES(0), 0, data, index, Integer.BYTES);
+                index += Integer.BYTES;
+                // 再4字节记录k-v对的个数
+                System.arraycopy(Constant.INT_TO_BYTES(entrys.size()), 0, data, index, Integer.BYTES);
+                index += Integer.BYTES;
+                // 依次写入各Entry
+                for(Entry entry : entrys){
+                    // 写key
+                    System.arraycopy(Constant.KEY_TO_BYTES(entry.key.toString()), 0, data, index, Constant.MAX_KEY_LENGTH);
+                    index += Constant.MAX_KEY_LENGTH;
+                    // 写value，其实是个记录offset的long
+                    System.arraycopy(Constant.LONG_TO_BYTES((long)entry.value), 0, data, index, Long.BYTES);
+                    index += Long.BYTES;
+                }
+                // 再4字节记录children的个数
+                System.arraycopy(Constant.INT_TO_BYTES(children.size()), 0, data, index, Integer.BYTES);
+                index += Integer.BYTES;
+                // 依次写入各Children
+                for(BTreeNode child : children){
+                    // 每个child保存其offset
+                    System.arraycopy(Constant.LONG_TO_BYTES((long)child.offset), 0, data, index, Long.BYTES);
+                    index += Long.BYTES;
+                }
+                // 将byete[]写入文件
+                Constant.writeBytesToFile(data, fileName);
+                return totalLength;
+            }
+        }
+
     }
 
     private static final int DEFAULT_T = 2;
@@ -375,6 +560,11 @@ public class BTree<K, V> {
         this.t = t;
         minKeySize = t - 1;
         maxKeySize = 2 * t - 1;
+    }
+
+    // 构造函数，从文件fileName的offset偏移处读取root根节点，并解析构造B-Tree
+    public BTree(String fileName, long offset){
+        root = new BTreeNode<K, V>(fileName, offset);
     }
 
     /**
@@ -760,6 +950,28 @@ public class BTree<K, V> {
                     queue.offer(node.childAt(i));
             }
         }
+    }
+
+
+    // BTNodes的持久化保存, 写到fileName的开始偏移为offset的地方，返回值 1.存储占用的总字节数 2.根节点所在偏移
+    public long[] write(String fileName, long offset){
+        root.write(fileName, offset);
+
+        // 计算占用总字节数
+        long totalSize;
+        if(root.leaf){
+            totalSize = Integer.BYTES * 2 + root.entrys.size() * (Constant.MAX_KEY_LENGTH + Long.BYTES);
+        }
+        else{
+            totalSize = Integer.BYTES * 3 +
+                    root.entrys.size() * (Constant.MAX_KEY_LENGTH + Long.BYTES) +
+                    root.children.size() * Long.BYTES;
+        }
+
+        long[] ret = new long[2];
+        ret[0] = root.offset + totalSize - offset;
+        ret[1] = root.offset;
+        return ret;
     }
 
 }

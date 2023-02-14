@@ -10,6 +10,8 @@ import drz.tmdb.sync.vectorClock.VectorClock;
 public class Response implements Serializable {
     private ResponseType responseType;
 
+    private String requestID;
+
     private Action action;
 
     private VectorClock vectorClock;
@@ -20,13 +22,15 @@ public class Response implements Serializable {
 
     public Response(){}
 
-    public Response(ResponseType responseType, InetSocketAddress source, InetSocketAddress target) {
+    public Response(String requestID, ResponseType responseType, InetSocketAddress source, InetSocketAddress target) {
+        this.requestID = requestID;
         this.responseType = responseType;
         this.source = source;
         this.target = target;
     }
 
-    public Response(ResponseType responseType, Action action, VectorClock vectorClock, InetSocketAddress source, InetSocketAddress target) {
+    public Response(String requestID, ResponseType responseType, Action action, VectorClock vectorClock, InetSocketAddress source, InetSocketAddress target) {
+        this.requestID = requestID;
         this.responseType = responseType;
         this.action = action;
         this.vectorClock = vectorClock;
@@ -46,4 +50,16 @@ public class Response implements Serializable {
         return target;
     }
 
+
+    public String getRequestID() {
+        return requestID;
+    }
+
+    public Action getAction() {
+        return action;
+    }
+
+    public VectorClock getVectorClock() {
+        return vectorClock;
+    }
 }

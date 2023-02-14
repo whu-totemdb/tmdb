@@ -47,7 +47,7 @@ public class Sync {
 
 
 
-    public static void start() {
+    /*public static void start() {
         if(node == null){
             System.out.println("请先初始化节点！");
         }
@@ -55,7 +55,7 @@ public class Sync {
             node.start();
         }
 
-    }
+    }*/
 
 
     public static void broadcast() throws UnknownHostException {

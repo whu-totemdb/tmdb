@@ -4,6 +4,7 @@ import static drz.tmdb.Level.Test.test;
 
 import org.apache.lucene.util.RamUsageEstimator;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import drz.tmdb.Level.FileData;
@@ -17,16 +18,20 @@ import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
 
 public class MemManager {
 
-    public final List<ObjectTableItem> objectTable;
-    private final List<ClassTableItem> classTable;
-    private final List<DeputyTableItem> deputyTable;
-    private final List<BiPointerTableItem> biPointerTable;
-    private final List<SwitchingTableItem> switchingTable;
+    public List<ObjectTableItem> objectTable = new ArrayList<>();
+    private List<ClassTableItem> classTable = new ArrayList<>();
+    private List<DeputyTableItem> deputyTable = new ArrayList<>();
+    private List<BiPointerTableItem> biPointerTable = new ArrayList<>();
+    private List<SwitchingTableItem> switchingTable = new ArrayList<>();
 
 
     private int currentMemSize = 0; // 当前数据占用内存大小
 
     public LevelManager levelManager = new LevelManager();
+
+    public MemManager(){
+
+    }
 
     public MemManager(List<ObjectTableItem> o, List<ClassTableItem> c, List<DeputyTableItem> d, List<BiPointerTableItem> b, List<SwitchingTableItem> s){
         this.objectTable = o;
@@ -35,7 +40,7 @@ public class MemManager {
         this.biPointerTable = b;
         this.switchingTable = s;
 
-        //test();
+        test();
     }
 
 
@@ -83,27 +88,44 @@ public class MemManager {
     // 将内存中的数据持久化保存
     public void saveMemTableToFile(){
         // 获取最新dataFileSuffix并+1
-        int dataFileSuffix = Integer.parseInt(levelManager.totalIndex.get("maxDataFileSuffix")) + 1;
-        levelManager.totalIndex.put("maxDataFileSuffix", "" + dataFileSuffix);
+        int dataFileSuffix = Integer.parseInt(levelManager.levelInfo.get("maxDataFileSuffix")) + 1;
+        levelManager.levelInfo.put("maxDataFileSuffix", "" + dataFileSuffix);
 
-        // 生成FileData对象，将内存中的数据转移到FileData中
-        FileData f = new FileData("data" + dataFileSuffix, 3);
-        f.biPointerTable = this.biPointerTable;
-        f.classTable = this.classTable;
-        f.deputyTable = this.deputyTable;
-        f.objectTable = this.objectTable;
-        f.switchingTable = this.switchingTable;
+        // 生成FileData对象，将内存中的对象以k-v的形式转移到FileData中
+        FileData f = new FileData("SSTable" + dataFileSuffix, 1);
+        for(Object o : this.biPointerTable){
+            String k = Constant.calculateKey(o);
+            f.data.put(k, o);
+
+        }
+        for(Object o : this.classTable){
+            String k = Constant.calculateKey(o);
+            f.data.put(k, o);
+
+        }
+        for(Object o : this.deputyTable){
+            String k = Constant.calculateKey(o);
+            f.data.put(k, o);
+
+        }
+        for(Object o : this.objectTable){
+            String k = Constant.calculateKey(o);
+            f.data.put(k, o);
+
+        }
+        for(Object o : this.switchingTable){
+            String k = Constant.calculateKey(o);
+            f.data.put(k, o);
+
+        }
 
         // 写SSTable
-        List<String> info = f.writeSSTable();
-        String length = info.get(0);
-        String minKey = info.get(1);
-        String maxKey = info.get(2);
+        long SSTableTotalSize = f.writeSSTable();
 
         // 将该文件添加到对应level中
         levelManager.level_0.add(dataFileSuffix);
         // totalIndex 的结构  dataFileSuffix : level-length-minKey-maxKey
-        levelManager.totalIndex.put("" + dataFileSuffix, "0" + "-" + length + "-" + minKey + "-" + maxKey);
+        levelManager.levelInfo.put("" + dataFileSuffix, "0" + "-" + SSTableTotalSize + "-" + f.getMinKey() + "-" + f.getMaxKey());
 
         // 内存清空
         clearMem();

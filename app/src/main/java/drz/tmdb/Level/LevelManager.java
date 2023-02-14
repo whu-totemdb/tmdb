@@ -35,12 +35,14 @@ import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
 
 public class LevelManager {
 
-    // 总索引表，格式为  "dataFileSuffix" : "level-size-minKey-maxKey"
-    //                "maxDataFileSuffix" : "131"
+    // 记录层级信息，比如file0属于哪个level
+    // 格式为：
+    // "dataFileSuffix" : "level-size-minKey-maxKey"
+    // "maxDataFileSuffix" : "131"  // 自增的文件下标
     // 此外，ClassTable中的maxid和ObjectTable中的maxTupleId也需要记录在此处，每次跟随其他属性一起进行保存或初始化
-    //                "maxClassId" : "45"
-    //                "maxTupleId" : "522"
-    public Map<String, String> totalIndex = new HashMap<String, String>();
+    // "maxClassId" : "45"
+    // "maxTupleId" : "522"
+    public Map<String, String> levelInfo = new HashMap<String, String>();
 
     // 记录各level包含哪些data文件(使用sortedset因为，suffix大的一定是最新版本的数据)
     public final Set<Integer> level_0 = new TreeSet<Integer>();
@@ -48,7 +50,9 @@ public class LevelManager {
     public final Set<Integer> level_2 = new TreeSet<Integer>();
     public final Set<Integer> level_3 = new TreeSet<Integer>();
     public final Set<Integer> level_4 = new TreeSet<Integer>();
-    public final Set[] levels = {level_0, level_1, level_2, level_3, level_4};
+    public final Set<Integer> level_5 = new TreeSet<Integer>();
+    public final Set<Integer> level_6 = new TreeSet<Integer>();
+    public final Set[] levels = {level_0, level_1, level_2, level_3, level_4, level_5, level_6};
 
     // constructor
     public LevelManager(){
@@ -58,12 +62,12 @@ public class LevelManager {
             if(!dir.exists()){
                 dir.mkdirs();
             }
-            File indexFile = new File(DATABASE_DIR + "index");
+            File indexFile = new File(DATABASE_DIR + "meta");
             if(!indexFile.exists()){
                 // 如果初始化时没有历史数据，则给maxDataFileSuffix, maxClassId, maxTupleId一个初始值0
-                this.totalIndex.put("maxDataFileSuffix","0");
-                this.totalIndex.put("maxClassId","0");
-                this.totalIndex.put("maxTupleId","0");
+                this.levelInfo.put("maxDataFileSuffix","0");
+                this.levelInfo.put("maxClassId","0");
+                this.levelInfo.put("maxTupleId","0");
             } else{
                 FileInputStream input = new FileInputStream(indexFile);
 
@@ -75,7 +79,7 @@ public class LevelManager {
                 // 读取正文
                 byte[] buff = new byte[lengthToRead];
                 input.read(buff, 0, lengthToRead);
-                this.totalIndex = (Map<String, String>) JSON.parse(new String(buff));
+                this.levelInfo = (Map<String, String>) JSON.parse(new String(buff));
             }
         }catch(FileNotFoundException e){
             e.printStackTrace();
@@ -84,7 +88,7 @@ public class LevelManager {
         }
 
         // 使用总索引表去初始化各个level
-        for(Entry<String, String> entry : this.totalIndex.entrySet()){
+        for(Entry<String, String> entry : this.levelInfo.entrySet()){
             if(entry.getValue().contains("-")){
                 int level = Integer.parseInt(entry.getValue().split("-")[0]);
                 int suffix = Integer.parseInt(entry.getKey());
@@ -96,10 +100,9 @@ public class LevelManager {
 
 
     // 退出时将索引表持久化保存
-    // todo: what if unexpected exit
     public void saveIndexToFile(){
         try{
-            File dir = new File(Constant.DATABASE_DIR);
+            File dir = new File(DATABASE_DIR);
             if(!dir.exists()){
                 dir.mkdirs();
             }
@@ -108,7 +111,7 @@ public class LevelManager {
                 indexFile.createNewFile();
             }
             BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(indexFile));
-            String s_in = JSONObject.toJSONString(this.totalIndex);
+            String s_in = JSONObject.toJSONString(this.levelInfo);
             byte[] in = s_in.getBytes();
             //System.out.println(in.length);
             byte[] meta = INT_TO_BYTES(in.length);
@@ -127,201 +130,178 @@ public class LevelManager {
 
     // 手动调用的compaction，指定需要进行compaction的level
     public void manualCompaction(int level){
-        if(level < 0 || level >= Constant.MAX_LEVEL)
-            return;
-        if(level == 0){
-            // 由于key值构造的原因，总是由 b c d o s 这五个字符开头，可以视为level0所有文件都是有重叠的
-            // 1. 将level0所有文件归并排序后再根绝key不同前缀分别写到4个文件并放到level1
-            // 2. level1根据前缀不同分别进行归并排序
-            // 即，在level1及以上，同一个文件存储数据的key的前缀只有一种
-
-            // 1. 首先按照文件后缀的升序依次读取level0的index文件
-            //   (起到删除过期数据的作用：
-            //   若不同文件中有key值相同value不同的数据，则文件后缀大的一定为最新数据)
-            // 同时进行排序分发数据
-            //   (由于使用的是SortedMap，排序已经实现，只需要进行分发
-            //   规则：五种前缀不同的文件分别放到5个sortedmap中)
-            SortedMap<String, String> b = new TreeMap<>();
-            SortedMap<String, String> c = new TreeMap<>();
-            SortedMap<String, String> d = new TreeMap<>();
-            SortedMap<String, String> o = new TreeMap<>();
-            SortedMap<String, String> s = new TreeMap<>();
-
-            // 遍历level-0的索引文件，将k及对应v的位置保存到SortedMap中
-            for(Integer fileSuffix : this.level_0){
-                FileData f = new FileData("data" + fileSuffix, 2); // 只读索引文件
-                for(Entry<String, String> entry : f.indexMap.entrySet()){
-                    if(entry.getKey().startsWith("b"))
-                        b.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
-                    else if(entry.getKey().startsWith("c"))
-                        c.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
-                    else if(entry.getKey().startsWith("d"))
-                        d.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
-                    else if(entry.getKey().startsWith("o"))
-                        o.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
-                    else if(entry.getKey().startsWith("s"))
-                        s.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
-                }
-                this.totalIndex.remove("" + fileSuffix); // 更新索引
-            }
-            level_0.clear(); // 更新索引
-
-            // 到level1中找存在重叠的文件并加到sortedmap中
-            Set<Integer> findFiles = new HashSet<>(); // 记录level1中参与本次compaction的文件，便于更新索引
-            // 遍历level1
-            for(Integer fileSuffix : this.level_1){
-                String info = this.totalIndex.get("" + fileSuffix);  // meta信息
-                String[] t = info.split("-");
-                String min = t[2];
-                String max = t[3];
-                SortedMap<String, String> target = null; // 如果fileSuffix与上述某SortedMap存在重叠，则用该变量记录
-                if(Constant.hasOverlap(min, max, b.firstKey(), b.lastKey()))
-                    target = b;
-                else if(Constant.hasOverlap(min, max, c.firstKey(), c.lastKey()))
-                    target = c;
-                else if(Constant.hasOverlap(min, max, d.firstKey(), d.lastKey()))
-                    target = d;
-                else if(Constant.hasOverlap(min, max, o.firstKey(), o.lastKey()))
-                    target = o;
-                else if(Constant.hasOverlap(min, max, s.firstKey(), s.lastKey()))
-                    target = s;
-                // 如果没有重叠，即target == null，则跳过（说明这个fileSuffix不需要参与本次compaction）
-                if(target == null)
-                    continue;
-                // 否则，读取fileSuffix的索引文件，然后加入target中
-                findFiles.add(fileSuffix);
-                FileData f = new FileData("data" + fileSuffix, 2); // 只读索引文件
-                for(Entry<String, String> entry : f.indexMap.entrySet()){
-                    // 此处需要注意，如果有key相同的不同版本，level大小并不能决定新旧，
-                    // 因为从memTable compact到SSTable时不总是compact到level0，还可以直接到level1或者level2
-                    // 不过fileSuffix仍然可以作为评判标准，fileSuffix大的一定是最新版
-                    if(target.containsKey(entry.getKey())) {
-                        int suffix1 = fileSuffix; // level1 中的fileSuffix
-                        int suffix2 = Integer.parseInt(target.get(entry.getKey()).split("-")[0]); // level0中的fileSuffix
-                        if (suffix1 > suffix2)
-                            // suffix1 为最新值
-                            target.put(entry.getKey(), "" + fileSuffix + entry.getValue());
-                    }
-                    else
-                        target.put(entry.getKey(), "" + fileSuffix + entry.getValue());
-                }
-                this.totalIndex.remove("" + fileSuffix); // 更新索引
-            }
-            this.level_2.removeAll(findFiles); // 更新索引
-
-
-
-            // 3. 对于分发好的每个文件
-            // · 根据索引信息去把具体数据读出来（这一步操作放在排序分发之后，且每个文件单独完成，否则会占用太大内存空间）
-            // · 写入新文件
-            if(b.size() != 0)
-                readAndWrite(b, 1);
-            if(c.size() != 0)
-                readAndWrite(c, 1);
-            if(d.size() != 0)
-                readAndWrite(d, 1);
-            if(o.size() != 0)
-                readAndWrite(o, 1);
-            if(s.size() != 0)
-                readAndWrite(s, 1);
-
-
-        }else{
-            // 从 level i (i>=1) compact 到 level i+1 的方法
-            // 由于在level1及以上，同一个文件存储数据的key的前缀只有一种
-            // 进行归并排序就简单了不少
-            // 1. 首先通过修改索引表，将 level i 的每个文件都往下传递至 level i+1
-            // 2. 对 level i+1 中的文件，按照minKey升序排序[file1, file2, ...]
-            // 3. 双指针从头扫描到尾遍历一遍
-
-
-            // 1. 修改索引表，将 level i 的每个文件都往下传递至 level i+1
-            // 1.1 遍历level i，获取fileSuffix，将totalIndex中对应的level修改
-            for(Object o : this.levels[level]){
-                int fileSuffix = (int) o;
-                // 去totalIndex获取info
-                String info = this.totalIndex.get("" + fileSuffix);
-                String[] t = info.split("-");
-                int pre_level = Integer.parseInt(t[0]);
-                int cur_level = pre_level + 1;
-                info = info.replace("" + pre_level, "" + cur_level);
-                this.totalIndex.put("" + fileSuffix, info);
-            }
-            // 1.2
-            this.levels[level + 1].addAll(this.levels[level]);
-            this.levels[level].clear();
-
-
-            // 2 对 level i+1 中的文件，按照minKey升序排序
-            SortedSet<FileInfo> allFiles = new TreeSet<>();
-            for(Object o : this.levels[level + 1]){
-                int fileSuffix = (int) o;
-                allFiles.add(new FileInfo(fileSuffix, this.totalIndex));
-            }
-
-            // 3 依次顺序处理allFiles
-            // 如果只有1个文件, do nothing
-            if(allFiles.size()<=1){
-                return;
-            }
-            // 两个指针f1 f2, 往后扫描，直到整个allFiles都处理一遍
-            FileInfo f1 = allFiles.first();
-            allFiles.remove(f1);
-            FileInfo f2;
-            while(allFiles.size() > 0){
-                f2 = allFiles.first();
-                allFiles.remove(f2);
-
-                // 如果f1 f2 key的前缀不同，do nothing，开启下一次循环
-                if(f1.minKey.charAt(0) != f2.minKey.charAt(0)){
-                    f1 = f2;
-                    continue;
-                }
-                // 如果f1 f2没有重叠
-                else if(!f1.hasOverlap(f2)){
-                    // 如果f1.size + f2.size < maxSize ，我们考虑合并以减少文件数
-                    if(f1.size + f2.size < Constant.MAX_FILE_SIZE){
-                        appendFile1IntoFile2(f1, f2);
-                        f1 = f2;
-                        continue;
-                    }
-                    else{
-                        f1 = f2;
-                        continue;
-                    }
-                }
-                // 如果f1 f2有重叠
-                else{
-                    mergeFile1IntoFile2(f1, f2);
-                    f1 = f2;
-                    continue;
-                }
-            }
-
-        }
+//        if(level < 0 || level >= Constant.MAX_LEVEL)
+//            return;
+//        if(level == 0){
+//
+//            // 1. 首先按照文件后缀的升序依次读取level0的index文件
+//            //   (起到删除过期数据的作用：
+//            //   若不同文件中有key值相同value不同的数据，则文件后缀大的一定为最新数据)
+//            // 同时进行排序分发数据
+//            //   (由于使用的是SortedMap，排序已经实现，只需要进行分发
+//            //   规则：五种前缀不同的文件分别放到5个sortedmap中)
+//            SortedMap<String, String> b = new TreeMap<>();
+//            SortedMap<String, String> c = new TreeMap<>();
+//            SortedMap<String, String> d = new TreeMap<>();
+//            SortedMap<String, String> o = new TreeMap<>();
+//            SortedMap<String, String> s = new TreeMap<>();
+//
+//            // 遍历level-0的索引文件，将k及对应v的位置保存到SortedMap中
+//            for(Integer fileSuffix : this.level_0){
+//                FileData f = new FileData("data" + fileSuffix, 2); // 只读索引文件
+//                for(Entry<String, String> entry : f.levelInfo.entrySet()){
+//                    if(entry.getKey().startsWith("b"))
+//                        b.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
+//                    else if(entry.getKey().startsWith("c"))
+//                        c.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
+//                    else if(entry.getKey().startsWith("d"))
+//                        d.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
+//                    else if(entry.getKey().startsWith("o"))
+//                        o.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
+//                    else if(entry.getKey().startsWith("s"))
+//                        s.put(entry.getKey(), "" + fileSuffix + "-" + entry.getValue());
+//                }
+//                this.levelInfo.remove("" + fileSuffix); // 更新索引
+//            }
+//            level_0.clear(); // 更新索引
+//
+//            // 到level1中找存在重叠的文件并加到sortedmap中
+//            Set<Integer> findFiles = new HashSet<>(); // 记录level1中参与本次compaction的文件，便于更新索引
+//            // 遍历level1
+//            for(Integer fileSuffix : this.level_1){
+//                String info = this.levelInfo.get("" + fileSuffix);  // meta信息
+//                String[] t = info.split("-");
+//                String min = t[2];
+//                String max = t[3];
+//                SortedMap<String, String> target = null; // 如果fileSuffix与上述某SortedMap存在重叠，则用该变量记录
+//                if(Constant.hasOverlap(min, max, b.firstKey(), b.lastKey()))
+//                    target = b;
+//                else if(Constant.hasOverlap(min, max, c.firstKey(), c.lastKey()))
+//                    target = c;
+//                else if(Constant.hasOverlap(min, max, d.firstKey(), d.lastKey()))
+//                    target = d;
+//                else if(Constant.hasOverlap(min, max, o.firstKey(), o.lastKey()))
+//                    target = o;
+//                else if(Constant.hasOverlap(min, max, s.firstKey(), s.lastKey()))
+//                    target = s;
+//                // 如果没有重叠，即target == null，则跳过（说明这个fileSuffix不需要参与本次compaction）
+//                if(target == null)
+//                    continue;
+//                // 否则，读取fileSuffix的索引文件，然后加入target中
+//                findFiles.add(fileSuffix);
+//                FileData f = new FileData("data" + fileSuffix, 2); // 只读索引文件
+//                for(Entry<String, String> entry : f.indexMap.entrySet()){
+//                    // 此处需要注意，如果有key相同的不同版本，level大小并不能决定新旧，
+//                    // 因为从memTable compact到SSTable时不总是compact到level0，还可以直接到level1或者level2
+//                    // 不过fileSuffix仍然可以作为评判标准，fileSuffix大的一定是最新版
+//                    if(target.containsKey(entry.getKey())) {
+//                        int suffix1 = fileSuffix; // level1 中的fileSuffix
+//                        int suffix2 = Integer.parseInt(target.get(entry.getKey()).split("-")[0]); // level0中的fileSuffix
+//                        if (suffix1 > suffix2)
+//                            // suffix1 为最新值
+//                            target.put(entry.getKey(), "" + fileSuffix + entry.getValue());
+//                    }
+//                    else
+//                        target.put(entry.getKey(), "" + fileSuffix + entry.getValue());
+//                }
+//                this.totalIndex.remove("" + fileSuffix); // 更新索引
+//            }
+//            this.level_2.removeAll(findFiles); // 更新索引
+//
+//
+//
+//            // 3. 对于分发好的每个文件
+//            // · 根据索引信息去把具体数据读出来（这一步操作放在排序分发之后，且每个文件单独完成，否则会占用太大内存空间）
+//            // · 写入新文件
+//            if(b.size() != 0)
+//                readAndWrite(b, 1);
+//            if(c.size() != 0)
+//                readAndWrite(c, 1);
+//            if(d.size() != 0)
+//                readAndWrite(d, 1);
+//            if(o.size() != 0)
+//                readAndWrite(o, 1);
+//            if(s.size() != 0)
+//                readAndWrite(s, 1);
+//
+//
+//        }else{
+//            // 从 level i (i>=1) compact 到 level i+1 的方法
+//            // 由于在level1及以上，同一个文件存储数据的key的前缀只有一种
+//            // 进行归并排序就简单了不少
+//            // 1. 首先通过修改索引表，将 level i 的每个文件都往下传递至 level i+1
+//            // 2. 对 level i+1 中的文件，按照minKey升序排序[file1, file2, ...]
+//            // 3. 双指针从头扫描到尾遍历一遍
+//
+//
+//            // 1. 修改索引表，将 level i 的每个文件都往下传递至 level i+1
+//            // 1.1 遍历level i，获取fileSuffix，将totalIndex中对应的level修改
+//            for(Object o : this.levels[level]){
+//                int fileSuffix = (int) o;
+//                // 去totalIndex获取info
+//                String info = this.totalIndex.get("" + fileSuffix);
+//                String[] t = info.split("-");
+//                int pre_level = Integer.parseInt(t[0]);
+//                int cur_level = pre_level + 1;
+//                info = info.replace("" + pre_level, "" + cur_level);
+//                this.totalIndex.put("" + fileSuffix, info);
+//            }
+//            // 1.2
+//            this.levels[level + 1].addAll(this.levels[level]);
+//            this.levels[level].clear();
+//
+//
+//            // 2 对 level i+1 中的文件，按照minKey升序排序
+//            SortedSet<FileInfo> allFiles = new TreeSet<>();
+//            for(Object o : this.levels[level + 1]){
+//                int fileSuffix = (int) o;
+//                allFiles.add(new FileInfo(fileSuffix, this.totalIndex));
+//            }
+//
+//            // 3 依次顺序处理allFiles
+//            // 如果只有1个文件, do nothing
+//            if(allFiles.size()<=1){
+//                return;
+//            }
+//            // 两个指针f1 f2, 往后扫描，直到整个allFiles都处理一遍
+//            FileInfo f1 = allFiles.first();
+//            allFiles.remove(f1);
+//            FileInfo f2;
+//            while(allFiles.size() > 0){
+//                f2 = allFiles.first();
+//                allFiles.remove(f2);
+//
+//                // 如果f1 f2 key的前缀不同，do nothing，开启下一次循环
+//                if(f1.minKey.charAt(0) != f2.minKey.charAt(0)){
+//                    f1 = f2;
+//                    continue;
+//                }
+//                // 如果f1 f2没有重叠
+//                else if(!f1.hasOverlap(f2)){
+//                    // 如果f1.size + f2.size < maxSize ，我们考虑合并以减少文件数
+//                    if(f1.size + f2.size < Constant.MAX_FILE_SIZE){
+//                        appendFile1IntoFile2(f1, f2);
+//                        f1 = f2;
+//                        continue;
+//                    }
+//                    else{
+//                        f1 = f2;
+//                        continue;
+//                    }
+//                }
+//                // 如果f1 f2有重叠
+//                else{
+//                    mergeFile1IntoFile2(f1, f2);
+//                    f1 = f2;
+//                    continue;
+//                }
+//            }
+//
+//        }
 
     }
 
 
-    // 将f2中的数据合并到f1中，同时注意大小限制，可能合并成一个文件，也可能合并后还是两个文件
-    private void mergeFile1IntoFile2(FileInfo f1, FileInfo f2){
-        // todo
-    }
-
-    // 将f2中的数据追加到f1中
-    private void appendFile1IntoFile2(FileInfo f1, FileInfo f2){
-        FileData file1 = new FileData("data" + f1.fileSuffix, 1);
-        FileData file2 = new FileData("data" + f2.fileSuffix, 1);
-
-        // 更新index文件，讲f2的索引表的每一项加入f1的索引表中
-        file1.indexMap.putAll(file2.indexMap);
-
-        // 将f2的数据项也加入f1中
-
-
-        // todo
-
-    }
 
 
     // 根据索引去读data文件，然后保存到level层中
@@ -341,8 +321,8 @@ public class LevelManager {
                 indexMap.remove(indexMap.firstKey());
             }
             // 获取dataFileSuffix
-            int dataFileSuffix = Integer.parseInt(this.totalIndex.get("maxDataFileSuffix")) + 1;
-            this.totalIndex.put("maxDataFileSuffix", "" + dataFileSuffix);
+            int dataFileSuffix = Integer.parseInt(this.levelInfo.get("maxDataFileSuffix")) + 1;
+            this.levelInfo.put("maxDataFileSuffix", "" + dataFileSuffix);
             writeToLevel(currentList, level, dataFileSuffix);
             currentSize = 0;
             currentList.clear();
@@ -445,7 +425,7 @@ public class LevelManager {
 
         // 更新索引
         this.levels[level].add(dataFileSuffix);
-        this.totalIndex.put("" + dataFileSuffix, "" + level + "-" + offset + "-" + minKey + "-" + maxKey);
+        this.levelInfo.put("" + dataFileSuffix, "" + level + "-" + offset + "-" + minKey + "-" + maxKey);
 
     }
 
@@ -478,7 +458,7 @@ public class LevelManager {
         // 各层文件数量
         List<Integer> fileCount = new ArrayList<Integer>(4);
 
-        for(String v: this.totalIndex.values()){
+        for(String v: this.levelInfo.values()){
             if(v.contains("-")){
                 String[] t = v.split("-");
                 int level = Integer.parseInt(t[0]);

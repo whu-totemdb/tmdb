@@ -87,8 +87,6 @@ public class Node implements Serializable {
         this.receivePort = receivePort;
         this.gossipConfig = gossipConfig;
 
-
-
         vectorClockMap = new ConcurrentHashMap<>();
         dataManager = new DataManager();
         arbitrationController = new ArbitrationController();
@@ -115,7 +113,7 @@ public class Node implements Serializable {
         System.out.println(Thread.currentThread().getName() + "：新生成了一个节点" + this.IPAddress.toString());
         showNodeStateTable();
 
-
+        this.start();
     }
 
 
@@ -520,8 +518,8 @@ public class Node implements Serializable {
             nodeStateTable.putIfAbsent(target,true);
             showNodeStateTable();
 
-            Thread sendResponseThread = new Thread(() -> {
-                Response response = new Response(ResponseType.broadcastResponse,source,target);
+            Thread sendBroadcastResponseThread = new Thread(() -> {
+                Response response = new Response(gossipRequest.getRequestID(),ResponseType.broadcastResponse,source,target);
                 byte[] data = SocketService.getDataToTransport(response);
 
                 try {
@@ -531,52 +529,110 @@ public class Node implements Serializable {
                     e.printStackTrace();
                 }
 
-            },"sendResponseThread");
-            sendResponseThread.start();
+            },"sendBroadcastResponseThread");
+            sendBroadcastResponseThread.start();
         }
         else {
             //不是广播请求
             long primaryKey = gossipRequest.getKey();//主键
-            InetSocketAddress socketAddress1 = gossipRequest.getSourceIPAddress();
+            InetSocketAddress sourceAddress = gossipRequest.getSourceIPAddress();
             String id = gossipRequest.getRequestID();//请求的id号
 
-            nodeStateTable.put(socketAddress1,true);
-            /*arbitrationController.putReceivedRequest(id,gossipRequest);
-            Thread judgeThread = new Thread(() -> {
-                Arbitration arbitration = arbitrationController.getArbitrationByID(id);
-                arbitration.increase();
-                if(arbitration.getRequestType() == RequestType.readRequest){
-                    if (arbitration.readSuccess()){
-                        //读成功，调用向量时钟算法处理收集到的所有请求，找到其中最新的版本
+            nodeStateTable.put(sourceAddress,true);
 
+
+            if(gossipRequest.getRequestType() == RequestType.readRequest){
+                //读请求
+                new Thread(() -> {
+                    //下面代码段为根据主键primaryKey获取本节点对应数据的Action对象（待补充）
+                    /*Action action;
+
+                    //封装为一个Response对象
+                    Response response = new Response(
+                            id,
+                            ResponseType.readResponse,
+                            action,
+                            vectorClockMap.get(primaryKey),
+                            getSocketAddress(),
+                            sourceAddress);
+
+                    try {
+                        gossipController.socketService.sendToTargetNode(sourceAddress,SocketService.getDataToTransport(response));
+                        System.out.println(Thread.currentThread().getName() + "成功发送读成功响应");
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }*/
+
+                }).start();
+            }else {
+                //写请求
+                new Thread(() -> {
+                    VectorClock otherVectorClock = gossipRequest.getVectorClock();
+                    VectorClock localVectorClock = vectorClockMap.get(primaryKey);//本地对应的向量时钟
+                    switch (VectorClock.compare(localVectorClock,otherVectorClock)){
+                        case Before:
+                            //接收到的请求对应的版本是更新的
+                            Action action1 = gossipRequest.getAction();
+                            //将action1应用到本地数据库中（待补充）
+
+                            //本地的向量时钟更新
+                            vectorClockMap.put(primaryKey,otherVectorClock);
+                            break;
+                        case After:
+                            break;
+                        case Parallel:
+                            if(localVectorClock.getTimestamp() < otherVectorClock.getTimestamp()){
+                                //本地的版本为旧版本
+                                Action action2 = gossipRequest.getAction();
+                                //将action2应用到本地数据库中（待补充）
+
+                                //本地的向量时钟更新
+                                vectorClockMap.put(primaryKey,otherVectorClock);
+                            }
+                            break;
                     }
-                }
-                else {
-                    if (arbitration.writeSuccess()){
-                        //写成功，则此次同步认为完成（但可能还有部分节点还没收到）
+
+                    //发送一个写成功的响应
+                    Response response = new Response(
+                            id,
+                            ResponseType.writeResponse,
+                            getSocketAddress(),
+                            sourceAddress);
+
+                    try {
+                        gossipController.socketService.sendToTargetNode(sourceAddress,SocketService.getDataToTransport(response));
+                        System.out.println(Thread.currentThread().getName() + "成功发送写成功响应");
+                    }catch (IOException e){
+                        e.printStackTrace();
                     }
-                }
 
-            },"judgeThread");
-            judgeThread.start();*/
-
-            //如果请求更新的数据不在本地数据库中->新的数据
-            if (!vectorClockMap.containsKey(primaryKey)) {
-
-            } else {
-                /*System.out.println(Thread.currentThread().getName() + "：节点" + IPAddress.toString() + "成功接收到来自" + socketAddress1.getAddress().toString() + "的向量时钟");
-                VectorClock oldClock = getVectorClock(primaryKey);
-                long l1 = System.currentTimeMillis();
-                VectorClock newClock = oldClock.merge(gossipRequest.getVectorClock());//合并向量时钟
-                long l2 = System.currentTimeMillis();
-                receiveTimeTest.get(id).setMergeVectorClockTime(SendTimeTest.calculate(l1, l2));
-                //等待后续补充其他对向量时钟更加复杂操作的实现
-
-                vectorClockMap.put(primaryKey, newClock);*/
-
+                }).start();
 
             }
+
             setLastUpdateTime();
+        }
+    }
+
+    //仲裁判定
+    private void judge(String id){
+        Arbitration arbitration = arbitrationController.getArbitrationByID(id);
+        if(arbitration.getRequestType() == RequestType.readRequest){
+            if (arbitration.readSuccess()){
+                //读成功，调用向量时钟算法处理收集到的所有请求，找到其中最新的版本，应用到本地并向用户返回结果
+                Action latestAction = VectorClock.getLatestVersion(arbitrationController.getResponsesByID(id));
+                arbitrationController.deleteArbitration(id);
+                //下面是向用户返回和应用到本地的相关代码
+
+            }
+        }
+        else {
+            if (arbitration.writeSuccess()){
+                //写成功，则此次同步认为完成（但可能还有部分节点还没收到）
+                arbitrationController.deleteArbitration(id);
+                //返回写成功的代码
+
+            }
         }
     }
 
@@ -605,7 +661,13 @@ public class Node implements Serializable {
             showNodeStateTable();
         }
         else {
+            String id = response.getRequestID();
 
+            arbitrationController.putReceivedResponse(id,response);
+            Thread judgeThread = new Thread(() -> {
+                judge(id);
+            },"judgeThread");
+            judgeThread.start();
         }
     }
 
