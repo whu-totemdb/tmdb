@@ -137,13 +137,18 @@ public class Test {
 
 //        // SSTable读写测试
         MemManager memManager = new MemManager();
-        for(int i=1; i<100; i++){
+        for(int i=1; i<50000; i++){
             memManager.add(new ObjectTableItem(i, i, i, i));
         }
         // 写
+        long t1 = System.currentTimeMillis();
         memManager.saveMemTableToFile();
+        long t2 = System.currentTimeMillis();
         // 读
         FileData f = new FileData("SSTable1", 2);
+        long t3 = System.currentTimeMillis();
+        System.out.println("50000个键值对写入SSTable，耗时" + (t2 - t1) + "ms");
+        System.out.println("读取SSTable的meta data，耗时" + (t3 - t2) + "ms");
         return;
 
 
