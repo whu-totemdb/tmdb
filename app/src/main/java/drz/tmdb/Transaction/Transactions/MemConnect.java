@@ -8,6 +8,7 @@ import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import drz.tmdb.Level.LevelManager;
@@ -386,8 +387,290 @@ public class MemConnect {
         }
     }
 
-    public void createDeputyClass(CreateDeputyClass stmt){
-        Table deputyClass=stmt.getDeputyClass();
+    //UPDATE Song SET type = ‘jazz’WHERE songId = 100;
+    //OPT_CREATE_UPDATE，Song，type，“jazz”，songId，=，100
+    //0                  1     2      3        4      5  6
+    public boolean update(String[] p){
+        String classname = p[1];
+        String attrname = p[2];
+        String cattrname = p[4];
+
+        int classid = 0;
+        int attrid = 0;
+        String attrtype = null;
+        int cattrid = 0;
+        String cattrtype = null;
+        for(ClassTableItem item :classt.classTable){
+            if (item.classname.equals(classname)){
+                classid = item.classid;
+                break;
+            }
+        }
+        for(ClassTableItem item1 :classt.classTable){
+            if (item1.classid==classid&&item1.attrname.equals(attrname)){
+                attrtype = item1.attrtype;
+                attrid = item1.attrid;
+            }
+        }
+        for(ClassTableItem item2 :classt.classTable){
+            if (item2.classid==classid&&item2.attrname.equals(cattrname)){
+                cattrtype = item2.attrtype;
+                cattrid = item2.attrid;
+            }
+        }
+
+
+
+        for(ObjectTableItem item3:topt.objectTable){
+            if(item3.classid == classid){
+                Tuple tuple = GetTuple(item3.blockid,item3.offset);
+                if(Condition(cattrtype,tuple,cattrid,p[6])){
+                    UpdatebyID(item3.tupleid,attrid,p[3].replace("\"",""));
+
+                }
+            }
+        }
+        return true;
+    }
+    private void UpdatebyID(int tupleid,int attrid,String value){
+        for(ObjectTableItem item: topt.objectTable){
+            if(item.tupleid ==tupleid){
+                Tuple tuple = GetTuple(item.blockid,item.offset);
+                tuple.tuple[attrid] = value;
+                UpateTuple(tuple,item.blockid,item.offset);
+                Tuple tuple1 = GetTuple(item.blockid,item.offset);
+                UpateTuple(tuple1,item.blockid,item.offset);
+            }
+        }
+
+        String attrname = null;
+        for(ClassTableItem item2: classt.classTable){
+            if (item2.attrid == attrid){
+                attrname = item2.attrname;
+                break;
+            }
+        }
+        for(BiPointerTableItem item1: biPointerT.biPointerTable) {
+            if (item1.objectid == tupleid) {
+
+
+                for(ClassTableItem item4:classt.classTable){
+                    if(item4.classid==item1.deputyid){
+                        String dattrname = item4.attrname;
+                        int dattrid = item4.attrid;
+                        for (SwitchingTableItem item5 : switchingT.switchingTable) {
+                            String dswitchrule = null;
+                            String dvalue = null;
+                            if (item5.attr.equals(attrname) && item5.deputy.equals(dattrname)) {
+                                dvalue = value;
+                                if (Integer.parseInt(item5.rule) != 0) {
+                                    dswitchrule = item5.rule;
+                                    dvalue = Integer.toString(Integer.parseInt(dvalue) + Integer.parseInt(dswitchrule));
+                                }
+                                UpdatebyID(item1.deputyobjectid, dattrid, dvalue);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    //DELETE FROM bb WHERE t4="5SS";
+    //5,bb,t4,=,"5SS"
+    public boolean delete(String[] p) {
+        String classname = p[1];
+        String attrname = p[2];
+        int classid = 0;
+        int attrid=0;
+        String attrtype=null;
+        for (ClassTableItem item:classt.classTable) {
+            if (item.classname.equals(classname) && item.attrname.equals(attrname)) {
+                classid = item.classid;
+                attrid = item.attrid;
+                attrtype = item.attrtype;
+                break;
+            }
+        }
+        //寻找需要删除的
+        MemConnect.OandB ob2 = new MemConnect.OandB();
+        for (Iterator it1 = topt.objectTable.iterator(); it1.hasNext();){
+            ObjectTableItem item = (ObjectTableItem)it1.next();
+            if(item.classid == classid){
+                Tuple tuple = GetTuple(item.blockid,item.offset);
+                if(Condition(attrtype,tuple,attrid,p[4])){
+                    //需要删除的元组
+                    MemConnect.OandB ob =new MemConnect.OandB(DeletebyID(item.tupleid));
+                    for(ObjectTableItem obj:ob.o){
+                        ob2.o.add(obj);
+                    }
+                    for(BiPointerTableItem bip:ob.b){
+                        ob2.b.add(bip);
+                    }
+
+                }
+            }
+        }
+        for(ObjectTableItem obj:ob2.o){
+            topt.objectTable.remove(obj);
+        }
+        for(BiPointerTableItem bip:ob2.b) {
+            biPointerT.biPointerTable.remove(bip);
+        }
+        return true;
+    }
+
+    private MemConnect.OandB DeletebyID(int id){
+
+        List<ObjectTableItem> todelete1 = new ArrayList<>();
+        List<BiPointerTableItem>todelete2 = new ArrayList<>();
+        MemConnect.OandB ob = new MemConnect.OandB(todelete1,todelete2);
+        for (Iterator it1 = topt.objectTable.iterator(); it1.hasNext();){
+            ObjectTableItem item  = (ObjectTableItem)it1.next();
+            if(item.tupleid == id){
+                //需要删除的tuple
+
+
+                //删除代理类的元组
+                int deobid = 0;
+
+                for(Iterator it = biPointerT.biPointerTable.iterator(); it.hasNext();){
+                    BiPointerTableItem item1 =(BiPointerTableItem) it.next();
+                    if(item.tupleid == item1.deputyobjectid){
+                        //it.remove();
+                        if(!todelete2.contains(item1))
+                            todelete2.add(item1);
+                    }
+                    if(item.tupleid == item1.objectid){
+                        deobid = item1.deputyobjectid;
+                        MemConnect.OandB ob2=new MemConnect.OandB(DeletebyID(deobid));
+
+                        for(ObjectTableItem obj:ob2.o){
+                            if(!todelete1.contains(obj))
+                                todelete1.add(obj);
+                        }
+                        for(BiPointerTableItem bip:ob2.b){
+                            if(!todelete2.contains(bip))
+                                todelete2.add(bip);
+                        }
+
+                        //biPointerT.biPointerTable.remove(item1);
+
+                    }
+                }
+
+
+                //删除自身
+                DeleteTuple(item.blockid,item.offset);
+                if(!todelete2.contains(item));
+                todelete1.add(item);
+
+
+
+
+
+            }
+        }
+
+        return ob;
+    }
+
+    private class OandB{
+        public List<ObjectTableItem> o= new ArrayList<>();
+        public List<BiPointerTableItem> b= new ArrayList<>();
+        public OandB(){}
+        public OandB(MemConnect.OandB oandB){
+            this.o = oandB.o;
+            this.b = oandB.b;
+        }
+
+        public OandB(List<ObjectTableItem> o, List<BiPointerTableItem> b) {
+            this.o = o;
+            this.b = b;
+        }
+    }
+
+    //DROP CLASS asd;
+    //3,asd
+    public boolean drop(String[]p){
+        List<DeputyTableItem> dti;
+        dti = Drop1(p);
+        for(DeputyTableItem item:dti){
+            deputyt.deputyTable.remove(item);
+        }
+        return  true;
+    }
+
+    private List<DeputyTableItem> Drop1(String[] p){
+        String classname = p[1];
+        int classid = 0;
+        //找到classid顺便 清除类表和switch表
+        for (Iterator it1 = classt.classTable.iterator(); it1.hasNext();) {
+            ClassTableItem item =(ClassTableItem) it1.next();
+            if (item.classname.equals(classname) ){
+                classid = item.classid;
+                for(Iterator it = switchingT.switchingTable.iterator(); it.hasNext();) {
+                    SwitchingTableItem item2 =(SwitchingTableItem) it.next();
+                    if (item2.attr.equals( item.attrname)||item2.deputy .equals( item.attrname)){
+                        it.remove();
+                    }
+                }
+                it1.remove();
+            }
+        }
+        //清元组表同时清了bi
+        MemConnect.OandB ob2 = new MemConnect.OandB();
+        for(ObjectTableItem item1:topt.objectTable){
+            if(item1.classid == classid){
+                MemConnect.OandB ob = DeletebyID(item1.tupleid);
+                for(ObjectTableItem obj:ob.o){
+                    ob2.o.add(obj);
+                }
+                for(BiPointerTableItem bip:ob.b){
+                    ob2.b.add(bip);
+                }
+            }
+        }
+        for(ObjectTableItem obj:ob2.o){
+            topt.objectTable.remove(obj);
+        }
+        for(BiPointerTableItem bip:ob2.b) {
+            biPointerT.biPointerTable.remove(bip);
+        }
+
+        //清deputy
+        List<DeputyTableItem> dti = new ArrayList<>();
+        for(DeputyTableItem item3:deputyt.deputyTable){
+            if(item3.deputyid == classid){
+                if(!dti.contains(item3))
+                    dti.add(item3);
+            }
+            if(item3.originid == classid){
+                //删除代理类
+                String[]s = p.clone();
+                List<String> sname = new ArrayList<>();
+                for(ClassTableItem item5: classt.classTable) {
+                    if (item5.classid == item3.deputyid) {
+                        sname.add(item5.classname);
+                    }
+                }
+                for(String item4: sname){
+
+                    s[1] = item4;
+                    List<DeputyTableItem> dti2 = Drop1(s);
+                    for(DeputyTableItem item8:dti2){
+                        if(!dti.contains(item8))
+                            dti.add(item8);
+                    }
+
+                }
+                if(!dti.contains(item3))
+                    dti.add(item3);
+            }
+        }
+        return dti;
 
     }
 
