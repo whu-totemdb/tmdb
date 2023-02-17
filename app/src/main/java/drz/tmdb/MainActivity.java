@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
 
     private TextView text_view;
-   //TransAction trans = new TransAction(this);
+   TransAction trans = new TransAction(this);
     Intent music = null;
     //Node node;
 
