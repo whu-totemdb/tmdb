@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
 //                } catch (IOException e) {
 //                    e.printStackTrace();
 //                }
-//                trans.query2("",-1,editText.getText().toString());
+                trans.query2("",-1,editText.getText().toString());
             }
         });
 

@@ -153,31 +153,38 @@ public class FileData {
         // 1. 分data block写入
         long dataBlockStartOffset = 0; // 此data block的开始偏移（记录B树结点时有用）
         long totalOffset = 0; // 总偏移
+        StringBuilder writeIn = new StringBuilder();
         // 遍历所有k-v
         for(Entry<String, Object> entry : this.data.entrySet()){
             String key = entry.getKey();
             byte[] key_b = Constant.KEY_TO_BYTES(key);
             String value = JSONObject.toJSONString(entry.getValue());
             byte[] value_b = value.getBytes();
-            // buffer为需要写入文件的字节数组
-            byte[] buffer = new byte[key_b.length + value_b.length];
-            // buffer = key_b + value_b;
-            System.arraycopy(key_b, 0, buffer, 0, key_b.length);
-            System.arraycopy(value_b, 0, buffer, key_b.length, value_b.length);
+            // buffer为需要写入文件的字节数组，前4字节为该k-v的总长度
+            byte[] buffer = new byte[Integer.BYTES + key_b.length + value_b.length];
+            // buffer = length + key + value;
+            System.arraycopy(Constant.INT_TO_BYTES(key_b.length + value_b.length), 0, buffer, 0, Integer.BYTES);
+            System.arraycopy(key_b, 0, buffer, Integer.BYTES, key_b.length);
+            System.arraycopy(value_b, 0, buffer, Integer.BYTES + key_b.length, value_b.length);
+            // 为避免频繁调用接口写文件，现将buffer中的数据暂时记录，每次data block装满统一写入
+            writeIn.append(new String(buffer));
             totalOffset += buffer.length;
             // 如果data block写满，则开启新data block，将旧data block的最大key和起始偏移记录到B树中
             if(totalOffset - dataBlockStartOffset > Constant.MAX_DATA_BLOCK_SIZE){
                 this.bTree.insert(key, dataBlockStartOffset);
+                Constant.writeBytesToFile(writeIn.toString().getBytes(), fileName);
                 dataBlockStartOffset = totalOffset;
+                writeIn = new StringBuilder("");
             }
             // k-v 写入SSTable
-            Constant.writeBytesToFile(buffer, this.fileName);
+            //Constant.writeBytesToFile(buffer, this.fileName);
             // 更新Bloom Filter
             this.bloomFilter.add(key);
         }
         //  遍历结束时，未满的data block信息也写入B-Tree
         if(dataBlockStartOffset != totalOffset){
             this.bTree.insert(this.data.lastKey(), dataBlockStartOffset);
+            Constant.writeBytesToFile(writeIn.toString().getBytes(), fileName);
         }
 
         // 3. 写zone map

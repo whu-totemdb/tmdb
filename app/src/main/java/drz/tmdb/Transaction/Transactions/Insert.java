@@ -5,6 +5,7 @@ import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
+import java.text.ParseException;
 import java.util.List;
 
 import drz.tmdb.Memory.Tuple;
