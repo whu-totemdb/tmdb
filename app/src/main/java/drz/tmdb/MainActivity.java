@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
 
     private TextView text_view;
-   TransAction trans = new TransAction(this);
+   //TransAction trans = new TransAction(this);
     Intent music = null;
     //Node node;
 
@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //onStop();
-                trans.PrintTab();
+                //trans.PrintTab();
             }
         });
 
@@ -157,15 +157,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                //insert into test values("a",1,10.0);
+                //insert into test (name,age,number) values("a",1,10.0);
                 Action action = new Action(
                     OperationType.insert,
                     "test",
                     "test",
                     1,
-                    1,
                     3,
-                    new String[]{"name", "age", "num"},
+                    new String[]{"name", "age", "number"},
                     new String[]{"String", "Integer", "Double"},
                     new String[]{"a", "1", "10.0"});
 
@@ -203,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 //保存
-                trans.SaveAll();
+                //trans.SaveAll();
                 //退出
                 android.os.Process.killProcess(android.os.Process.myPid());
 

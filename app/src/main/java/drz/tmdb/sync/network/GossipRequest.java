@@ -2,15 +2,19 @@ package drz.tmdb.sync.network;
 
 import drz.tmdb.sync.node.database.Action;
 import drz.tmdb.sync.share.RequestType;
+import drz.tmdb.sync.timeTest.Cost;
 import drz.tmdb.sync.vectorClock.VectorClock;
 
 import java.io.Serializable;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
 
 public class GossipRequest implements Serializable {
     public int batch_id;//供统计使用，后可删除
 
     private RequestType requestType;
+
+    private String nodeID;
 
     private String requestID;
 
@@ -25,14 +29,13 @@ public class GossipRequest implements Serializable {
 
     private InetSocketAddress targetIPAddress;
 
-    private long sendTime;
-
-    private long receiveTime;
 
 
 
-    public GossipRequest(RequestType requestType, InetSocketAddress sourceIPAddress) {
+
+    public GossipRequest(RequestType requestType, String nodeID, InetSocketAddress sourceIPAddress) {
         this.requestType = requestType;
+        this.nodeID = nodeID;
         this.sourceIPAddress = sourceIPAddress;
 
     }
@@ -47,8 +50,9 @@ public class GossipRequest implements Serializable {
 
     }
 
-    public GossipRequest(RequestType requestType, String requestID, Long key, Action action, VectorClock vectorClock, InetSocketAddress sourceIPAddress) {
+    public GossipRequest(RequestType requestType, String nodeID, String requestID, Long key, Action action, VectorClock vectorClock, InetSocketAddress sourceIPAddress) {
         this.requestType = requestType;
+        this.nodeID = nodeID;
         this.requestID = requestID;
         this.key = key;
         this.action = action;
@@ -58,18 +62,13 @@ public class GossipRequest implements Serializable {
 
     }
 
-    public GossipRequest(String requestID, Long key, Action action, VectorClock vectorClock, InetSocketAddress sourceIPAddress, long sendTime) {
-        this.requestID = requestID;
-        this.key = key;
-        this.action = action;
-        this.vectorClock = vectorClock;
-        this.sourceIPAddress = sourceIPAddress;
-        this.sendTime = sendTime;
-
-    }
 
     public RequestType getRequestType() {
         return requestType;
+    }
+
+    public String getNodeID() {
+        return nodeID;
     }
 
     public String getRequestID() {
@@ -119,27 +118,6 @@ public class GossipRequest implements Serializable {
     public void setTargetIPAddress(InetSocketAddress targetIPAddress) {
         this.targetIPAddress = targetIPAddress;
     }
-
-    public long getSendTime() {
-        return sendTime;
-    }
-
-    public void setSendTime(long sendTime) {
-        this.sendTime = sendTime;
-    }
-
-    public long getReceiveTime() {
-        return receiveTime;
-    }
-
-    public void setReceiveTime(long receiveTime) {
-        this.receiveTime = receiveTime;
-    }
-
-    public long getTransportTimeMillis(){
-        return (receiveTime - sendTime);
-    }
-
 
 
 }

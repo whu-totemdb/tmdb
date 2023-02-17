@@ -42,6 +42,7 @@ public class Sync {
 
         node = new Node(nodeID, ip, receivePort, gossipConfig);
 
+        node.start();
         //return initialNode;
     }
 

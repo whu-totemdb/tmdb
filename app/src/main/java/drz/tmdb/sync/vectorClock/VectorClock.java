@@ -86,6 +86,7 @@ public class VectorClock implements Serializable {
     }
 
     public static Relation compare(VectorClock vc1, VectorClock vc2){
+        long start = System.currentTimeMillis();
         //某一维度更大的标志位
         boolean vc1Bigger = false;
         boolean vc2Bigger = false;
@@ -119,12 +120,16 @@ public class VectorClock implements Serializable {
 
             if (vc1Count > 1 && vc1Bigger && vc2Bigger){
                 //说明存在两个不同的维度，一个维度vc1>vc2，另一个维度vc1<vc2
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
                 return Relation.Parallel;
             }
         }
 
         if (vc1Count == 1){
             if (vc2Count < keySet2.size()){
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
                 if (vc1Bigger){
                     return Relation.Parallel;
                 }
@@ -134,6 +139,8 @@ public class VectorClock implements Serializable {
             }
             else {
                 //vc1与vc2仅含有一个且相同的nodeID
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
                 if (vc1Bigger){
                     return Relation.After;
                 }
@@ -145,6 +152,8 @@ public class VectorClock implements Serializable {
         else {
             //由于上面循环中的逻辑，vc1Count >= vc2Count，且vc1Bigger和vc2Bigger不会同时为true
             if (vc2Count < keySet2.size()) {
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
                 //keySet2还有部分元素是keySet1没有的，说明在这些维度上vc2>vc1，而在之前的某些维度上vc1>vc2
                 if (vc1Bigger) {
                     //在之前的比较中一直 都是vc1更大
@@ -155,6 +164,8 @@ public class VectorClock implements Serializable {
                 }
 
             } else {
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
                 if (vc2Bigger) {
                     return Relation.Parallel;
                 } else {
