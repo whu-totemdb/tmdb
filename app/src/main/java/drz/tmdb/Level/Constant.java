@@ -26,6 +26,9 @@ public class Constant {
     // 最大level数
     public static final int MAX_LEVEL = 6;
 
+    // level0 允许的最大SSTable数量
+    public static final int MAX_LEVEL0_FILE_COUNT = 4;
+
     // todo 取消该参数
     public static final long MAX_FILE_SIZE = 4L * 1024 * 1024;
 

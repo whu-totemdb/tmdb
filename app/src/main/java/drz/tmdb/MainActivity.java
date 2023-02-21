@@ -1,7 +1,6 @@
 package drz.tmdb;
 
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,8 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
 
     private TextView text_view;
-   TransAction trans = new TransAction(this);
-    Intent music = null;
+    TransAction trans = new TransAction(this);
     //Node node;
 
     private boolean whu_trace_select = false;
@@ -37,7 +35,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        music = new Intent(MainActivity.this,MusicServer.class);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -52,11 +49,6 @@ public class MainActivity extends AppCompatActivity {
             }
 
         },"initialNodeThread").start();
-
-
-
-        //播放BGM
-        startService(music);
 
         //查询按钮
         Button button = findViewById(R.id.button);
@@ -81,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 showexitdialog(v);
-                stopService(music);
             }
         });
 
@@ -179,15 +170,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     protected void onStop(){
-        Intent intent = new Intent(MainActivity.this,MusicServer.class);
-        stopService(intent);
         super.onStop();
         Log.e("main", "...onstop");
     }
 
     protected void onStart(){
         super.onStart();
-        startService(this.music);
         Log.e("main","...onstart");
     }
 
