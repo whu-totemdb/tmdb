@@ -271,11 +271,11 @@ public class MemConnect {
 //        while(!mem.flush());
 //        while(!mem.setLogCheck(log.LogT.logID));
 //        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
-        MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
-                deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
-        LevelManager levelManager = memManager.levelManager;
-        memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
-        levelManager.saveIndexToFile();
+//        MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
+//                deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
+ //       LevelManager levelManager = memManager.levelManager;
+  //      memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
+  //      levelManager.saveIndexToFile();
     }
 
     public void reload(){

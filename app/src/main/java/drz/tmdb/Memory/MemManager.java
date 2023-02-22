@@ -2,14 +2,18 @@ package drz.tmdb.Memory;
 
 import static drz.tmdb.Level.Test.test;
 
-import org.apache.lucene.util.RamUsageEstimator;
 
+import org.apache.lucene.util.RamUsageEstimator;
+import com.alibaba.fastjson.JSONObject;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import drz.tmdb.Level.Constant;
 import drz.tmdb.Level.FileData;
 import drz.tmdb.Level.LevelManager;
-import drz.tmdb.Level.Constant;
+import drz.tmdb.Log.LogManager;
 import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
 import drz.tmdb.Transaction.SystemTable.ClassTableItem;
 import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
@@ -29,11 +33,13 @@ public class MemManager {
 
     public LevelManager levelManager = new LevelManager();
 
-    public MemManager(){
+    public LogManager logManager = new LogManager();
+
+    public MemManager() throws IOException {
 
     }
 
-    public MemManager(List<ObjectTableItem> o, List<ClassTableItem> c, List<DeputyTableItem> d, List<BiPointerTableItem> b, List<SwitchingTableItem> s){
+    public MemManager(List<ObjectTableItem> o, List<ClassTableItem> c, List<DeputyTableItem> d, List<BiPointerTableItem> b, List<SwitchingTableItem> s) throws IOException {
         this.objectTable = o;
         this.classTable = c;
         this.deputyTable = d;
@@ -45,7 +51,12 @@ public class MemManager {
 
 
     // 往MemManager中添加对象
-    public void add(Object o){
+    public void add(Object o) throws IOException {
+        //先写日志
+        String k = Constant.calculateKey(o);
+        String v = JSONObject.toJSONString(o);
+        logManager.WriteLog(k, (byte) 0,v);
+
         if(o instanceof ObjectTableItem){
             this.objectTable.add((ObjectTableItem) o);
         }else if(o instanceof BiPointerTableItem){
@@ -129,6 +140,8 @@ public class MemManager {
 
         // 内存清空
         clearMem();
+        //设置检查点
+        logManager.setCheckpoint();
     }
 
 
