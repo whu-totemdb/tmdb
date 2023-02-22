@@ -5,6 +5,7 @@ import drz.tmdb.sync.node.Node;
 import drz.tmdb.sync.share.ReceiveDataArea;
 import drz.tmdb.sync.share.SendInfo;
 import drz.tmdb.sync.timeTest.SendTimeTest;
+import drz.tmdb.sync.timeTest.TimeTest;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -223,6 +224,7 @@ public class GossipController {
         GossipRequest gossipRequest;
         Object[] currentNodes;
 
+        long l1;
         synchronized (sendInfo) {
             if (sendInfo.structureIsEmpty()) {
                 try {
@@ -231,7 +233,7 @@ public class GossipController {
                     e.printStackTrace();
                 }
             }
-
+            l1 = System.currentTimeMillis();
             gossipRequest = sendInfo.getRequestToSend().poll();//取队首并移出队
             currentNodes = sendInfo.getTargets().poll();//取队首并移出队列
 
@@ -265,6 +267,10 @@ public class GossipController {
             }
         }
 
+        long l2 = System.currentTimeMillis();
+        if(Node.isTest()) {
+            TimeTest.putInCostTreeMap(gossipRequest.getRequestID(),"获取发送信息耗时",(l2-l1));
+        }
         /*
          * 对每个需要发送的节点都会开启一个线程进行异步的传输
          * */
@@ -286,12 +292,15 @@ public class GossipController {
 
                 count++;
                 System.out.println("当前执行的线程为：" + Thread.currentThread().getName());
-                long l = System.currentTimeMillis();
+                l1 = System.currentTimeMillis();
                 thread.start();
                 thread.join();
-                long l1 = System.currentTimeMillis();
+                l2 = System.currentTimeMillis();
+                if(Node.isTest()) {
+                    TimeTest.putInCostTreeMap(gossipRequest.getRequestID(),"发送线程"+count+"完成发送耗时",(l2-l1));
+                }
 
-                Node.sendTimeTest.get(batch_id).setSendRequestTimeOnce(SendTimeTest.calculate(l,l1));
+                //Node.sendTimeTest.get(batch_id).setSendRequestTimeOnce(SendTimeTest.calculate(l,l1));
             }
 
             /*Node.sendTimeTest.setSendRequestAverageTime(timeSum / otherNodes.size());
@@ -311,7 +320,7 @@ public class GossipController {
         if(newData != null){
             if(newData instanceof GossipRequest) {
                 GossipRequest request = (GossipRequest) newData;
-                request.setReceiveTime(System.currentTimeMillis());
+                //request.setReceiveTime(System.currentTimeMillis());
 
                 System.out.println(Thread.currentThread().getName() + "：节点" + socketAddress.toString() + "接收到来自节点" + request.getSourceIPAddress().toString() + "的请求");
                 //System.out.println(Thread.currentThread().getName() + "：该请求发送和传输所耗费的时间为：" + request.getTransportTimeMillis() + "ms");
@@ -390,8 +399,9 @@ public class GossipController {
                     return;
                 }
 
-                request.setReceiveTime(System.currentTimeMillis());
-
+                //request.setReceiveTime(System.currentTimeMillis());
+                Deviation.setRequestReceiveTime(System.currentTimeMillis());
+                System.out.println("广播请求接收时刻为："+System.currentTimeMillis());
 
 
                 System.out.println(Thread.currentThread().getName() + "：节点" + socketAddress.toString() + "接收到来自节点" + request.getSourceIPAddress().toString() + "的广播请求");

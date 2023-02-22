@@ -279,7 +279,7 @@ public class TransAction {
             }
         }
         for (int i = 0; i < count; i++) {
- //           classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori"));
+            classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori"));
         }
 //        this.SaveAll();
         mem.loadClassTable();
@@ -682,7 +682,7 @@ public class TransAction {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                    //classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
                     //swi
                     if(Integer.parseInt(p[4+4*i]) == 1){
                         switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));

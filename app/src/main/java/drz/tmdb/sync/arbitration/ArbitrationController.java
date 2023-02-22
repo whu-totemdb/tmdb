@@ -26,6 +26,11 @@ public class ArbitrationController {
 
     public void putReceivedResponse(String requestID,Response response){
         responseMap.get(requestID).add(response);
+        arbitrationHashMap.get(requestID).increase();//响应计数器加一
+    }
+
+    public ArrayList<Response> getResponsesByID(String requestID){
+        return responseMap.get(requestID);
     }
 
     public void deleteArbitration(String requestID){

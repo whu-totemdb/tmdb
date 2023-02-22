@@ -3,6 +3,7 @@ package drz.tmdb.sync.node;
 import drz.tmdb.sync.arbitration.Arbitration;
 import drz.tmdb.sync.arbitration.ArbitrationController;
 import drz.tmdb.sync.config.GossipConfig;
+import drz.tmdb.sync.network.Deviation;
 import drz.tmdb.sync.network.GossipController;
 import drz.tmdb.sync.network.GossipRequest;
 import drz.tmdb.sync.network.Response;
@@ -16,8 +17,10 @@ import drz.tmdb.sync.share.ResponseType;
 import drz.tmdb.sync.share.SendInfo;
 import drz.tmdb.sync.share.SendWindow;
 import drz.tmdb.sync.share.WindowEntry;
+import drz.tmdb.sync.timeTest.Cost;
 import drz.tmdb.sync.timeTest.ReceiveTimeTest;
 import drz.tmdb.sync.timeTest.SendTimeTest;
+import drz.tmdb.sync.timeTest.TimeTest;
 import drz.tmdb.sync.util.NetworkUtil;
 import drz.tmdb.sync.vectorClock.VectorClock;
 
@@ -34,11 +37,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Node implements Serializable {
     //private final InetSocketAddress socketAddress;//节点的IP套接字（IP地址+端口号）
+    private static boolean test = true;
+
     private final String nodeID;
 
     private final InetAddress IPAddress;//IP地址
 
-    public static final int broadcastPort = 10010;//广播端口
+    public static final int broadcastPort = 12000;//广播端口
 
     private static int requestNum = 0;
 
@@ -60,21 +65,31 @@ public class Node implements Serializable {
 
     private SendWindow sendWindow;//发送窗口，存储待发送请求的数据区
 
-    private ConcurrentHashMap<InetSocketAddress,Boolean> nodeStateTable = new ConcurrentHashMap<>();//节点状态表
+    /*private ConcurrentHashMap<InetSocketAddress,Boolean> nodeStateTable = new ConcurrentHashMap<>();//节点状态表
+
+    private ConcurrentHashMap<String,InetSocketAddress> nodes = new ConcurrentHashMap<>();//节点ID与其IP地址的映射表
+
+    private ConcurrentHashMap<String,Long> errors = new ConcurrentHashMap<>();//记录下本节点与每个其他节点的时钟偏差*/
+
+    private ConcurrentHashMap<String,NodeInfo> cluster = new ConcurrentHashMap<>();
 
     private GossipController gossipController;
 
     private ArbitrationController arbitrationController;
 
+    private long startTime;
+
+    private long endTime;
+
 
     //统计使用
-    public static HashMap<Integer,SendTimeTest> sendTimeTest = new HashMap<>();//批次号batch_id与测试对象的映射
+    /*public static HashMap<Integer,SendTimeTest> sendTimeTest = new HashMap<>();//批次号batch_id与测试对象的映射
 
     public static HashMap<Integer,ArrayList<String>> batch_id_map = new HashMap<>();//批次号batch_id与该批请求的映射
 
     public static HashMap<String,ReceiveTimeTest> receiveTimeTest = new HashMap<>();//请求id与接收时间测试对象的映射
 
-    public static int batch_num = 0;
+    public static int batch_num = 0;*/
 
 
 
@@ -87,38 +102,47 @@ public class Node implements Serializable {
         this.receivePort = receivePort;
         this.gossipConfig = gossipConfig;
 
-
-
         vectorClockMap = new ConcurrentHashMap<>();
         dataManager = new DataManager();
         arbitrationController = new ArbitrationController();
 
         //初始化仲裁模块的配置参数
-        //Arbitration.initialConfig();
+        Arbitration.initialConfig(2,1,2);
 
 
-        initialVectorClockMap();//初始化应用数据库
+        initialVectorClockMap();//初始化应用数据库的向量时钟表
 
         InetSocketAddress socketAddress = new InetSocketAddress(IPAddress,receivePort);
 
-        if(failed)
-            nodeStateTable.putIfAbsent(socketAddress,false);
-        else
-            nodeStateTable.putIfAbsent(socketAddress,true);
-
-
+        NodeInfo info;
+        if(failed){
+            info = new NodeInfo(socketAddress,0,NodeState.fail);
+            //nodeStateTable.putIfAbsent(socketAddress,false);
+        }
+        else {
+            info = new NodeInfo(socketAddress,0,NodeState.active);
+            //nodeStateTable.putIfAbsent(socketAddress, true);
+        }
+        cluster.put(nodeID,info);
+        //nodes.put(nodeID,socketAddress);
         gossipController = new GossipController(maxRequestNum,receiveAreaSize,socketAddress,gossipConfig);
 
         sendWindow = new SendWindow(65536,10);
 
         //setLastUpdateTime();
         System.out.println(Thread.currentThread().getName() + "：新生成了一个节点" + this.IPAddress.toString());
-        showNodeStateTable();
+        showCluster();
 
-
+        //this.start();
     }
 
+    public static boolean isTest() {
+        return test;
+    }
 
+    public static void setTest(boolean test) {
+        Node.test = test;
+    }
 
 
     public InetAddress getIPAddress(){
@@ -130,14 +154,14 @@ public class Node implements Serializable {
     }
 
     //广播来获取集群中节点的相关信息，用于节点状态表的初始化
-    public void broadcast1(ArrayList<InetSocketAddress> nodeCluster){
+    /*public void broadcast1(ArrayList<InetSocketAddress> nodeCluster){
         InetSocketAddress iAddress;
 
         for (int i = 0;i < nodeCluster.size();i++){
             iAddress = nodeCluster.get(i);
             nodeStateTable.putIfAbsent(iAddress,true);
         }
-    }
+    }*/
 
 
     public void broadcast(){
@@ -145,13 +169,13 @@ public class Node implements Serializable {
 
         try {
             addresses = NetworkUtil.getBroadcastAddresses();
-            GossipRequest gossipRequest = new GossipRequest(RequestType.broadcastRequest, getSocketAddress());
-            byte[] data = SocketService.getDataToTransport(gossipRequest);
+            GossipRequest gossipRequest = new GossipRequest(RequestType.broadcastRequest, getNodeID(), getSocketAddress());
+            //byte[] data = SocketService.getDataToTransport(gossipRequest);
 
             for (InetAddress address : addresses){
                 try {
                     System.out.println("广播地址为："+address);
-                    SocketService.broadcast(address,data);
+                    SocketService.broadcast(address,gossipRequest);
                 }catch (IOException e){
                     e.printStackTrace();
                 }
@@ -204,11 +228,6 @@ public class Node implements Serializable {
         return dataManager;
     }
 
-
-    public void setNodeStateTable(ConcurrentHashMap<InetSocketAddress, Boolean> nodeStateTable) {
-        this.nodeStateTable = nodeStateTable;
-    }
-
     public GossipConfig getGossipConfig() {
         return gossipConfig;
     }
@@ -229,15 +248,15 @@ public class Node implements Serializable {
 
 
     public ArrayList<InetSocketAddress> getAliveNodes(){
-        int nodeNumber = nodeStateTable.size();
+        int nodeNumber = cluster.size();
         ArrayList<InetSocketAddress> aliveNodes = new ArrayList<>(nodeNumber);
 
+        NodeInfo info;
+        for(String key : cluster.keySet()){
 
-        for(InetSocketAddress key : nodeStateTable.keySet()){
-
-
-            if(nodeStateTable.get(key)){
-                aliveNodes.add(key);
+            info = cluster.get(key);
+            if(info.state == NodeState.active){
+                aliveNodes.add(info.socketAddress);
             }
         }
 
@@ -245,14 +264,14 @@ public class Node implements Serializable {
     }
 
     public ArrayList<InetSocketAddress> getFailedNodes(){
-        int nodeNumber = nodeStateTable.size();
+        int nodeNumber = cluster.size();
         ArrayList<InetSocketAddress> failedNodes = new ArrayList<>(nodeNumber);
 
-
-        for(InetSocketAddress key : nodeStateTable.keySet()){
-
-            if(!nodeStateTable.get(key)){
-                failedNodes.add(key);
+        NodeInfo info;
+        for(String key : cluster.keySet()){
+            info = cluster.get(key);
+            if(info.state == NodeState.fail){
+                failedNodes.add(info.socketAddress);
             }
         }
 
@@ -261,11 +280,12 @@ public class Node implements Serializable {
 
     public ArrayList<InetSocketAddress> getAllMembers() {
 
-        int initialSize = nodeStateTable.size();
+        int initialSize = cluster.size();
         ArrayList<InetSocketAddress> allMembers = new ArrayList<>(initialSize);
 
-        for (InetSocketAddress key : nodeStateTable.keySet()) {
-            allMembers.add(key);
+
+        for (String key : cluster.keySet()) {
+            allMembers.add(cluster.get(key).socketAddress);
         }
 
         return allMembers;
@@ -363,6 +383,7 @@ public class Node implements Serializable {
         Thread thread = new Thread(() -> {
             while (!failed){
                 Action action = dataManager.getAction();
+                System.out.println(Thread.currentThread().getName()+"：成功将一个同步操作压入发送窗口");
 
                 if(action.getOp() == OperationType.select){
                     //读请求
@@ -417,6 +438,9 @@ public class Node implements Serializable {
             entry = sendWindow.getNextEntry();//取下一个待发送的请求，但不移出数据区
         }
 
+        startTime = System.currentTimeMillis();
+        long start = startTime;
+
         long key = entry.getAction().getKey();
 
         if (requestNum < maxRequestNum){
@@ -433,35 +457,31 @@ public class Node implements Serializable {
         //获取对应的action对象
         Action action = entry.getAction();
 
-        //insert into test values("a",1,10.0);
-        /*Action action = new Action(
-                OperationType.insert,
-                "test",
-                "test",
-                1,
-                1,
-                3,
-                new String[]{"name", "age", "num"},
-                new String[]{"String", "Integer", "Double"},
-                new String[]{"a", "1", "10.0"});*/
-
-
         //生成一个仲裁判定器
         Arbitration arbitration =new Arbitration(entry.getRequestType());
         arbitrationController.putArbitration(requestID,arbitration);
+        System.out.println(getNodeID()+"生成一个仲裁器");
 
 
-        GossipRequest request = new GossipRequest(entry.getRequestType(),requestID,key,action,getVectorClock(key),getSocketAddress());
-        request.batch_id = batch_num;
+        GossipRequest request = new GossipRequest(entry.getRequestType(),getNodeID(),requestID,key,action,getVectorClock(key),getSocketAddress());
+        //request.batch_id = batch_num;
+        long end =System.currentTimeMillis();
+        System.out.println("生成一次请求耗费："+(end - start)+"ms");
+        if (Node.isTest()) {
 
+            TimeTest.putInCostTreeMap(requestID,"生成请求耗时",(end-start));
+        }
         return request;
     }
 
     //处理一个请求
     private void process(GossipRequest request){
-
+        long l1 = System.currentTimeMillis();
         ArrayList<InetSocketAddress> aliveNodes = getAliveNodes();
-
+        long l2 = System.currentTimeMillis();
+        if(Node.isTest()) {
+            TimeTest.putInCostTreeMap(request.getRequestID(),"获取其他节点IP耗时",(l2-l1));
+        }
         SendInfo info = gossipController.getSendInfo();
         synchronized (info) {
             if (info.structureIsFull()) {
@@ -498,6 +518,7 @@ public class Node implements Serializable {
         GossipRequest gossipRequest;
         ReceiveDataArea receiveDataArea = gossipController.getReceiveDataArea();
 
+        long l1;
         synchronized (receiveDataArea.getReceivedRequestQueue()) {
             if(receiveDataArea.requestQueueEmpty()){
                 try {
@@ -507,7 +528,7 @@ public class Node implements Serializable {
                 }
 
             }
-
+            l1 = System.currentTimeMillis();
             gossipRequest = receiveDataArea.getReceivedRequestQueue().poll();//取队首并删除队首
             receiveDataArea.getReceivedRequestQueue().notifyAll();
         }
@@ -516,67 +537,181 @@ public class Node implements Serializable {
         if(gossipRequest.getRequestType() == RequestType.broadcastRequest) {
             InetSocketAddress source = getSocketAddress();//本机的IP套接字
             //System.out.println("本机的IP套接字为："+source);
+            String sourceNodeID = gossipRequest.getNodeID();
             InetSocketAddress target = gossipRequest.getSourceIPAddress();
-            nodeStateTable.putIfAbsent(target,true);
-            showNodeStateTable();
 
-            Thread sendResponseThread = new Thread(() -> {
-                Response response = new Response(ResponseType.broadcastResponse,source,target);
-                byte[] data = SocketService.getDataToTransport(response);
+            if (cluster.get(sourceNodeID)==null){
+                //如果不存在该nodeID
+                NodeInfo info = new NodeInfo(target,NodeState.active);
+                cluster.put(sourceNodeID,info);
+            }
+            else {
+                NodeInfo info = cluster.get(sourceNodeID);
+                info.state = NodeState.active;
+                info.socketAddress = target;
+            }
+            /*nodeStateTable.putIfAbsent(target,true);
+            nodes.put(sourceNodeID,target);*/
+            showCluster();
 
+            Thread sendBroadcastResponseThread = new Thread(() -> {
+                Response response = new Response(getNodeID(),gossipRequest.getRequestID(),ResponseType.broadcastResponse,source,target);
+                response.setReceiveTime(Deviation.getRequestReceiveTime());
                 try {
-                    gossipController.socketService.sendToTargetNode(target,data);
+                    gossipController.socketService.sendToTargetNode(target,response);
                     System.out.println(Thread.currentThread().getName() + "成功发送响应");
                 }catch (IOException e){
                     e.printStackTrace();
                 }
 
-            },"sendResponseThread");
-            sendResponseThread.start();
+            },"sendBroadcastResponseThread");
+            sendBroadcastResponseThread.start();
         }
         else {
             //不是广播请求
             long primaryKey = gossipRequest.getKey();//主键
-            InetSocketAddress socketAddress1 = gossipRequest.getSourceIPAddress();
+            InetSocketAddress sourceAddress = gossipRequest.getSourceIPAddress();
             String id = gossipRequest.getRequestID();//请求的id号
+            String sourceNodeID = gossipRequest.getNodeID();
 
-            nodeStateTable.put(socketAddress1,true);
-            /*arbitrationController.putReceivedRequest(id,gossipRequest);
-            Thread judgeThread = new Thread(() -> {
-                Arbitration arbitration = arbitrationController.getArbitrationByID(id);
-                arbitration.increase();
-                if(arbitration.getRequestType() == RequestType.readRequest){
-                    if (arbitration.readSuccess()){
-                        //读成功，调用向量时钟算法处理收集到的所有请求，找到其中最新的版本
+            if (cluster.get(sourceNodeID)==null){
+                //如果不存在该nodeID
+                NodeInfo info = new NodeInfo(sourceAddress,NodeState.active);
+                cluster.put(sourceNodeID,info);
+            }
+            else {
+                NodeInfo info = cluster.get(sourceNodeID);
+                info.state = NodeState.active;
+                info.socketAddress = sourceAddress;
+            }
+            long l2 =System.currentTimeMillis();
+            if (Node.isTest()){
+                TimeTest.putInCostTreeMap(id,"解析请求信息耗时",(l2-l1));
+            }
+            /*nodeStateTable.put(sourceAddress,true);
+            nodes.put(sourceNodeID,sourceAddress);*/
 
+            if(gossipRequest.getRequestType() == RequestType.readRequest){
+                //读请求
+                new Thread(() -> {
+                    //下面代码段为根据主键primaryKey获取本节点对应数据的Action对象（待补充）
+                    /*Action action;
+
+                    //封装为一个Response对象
+                    Response response = new Response(
+                            id,
+                            ResponseType.readResponse,
+                            action,
+                            vectorClockMap.get(primaryKey),
+                            getSocketAddress(),
+                            sourceAddress);
+
+                    try {
+                        gossipController.socketService.sendToTargetNode(sourceAddress,SocketService.getDataToTransport(response));
+                        System.out.println(Thread.currentThread().getName() + "成功发送读成功响应");
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }*/
+
+                }).start();
+            }else {
+                //写请求
+                new Thread(() -> {
+                    VectorClock otherVectorClock = gossipRequest.getVectorClock();
+                    VectorClock localVectorClock = vectorClockMap.get(primaryKey);//本地对应的向量时钟
+                    long l3 = System.currentTimeMillis();
+                    switch (VectorClock.compare(localVectorClock,otherVectorClock)){
+                        case Before:
+                            System.out.println(Thread.currentThread().getName()+"：先后顺序为before");
+                            //接收到的请求对应的版本是更新的
+                            Action action1 = gossipRequest.getAction();
+                            //将action1应用到本地数据库中（待补充）
+
+                            //本地的向量时钟更新
+                            System.out.println("原来的向量时钟："+localVectorClock.showVectorClock());
+                            System.out.println("更新后的向量时钟："+otherVectorClock.showVectorClock());
+                            vectorClockMap.put(primaryKey,otherVectorClock);
+                            break;
+                        case After:
+                            System.out.println(Thread.currentThread().getName()+"：先后顺序为after");
+                            System.out.println("接收的数据因晚于本地版本被丢弃，向量时钟不变化");
+                            break;
+                        case Parallel:
+                            System.out.println(Thread.currentThread().getName()+"：先后顺序为parallel");
+                            long loss;
+                            NodeInfo info = cluster.get(sourceNodeID);
+
+                            if(info==null){
+                                loss = 0;
+                            }else {
+                                loss = info.error;
+                            }
+
+                            if(localVectorClock.getTimestamp() +  loss < otherVectorClock.getTimestamp()){
+                                //本地的版本为旧版本
+                                Action action2 = gossipRequest.getAction();
+                                //将action2应用到本地数据库中（待补充）
+
+                                //本地的向量时钟更新
+                                System.out.println("原来的向量时钟："+localVectorClock.showVectorClock());
+                                System.out.println("更新后的向量时钟："+otherVectorClock.showVectorClock());
+                                vectorClockMap.put(primaryKey,otherVectorClock);
+                            }
+                            break;
                     }
-                }
-                else {
-                    if (arbitration.writeSuccess()){
-                        //写成功，则此次同步认为完成（但可能还有部分节点还没收到）
+                    long l4 = System.currentTimeMillis();
+                    if (Node.isTest()){
+                        TimeTest.putInCostTreeMap(id,"一次向量时钟比较耗时",(l4-l3));
                     }
-                }
 
-            },"judgeThread");
-            judgeThread.start();*/
+                    //发送一个写成功的响应
+                    Response response = new Response(
+                            getNodeID(),
+                            id,
+                            ResponseType.writeResponse,
+                            getSocketAddress(),
+                            sourceAddress);
+                    response.setCost(TimeTest.getCosts(id));
+                    try {
+                        gossipController.socketService.sendToTargetNode(sourceAddress,response);
+                        System.out.println(Thread.currentThread().getName() + "成功发送写成功响应");
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }
 
-            //如果请求更新的数据不在本地数据库中->新的数据
-            if (!vectorClockMap.containsKey(primaryKey)) {
-
-            } else {
-                /*System.out.println(Thread.currentThread().getName() + "：节点" + IPAddress.toString() + "成功接收到来自" + socketAddress1.getAddress().toString() + "的向量时钟");
-                VectorClock oldClock = getVectorClock(primaryKey);
-                long l1 = System.currentTimeMillis();
-                VectorClock newClock = oldClock.merge(gossipRequest.getVectorClock());//合并向量时钟
-                long l2 = System.currentTimeMillis();
-                receiveTimeTest.get(id).setMergeVectorClockTime(SendTimeTest.calculate(l1, l2));
-                //等待后续补充其他对向量时钟更加复杂操作的实现
-
-                vectorClockMap.put(primaryKey, newClock);*/
-
+                }).start();
 
             }
+
             setLastUpdateTime();
+        }
+    }
+
+    //仲裁判定
+    private void judge(String id){
+        Arbitration arbitration = arbitrationController.getArbitrationByID(id);
+        if(arbitration.getRequestType() == RequestType.readRequest){
+            if (arbitration.readSuccess()){
+                System.out.println(Thread.currentThread().getName()+"：读成功");
+                //读成功，调用向量时钟算法处理收集到的所有请求，找到其中最新的版本，应用到本地并向用户返回结果
+                Action latestAction = VectorClock.getLatestVersion(arbitrationController.getResponsesByID(id));
+                arbitrationController.deleteArbitration(id);
+                //下面是向用户返回和应用到本地的相关代码
+
+                //显示
+                TimeTest.showCostTreeMap();
+            }
+        }
+        else {
+            if (arbitration.writeSuccess()){
+                System.out.println(Thread.currentThread().getName()+"：写成功");
+                //写成功，则此次同步认为完成（但可能还有部分节点还没收到）
+                arbitrationController.deleteArbitration(id);
+                //返回写成功的代码
+
+                //显示
+                TimeTest.showCostTreeMap();
+            }
         }
     }
 
@@ -601,11 +736,46 @@ public class Node implements Serializable {
         if (response.getResponseType() == ResponseType.broadcastResponse){
             //如果是广播请求的响应
             InetSocketAddress inetSocketAddress = response.getSource();//获取其他节点的IP套接字（IP地址+接收端口号）
-            nodeStateTable.putIfAbsent(inetSocketAddress,true);//更新节点状态表
-            showNodeStateTable();
+            String otherNodeID = response.getNodeID();
+
+            Deviation.putTimeCollection(otherNodeID,response.getReceiveTime(),response.getSendTime());
+            long error = Deviation.getError(otherNodeID);
+            System.out.println(getNodeID()+"与"+otherNodeID+"之间的误差为："+error+"ms");
+            //errors.put(otherNodeID,error);
+
+            if (cluster.get(otherNodeID)==null){
+                //如果不存在该nodeID
+                NodeInfo info = new NodeInfo(inetSocketAddress,error,NodeState.active);
+                cluster.put(otherNodeID,info);
+            }
+            else {
+                NodeInfo info = cluster.get(otherNodeID);
+                info.state = NodeState.active;
+                info.socketAddress = inetSocketAddress;
+            }
+            /*nodes.put(otherNodeID,inetSocketAddress);
+            nodeStateTable.putIfAbsent(inetSocketAddress,true);//更新节点状态表*/
+            showCluster();
+
         }
         else {
+            String id = response.getRequestID();
+            if (Node.isTest()){
+                TimeTest.addCosts(id,response.getCost());
+            }
 
+            arbitrationController.putReceivedResponse(id,response);
+            Thread judgeThread = new Thread(() -> {
+                long l1 = System.currentTimeMillis();
+                judge(id);
+                long l2 = System.currentTimeMillis();
+                if (Node.isTest()){
+                    TimeTest.putInCostTreeMap(id,"一次仲裁判定耗时",(l2-l1));
+                    endTime = System.currentTimeMillis();
+                    System.out.println("一次同步全过程耗时为："+(endTime-startTime)+"ms");
+                }
+            },"judgeThread");
+            judgeThread.start();
         }
     }
 
@@ -641,18 +811,21 @@ public class Node implements Serializable {
     private void startProcessThread(){
         new Thread(()->{
             while(!failed){
+
                 GossipRequest request = generateGossipRequest();
 
-                if (!sendTimeTest.containsKey(request.batch_id)) {
+                /*if (!sendTimeTest.containsKey(request.batch_id)) {
                     SendTimeTest s = new SendTimeTest();
                     sendTimeTest.put(request.batch_id, s);
                     batch_id_map.put(request.batch_id,new ArrayList<>());
-                }
-
-                long start =System.currentTimeMillis();
+                }*/
+                long l1 = System.currentTimeMillis();
                 process(request);
-                long end = System.currentTimeMillis();
-                sendTimeTest.get(request.batch_id).setProcessQueueTimeOnce(SendTimeTest.calculate(start,end));
+                long l2 = System.currentTimeMillis();
+                if(Node.isTest()) {
+                    TimeTest.putInCostTreeMap(request.getRequestID(),"一次处理耗时",(l2-l1));
+                }
+                //sendTimeTest.get(request.batch_id).setProcessQueueTimeOnce(SendTimeTest.calculate(start,end));
 
                 try{
                     Thread.sleep(gossipConfig.updateFrequency.toMillis());
@@ -698,10 +871,11 @@ public class Node implements Serializable {
         }).start();
     }*/
 
-    public void showNodeStateTable(){
-        System.out.println("本节点保存的集群内各IP地址的信息为：");
-        for (InetSocketAddress i : nodeStateTable.keySet()){
-            System.out.println(i);
+    public void showCluster(){
+        System.out.println("本节点保存的集群内各节点的信息为：");
+        for (String i : cluster.keySet()){
+            NodeInfo info = cluster.get(i);
+            System.out.println(i+"-"+info.socketAddress+"-"+info.state+":"+info.error+"ms");
         }
     }
 

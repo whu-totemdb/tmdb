@@ -1,8 +1,29 @@
 package drz.tmdb.sync.node.database;
 
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.create.table.CreateTable;
+import net.sf.jsqlparser.statement.delete.Delete;
+import net.sf.jsqlparser.statement.insert.Insert;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectBody;
+import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.SelectVisitor;
+import net.sf.jsqlparser.statement.select.SetOperation;
+import net.sf.jsqlparser.statement.select.SetOperationList;
+import net.sf.jsqlparser.statement.select.WithItem;
+import net.sf.jsqlparser.statement.update.Update;
+import net.sf.jsqlparser.statement.values.ValuesStatement;
+
+import java.io.ByteArrayInputStream;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+
 
 
 //注意事项：
@@ -18,7 +39,7 @@ public class Action implements Serializable {
 
     private String className;//类的名称，即表的名称
 
-    private int classID;//表的id，由下层存储进行分配，尚不清楚是否会使用到
+    //private int classID;//表的id，由下层存储进行分配，尚不清楚是否会使用到
 
     private long key;//主键，即tupleid
 
@@ -28,14 +49,14 @@ public class Action implements Serializable {
 
     private String[] attrType;//属性的类型，基本数据类型（如Integer、Long等）和String
 
-    private String[] value;
+    private String[] value;//属性的值
 
 
 
     public Action(OperationType op,
                   String schema,
                   String className,
-                  int classID,
+                  //int classID,
                   long key,
                   int attrNum,
                   String[] attrName,
@@ -44,7 +65,7 @@ public class Action implements Serializable {
         this.op = op;
         this.schema = schema;
         this.className = className;
-        this.classID = classID;
+        //this.classID = classID;
         this.key = key;
         this.attrNum = attrNum;
         this.attrName = attrName;
@@ -75,14 +96,6 @@ public class Action implements Serializable {
 
     public void setClassName(String className) {
         this.className = className;
-    }
-
-    public int getClassID() {
-        return classID;
-    }
-
-    public void setClassID(int classID) {
-        this.classID = classID;
     }
 
     public long getKey() {
@@ -255,7 +268,7 @@ public class Action implements Serializable {
         return classes;
     }
 
-    //利用java的反射机制实现对象的实例化
+    //利用java的反射机制实现数据建模类对象的实例化
     public Object instantiation(String packageName) throws ClassNotFoundException,
             NoSuchMethodException,
             InstantiationException,
@@ -271,5 +284,75 @@ public class Action implements Serializable {
         Object obj = constructor.newInstance(o);
         return obj;
     }
+
+    //根据sql生成一个Action对象
+    public static Action generate(String sqlStatement){
+        Action action;
+        OperationType op;
+        String className;
+        int attrNum;
+
+
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(sqlStatement.getBytes());
+        try {
+            Statement statement = CCJSqlParserUtil.parse(byteArrayInputStream);
+            String operationType = statement.getClass().getSimpleName();
+            switch (operationType){
+                case "CreateTable":
+                    op = OperationType.create;
+                    CreateTable createTable = (CreateTable) statement;
+                    className = createTable.getTable().getName();
+                    break;
+                case "Insert":
+                    op = OperationType.insert;
+                    Insert insert = (Insert) statement;
+                    className = insert.getTable().getName();
+
+                    List<Column> list = insert.getColumns();
+                    attrNum = list.size();
+                    String[] attrName = new String[attrNum];
+
+                    int index = 0;
+                    for (Column column : list){
+                        attrName[index] = column.toString();
+                        index++;
+                    }
+
+                    Select s = insert.getSelect();
+                    String str = s.getSelectBody().getClass().getSimpleName();
+
+                    MySelectVisitor selectVisitor = new MySelectVisitor();
+                    s.getSelectBody().accept(selectVisitor);
+
+                    return new Action(op,"",className,-1,selectVisitor.attrNum,attrName,selectVisitor.attrType,selectVisitor.value);
+
+                case "Delete":
+                    op = OperationType.delete;
+                    Delete delete = (Delete) statement;
+                    break;
+                case "Update":
+                    op = OperationType.update;
+                    Update update = (Update) statement;
+                    break;
+                case "Select":
+                    op = OperationType.select;
+                    Select select = (Select) statement;
+
+                    break;
+                default:
+                    break;
+            }
+
+
+
+        }catch (JSQLParserException e){
+            e.printStackTrace();
+        }
+
+        return null;
+        //return action;
+    }
+
+
 
 }

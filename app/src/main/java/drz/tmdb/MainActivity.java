@@ -1,7 +1,6 @@
 package drz.tmdb;
 
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,8 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editText;
 
     private TextView text_view;
-   TransAction trans = new TransAction(this);
-    Intent music = null;
+    TransAction trans = new TransAction(this);
     //Node node;
 
     private boolean whu_trace_select = false;
@@ -37,7 +35,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        music = new Intent(MainActivity.this,MusicServer.class);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -46,18 +43,12 @@ public class MainActivity extends AppCompatActivity {
 
             try {
                 Sync.initialNode(9090);
-                Sync.start();
                 //node.start();
             }catch (Exception e){
                 e.printStackTrace();
             }
 
         },"initialNodeThread").start();
-
-
-
-        //播放BGM
-        startService(music);
 
         //查询按钮
         Button button = findViewById(R.id.button);
@@ -72,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
 //                } catch (IOException e) {
 //                    e.printStackTrace();
 //                }
-//                trans.query2("",-1,editText.getText().toString());
+                trans.query2("",-1,editText.getText().toString());
             }
         });
 
@@ -82,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 showexitdialog(v);
-                stopService(music);
             }
         });
 
@@ -92,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //onStop();
-                trans.PrintTab();
+                //trans.PrintTab();
             }
         });
 
@@ -158,15 +148,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                //insert into test values("a",1,10.0);
+                //insert into test (name,age,number) values("a",1,10.0);
                 Action action = new Action(
                     OperationType.insert,
                     "test",
                     "test",
                     1,
-                    1,
                     3,
-                    new String[]{"name", "age", "num"},
+                    new String[]{"name", "age", "number"},
                     new String[]{"String", "Integer", "Double"},
                     new String[]{"a", "1", "10.0"});
 
@@ -181,15 +170,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     protected void onStop(){
-        Intent intent = new Intent(MainActivity.this,MusicServer.class);
-        stopService(intent);
         super.onStop();
         Log.e("main", "...onstop");
     }
 
     protected void onStart(){
         super.onStart();
-        startService(this.music);
         Log.e("main","...onstart");
     }
 
@@ -204,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 //保存
-                trans.SaveAll();
+                //trans.SaveAll();
                 //退出
                 android.os.Process.killProcess(android.os.Process.myPid());
 
