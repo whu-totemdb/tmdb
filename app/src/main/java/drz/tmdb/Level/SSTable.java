@@ -1,10 +1,7 @@
 package drz.tmdb.Level;
 
-import static drz.tmdb.Level.Constant.DATABASE_DIR;
-
 import com.alibaba.fastjson.JSONObject;
 
-import org.apache.commons.lang3.ArrayUtils;
 //import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
@@ -14,24 +11,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
-
-// 充当MemTable和SSTable的中间媒介
-// 需要从SSTable中读取数据时（例如compaction），先读到一个FileData对象中
-// 需要从内存写到SSTable时，也生成一个FileData对象，再调用writeSSTable()方法
-public class FileData {
+// 内存中的SSTable
+// 通过构造方法SSTable()将数据从磁盘读到内存
+// 通过writeSSTable()将数据从内存写到磁盘
+public class SSTable {
 
     // k-v
     // 使用SortedMap，自动按照key升序排序
@@ -50,6 +36,13 @@ public class FileData {
     // B树，记录每个data block的最大key的offset
     private BTree<String, Long> bTree = new BTree<>();
 
+    // SSTable的写通道
+    private BufferedOutputStream outputStream;
+
+    // SSTable的读通道
+    // 由于读SSTable时不需要从头开始，多为根据指定offset跳着读，因此使用RandomAccessFile更快
+    private RandomAccessFile raf;
+
     public String getMaxKey() {
         return maxKey;
     }
@@ -60,14 +53,30 @@ public class FileData {
 
     // constructor
     // 将文件读到内存中
-    // mode = 1 构造空的FileData对象，用于写文件
-    // mode = 2 从SSTable读meta数据
-    public FileData(String fileName, int mode){
+    // mode = 1 构造空的SSTable对象（用于写文件）
+    // mode = 2 从SSTable读meta数据（用于查询）
+    public SSTable(String fileName, int mode){
         if(mode == 1){
             this.fileName = fileName;
+            // 初始化写通道
+            try{
+                File f = new File(Constant.DATABASE_DIR + this.fileName);
+                if(!f.exists())
+                    f.createNewFile();
+                this.outputStream = new BufferedOutputStream(new FileOutputStream(f, true));
+            } catch (IOException e){
+                e.printStackTrace();
+            }
         }
         if(mode == 2){
             this.fileName = fileName;
+            // 初始化读通道
+            try{
+                File f = new File(Constant.DATABASE_DIR + this.fileName);
+                this.raf = new RandomAccessFile(f, "r");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
             // 读Footer
             long[] info = readFooter();
             long zoneMapOffset = info[0];
@@ -85,30 +94,53 @@ public class FileData {
         }
     }
 
+
+    // 析构函数，关闭SSTable的读、写通道
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if(outputStream != null){
+            outputStream.flush();
+            outputStream.close();
+        }
+        if(raf != null){
+            raf.close();
+        }
+
+    }
+
+    // 向此SSTable末尾追加写字节数组data
+    private void appendToFile(byte[] data){
+        try{
+            this.outputStream.write(data, 0, data.length);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 从此SSTable偏移为offset处读取长度为length的字节数组
+    private byte[] readFromFile(long offset, int length){
+        byte[] ret = new byte[length];
+        try{
+            raf.seek(offset);
+            raf.read(ret);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+
     // 读Footer，返回的数据解析为6个long，分别对应zone map、bloom filter、index block的偏移和长度
     private long[] readFooter(){
         long[] ret = new long[6];
-        try{
-            File f = new File(Constant.DATABASE_DIR + this.fileName);
-            FileInputStream input = new FileInputStream(f);
-            // 移到文件末尾
-            long fileLength = f.length();
-            long startIndex = fileLength - 48;
-            input.skip(startIndex);
-            // 读取48B
-            byte[] buffer = new byte[48];
-            input.read(buffer, 0, 48);
-            input.close();
-            // 依次解析这6个long
-            for(int i=0; i<6; i++){
-                byte[] b = new byte[8];
-                System.arraycopy(buffer, 8 * i, b, 0, 8);
-                ret[i] = Constant.BYTES_TO_LONG(b);
-            }
-        }catch(FileNotFoundException e){
-            e.printStackTrace();
-        }catch(IOException e) {
-            e.printStackTrace();
+        File f = new File(Constant.DATABASE_DIR + this.fileName);
+        long offset = f.length() - 6 * Long.BYTES;  // 开始读的偏移
+        byte[] buffer = readFromFile(offset, 6 * Long.BYTES);
+        // 依次解析这6个long
+        for(int i=0; i<6; i++){
+            byte[] b = new byte[8];
+            System.arraycopy(buffer, 8 * i, b, 0, 8);
+            ret[i] = Constant.BYTES_TO_LONG(b);
         }
         return ret;
     }
@@ -116,7 +148,7 @@ public class FileData {
     // 读zone map
     // zone map的格式：16字节先存minKey，16字节存maxKey
     private void readZoneMap(long offset, long length){
-        byte[] buffer = Constant.readBytesFromFile(this.fileName, offset, (int) length);
+        byte[] buffer = readFromFile(offset, (int) length);
         byte[] b1 = new byte[Constant.MAX_KEY_LENGTH];
         byte[] b2 = new byte[Constant.MAX_KEY_LENGTH];
         System.arraycopy(buffer, 0, b1, 0, Constant.MAX_KEY_LENGTH);
@@ -172,7 +204,7 @@ public class FileData {
             // 如果data block写满，则开启新data block，将旧data block的最大key和起始偏移记录到B树中
             if(totalOffset - dataBlockStartOffset > Constant.MAX_DATA_BLOCK_SIZE){
                 this.bTree.insert(key, dataBlockStartOffset);
-                Constant.writeBytesToFile(writeIn.toString().getBytes(), fileName);
+                appendToFile(writeIn.toString().getBytes());
                 dataBlockStartOffset = totalOffset;
                 writeIn = new StringBuilder("");
             }
@@ -184,7 +216,7 @@ public class FileData {
         //  遍历结束时，未满的data block信息也写入B-Tree
         if(dataBlockStartOffset != totalOffset){
             this.bTree.insert(this.data.lastKey(), dataBlockStartOffset);
-            Constant.writeBytesToFile(writeIn.toString().getBytes(), fileName);
+            appendToFile(writeIn.toString().getBytes());
         }
 
         // 3. 写zone map
@@ -195,16 +227,16 @@ public class FileData {
         byte[] buffer = new byte[(int) zoneMapLength];
         System.arraycopy(Constant.KEY_TO_BYTES(this.minKey), 0, buffer, 0, Constant.MAX_KEY_LENGTH);
         System.arraycopy(Constant.KEY_TO_BYTES(this.maxKey), 0, buffer, Constant.MAX_KEY_LENGTH, Constant.MAX_KEY_LENGTH);
-        Constant.writeBytesToFile(buffer, this.fileName);
+        appendToFile(buffer);
 
         // 4. 写Bloom filter
         long bloomFilterStartOffset = zoneMapStartOffset + zoneMapLength;
         long bloomFilterLength = 4 + this.bloomFilter.getByteCount(); // +4 的原因见BloomFilter写文件的格式
-        this.bloomFilter.writeToFile(this.fileName);
+        this.bloomFilter.writeToFile(this.outputStream);
 
         // 5. 写index block
         long indexBlockStartOffset = bloomFilterStartOffset + bloomFilterLength;
-        long[] info = this.bTree.write(this.fileName, indexBlockStartOffset);
+        long[] info = this.bTree.write(this.outputStream, indexBlockStartOffset);
         long indexBlockLength = info[0];
         long bTreeRootOffset = info[1];
 
@@ -219,7 +251,14 @@ public class FileData {
         System.arraycopy(Constant.LONG_TO_BYTES(bloomFilterLength), 0, buffer, Long.BYTES * 3, Long.BYTES);
         System.arraycopy(Constant.LONG_TO_BYTES(bTreeRootOffset), 0, buffer, Long.BYTES * 4, Long.BYTES);
         System.arraycopy(Constant.LONG_TO_BYTES(indexBlockLength), 0, buffer, Long.BYTES * 5, Long.BYTES);
-        Constant.writeBytesToFile(buffer, this.fileName);
+        appendToFile(buffer);
+
+        // flush
+        try{
+            this.outputStream.flush();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
 
         return footerStartOffset + footerLength;
     }

@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
 import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
@@ -28,9 +29,6 @@ public class Constant {
 
     // level0 允许的最大SSTable数量
     public static final int MAX_LEVEL0_FILE_COUNT = 4;
-
-    // todo 取消该参数
-    public static final long MAX_FILE_SIZE = 4L * 1024 * 1024;
 
     // data block大小限制 4KB
     public static final long MAX_DATA_BLOCK_SIZE = 4 * 1024;
@@ -178,33 +176,32 @@ public class Constant {
     }
 
 
-    // 将字节流data，以追加的形式，写到文件fileName中
-    public static void writeBytesToFile(byte[] data, String fileName){
-        try{
-            File file = new File(DATABASE_DIR + fileName);
-            // 写data
-            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
-            output.write(data,0,data.length);
-            output.flush();
-            output.close();
-        }catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    // 将字节流data，以追加的形式，写到文件fileName中
+//    public static void writeBytesToFile(byte[] data, String fileName){
+//        try{
+//            File file = new File(DATABASE_DIR + fileName);
+//            // 写data
+//            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
+//            output.write(data,0,data.length);
+//            output.flush();
+//            output.close();
+//        }catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     // 从文件fileName的offset偏移处读取长度为length的字节流
     public static byte[] readBytesFromFile(String fileName, long offset, int length) {
         byte[] ret = new byte[length];
         try {
             // 打开文件
-            File f = new File(DATABASE_DIR + fileName);
-            FileInputStream input = new FileInputStream(f);
+            RandomAccessFile raf = new RandomAccessFile(DATABASE_DIR + fileName, "r");
             // 移动到指定偏移并读取相应长度
-            input.skip(offset);
-            input.read(ret, 0, length);
-            input.close();
+            raf.seek(offset);
+            raf.read(ret);
+            raf.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {

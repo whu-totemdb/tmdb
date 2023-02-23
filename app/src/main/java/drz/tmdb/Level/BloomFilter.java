@@ -164,12 +164,16 @@ public class BloomFilter {
 
     // 将BloomFilter记录到文件中
     // 先4B写itemCount，再写bytesArray
-    public void writeToFile(String fileName){
+    public void writeToFile(BufferedOutputStream outputStream){
         byte[] buffer = new byte[4 + this.byteCount];
         // 4字节int记录itemCount
         System.arraycopy(Constant.INT_TO_BYTES(this.itemCount), 0, buffer, 0, Integer.BYTES);
         System.arraycopy(this.byteArray, 0, buffer, Integer.BYTES, this.byteCount);
-        Constant.writeBytesToFile(buffer, fileName);
+        try{
+            outputStream.write(buffer, 0, buffer.length);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 

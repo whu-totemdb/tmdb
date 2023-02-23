@@ -1,6 +1,8 @@
 package drz.tmdb.Level;
 
 
+import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -441,7 +443,7 @@ public class BTree<K, V> {
         // type       int, 0表示非叶子节点，1表示叶子节点
         // k-v        首先用一个int表示有多少个键值对，k长度在Constant文件中有限制，v为long
         // children   type=1时不存在。首先用一个int表示有多少个子节点，每个子节点用一个long记录偏移
-        public long write(String fileName, long offset){
+        public long write(BufferedOutputStream outputStream, long offset){
             // 更新offset
             this.offset = offset;
 
@@ -472,7 +474,11 @@ public class BTree<K, V> {
                     index += Long.BYTES;
                 }
                 // 将byete[]写入文件
-                Constant.writeBytesToFile(data, fileName);
+                try{
+                    outputStream.write(data, 0, data.length);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 return totalLength;
             }
 
@@ -480,7 +486,7 @@ public class BTree<K, V> {
             else{
                 // 后根遍历
                 for(BTreeNode child : children){
-                    long childLength = child.write(fileName, this.offset);
+                    long childLength = child.write(outputStream, this.offset);
                     this.offset = child.offset + childLength;
                 }
                 // 将其子节点都保存完后再保存该节点
@@ -517,7 +523,11 @@ public class BTree<K, V> {
                     index += Long.BYTES;
                 }
                 // 将byete[]写入文件
-                Constant.writeBytesToFile(data, fileName);
+                try{
+                    outputStream.write(data, 0, data.length);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 return totalLength;
             }
         }
@@ -954,8 +964,8 @@ public class BTree<K, V> {
 
 
     // BTNodes的持久化保存, 写到fileName的开始偏移为offset的地方，返回值 1.存储占用的总字节数 2.根节点所在偏移
-    public long[] write(String fileName, long offset){
-        root.write(fileName, offset);
+    public long[] write(BufferedOutputStream outputStream, long offset){
+        root.write(outputStream, offset);
 
         // 计算占用总字节数
         long totalSize;

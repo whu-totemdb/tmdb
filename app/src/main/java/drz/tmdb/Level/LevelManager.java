@@ -6,14 +6,13 @@ import static drz.tmdb.Level.Constant.INT_TO_BYTES;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,16 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
-
-import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
 
 
 public class LevelManager {
@@ -45,14 +35,14 @@ public class LevelManager {
     public Map<String, String> levelInfo = new HashMap<String, String>();
 
     // 记录各level包含哪些data文件(使用sortedset因为，suffix大的一定是最新版本的数据)
-    public final Set<Integer> level_0 = new TreeSet<Integer>();
-    public final Set<Integer> level_1 = new TreeSet<Integer>();
-    public final Set<Integer> level_2 = new TreeSet<Integer>();
-    public final Set<Integer> level_3 = new TreeSet<Integer>();
-    public final Set<Integer> level_4 = new TreeSet<Integer>();
-    public final Set<Integer> level_5 = new TreeSet<Integer>();
-    public final Set<Integer> level_6 = new TreeSet<Integer>();
-    public final Set[] levels = {level_0, level_1, level_2, level_3, level_4, level_5, level_6};
+    public final TreeSet<Integer> level_0 = new TreeSet<Integer>();
+    public final TreeSet<Integer> level_1 = new TreeSet<Integer>();
+    public final TreeSet<Integer> level_2 = new TreeSet<Integer>();
+    public final TreeSet<Integer> level_3 = new TreeSet<Integer>();
+    public final TreeSet<Integer> level_4 = new TreeSet<Integer>();
+    public final TreeSet<Integer> level_5 = new TreeSet<Integer>();
+    public final TreeSet<Integer> level_6 = new TreeSet<Integer>();
+    public final TreeSet[] levels = {level_0, level_1, level_2, level_3, level_4, level_5, level_6};
 
     // constructor
     public LevelManager(){
@@ -98,6 +88,10 @@ public class LevelManager {
 
     }
 
+    // 用于test
+    public LevelManager(int mode){
+
+    }
 
     // 退出时将索引表持久化保存
     public void saveMetaToFile(){
@@ -132,14 +126,14 @@ public class LevelManager {
     public void manualCompaction(int level){
         if(level < 0 || level >= Constant.MAX_LEVEL)
             return;
+
+        Set<Integer> filesToCompact = new HashSet<>(); // 记录需要进行compaction的文件名后缀
+
         // 若i=0，则将level-0所有SSTable进行compaction成新SSTable并加入level-1，并删除level-0中所有旧SSTable
-        else if(level == 0){
-            List<String> filesToCompact = new ArrayList<>(); // 记录需要进行compaction的文件名
-            for(Integer i : this.level_0){
-                filesToCompact.add("SSTable" + i);
-            }
-            // todo
+        if(level == 0){
+            filesToCompact.addAll(this.level_0);
         }
+        // https://github.com/facebook/rocksdb/wiki/Choose-Level-Compaction-Files
         // 设level-i中需要进行compaction的文件集合files=[ ]
         // 1.选择level-i中文件名后缀最小的SSTable x加入files中，files=[x]；
         // 2.在level-i中寻找所有与x有重叠的SSTable，假设为y与z，将其加入files中，files=[x, y, z]；
@@ -148,11 +142,83 @@ public class LevelManager {
         // 4.再次遍历level-i中的SSTable，寻找是否有这样的SSTable t，满足t加入files中后，重复步骤3没有新的SSTable加入files_2。如果有这样的SSTable t，则将t加入files，files=[x, y, z, t1, t2, …];
         // files与files_2中所有的SSTable就是此次compaction需要合并的所有SSTable
         else{
-//            List<String> filesToCompact = new ArrayList<>(); // 记录需要进行compaction的文件名
-//            Integer i = this.levels[level]
-//            filesToCompact.add()
+            // 1. 选择level i中文件名后缀最小的SSTable
+            int i = (int) this.levels[level].first(); // 由于是SortedSet，第一个元素就是最小
+            filesToCompact.add(i);
 
+            // 2. 在level i中找有重叠的SSTable
+            filesToCompact.addAll(findOverlapSSTable(i, level));
+
+            // 3. 在level-(i+1)中找与filesToCompact存在重叠的SSTable，加入file2
+            Set<Integer> files2 = new HashSet<>();
+            for(Integer fileSuffix : filesToCompact){
+                files2.addAll(findOverlapSSTable(fileSuffix, level + 1));
+            }
+
+            // 4. 再次遍历level-i中的SSTable，寻找是否有这样的SSTable t，满足t加入files中后，重复步骤3没有新的SSTable加入files_2
+            // 意思是，检查level-i 中的SSTable，如果与（level-(i+1) 与 file2 的差集s） 无交集，则加入合并列表
+            // 先构造  level-(i+1) 与 file2 的差集s
+            Set<Integer> s = new HashSet<>(this.levels[level + 1]);
+            for(Integer integer : files2)
+                s.remove(integer);
+            // 在level i 中找与s无交集的SSTable
+            filesToCompact.addAll(findNotOverLapSSTable(s, level));
+
+            filesToCompact.addAll(files2);
         }
+
+        compact(filesToCompact);
+    }
+
+    // 对集合set中所有SSTable执行compaction
+    // target      = []   目标合并的SSTables（int型的后缀）
+    // pointers    = []   指针，记录每个SSTable当前处理的进度（long型的offset）
+    // ceilings    = []   记录每个SSTable的最大offset（通过读取Footer中zone map的偏移-1 得到）
+    // totalString = ""   记录写入新SSTable的内容
+    // 每次处理众多pointer指向的最小key，若
+    private void compact(Set<Integer> set){
+
+        // todo
+    }
+
+    // 遍历level层中所有文件，找出与s中所有SSTable均无重叠的文件名后缀
+    private Set<Integer> findNotOverLapSSTable(Set<Integer> set, int level){
+        Set<Integer> ret = new HashSet<>();
+        for(Object o : this.levels[level]) {
+            Integer suffix1 = (Integer) o;
+
+            boolean flag = true;
+            for (Integer suffix2 : set) {
+                if (hasOverlap(suffix1, suffix2)){
+                    flag = false;
+                    break;
+                }
+            }
+            if(flag)
+                ret.add(suffix1);
+        }
+        return ret;
+    }
+
+    // 遍历level层中所有文件，找出与SSTable i有重叠的文件名后缀
+    private Set<Integer> findOverlapSSTable(int i, int level){
+        Set<Integer> ret = new HashSet<>();
+        for(Object j : this.levels[level]){
+            int fileSuffix2 =(Integer) j;
+            if(hasOverlap(i, fileSuffix2)){
+                ret.add(fileSuffix2);
+            }
+        }
+        return  ret;
+    }
+
+    // 判断文件后缀为i1和i2的两个SSTable是否有重叠
+    private boolean hasOverlap(int i1, int i2){
+        String min1 = this.levelInfo.get("" + i1).split("-")[2];
+        String max1 = this.levelInfo.get("" + i1).split("-")[3];
+        String min2 = this.levelInfo.get("" + i2).split("-")[2];
+        String max2 = this.levelInfo.get("" + i2).split("-")[3];
+        return Constant.hasOverlap(min1, max1, min2, max2);
     }
 
 
