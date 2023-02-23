@@ -1,13 +1,13 @@
-package drz.tmdb.Level;
+package drz.tmdb.Log;
 
 
-import java.io.BufferedOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+
+import drz.tmdb.Level.Constant;
 
 /**
  * 一颗B树的简单实现。
@@ -16,7 +16,7 @@ import java.util.Queue;
  * @param <V> - 值类型
  */
 @SuppressWarnings("all")
-public class BTree<K, V> {
+public class BTree_Indexer<K, V> {
     //private static Log logger = LogFactory.getLog(BTree.class);
 
     /**
@@ -443,7 +443,7 @@ public class BTree<K, V> {
         // type       int, 0表示非叶子节点，1表示叶子节点
         // k-v        首先用一个int表示有多少个键值对，k长度在Constant文件中有限制，v为long
         // children   type=1时不存在。首先用一个int表示有多少个子节点，每个子节点用一个long记录偏移
-        public long write(BufferedOutputStream outputStream, long offset){
+        public long write(String fileName, long offset){
             // 更新offset
             this.offset = offset;
 
@@ -474,11 +474,7 @@ public class BTree<K, V> {
                     index += Long.BYTES;
                 }
                 // 将byete[]写入文件
-                try{
-                    outputStream.write(data, 0, data.length);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                Constant.writeBytesToFile(data, fileName);
                 return totalLength;
             }
 
@@ -486,7 +482,7 @@ public class BTree<K, V> {
             else{
                 // 后根遍历
                 for(BTreeNode child : children){
-                    long childLength = child.write(outputStream, this.offset);
+                    long childLength = child.write(fileName, this.offset);
                     this.offset = child.offset + childLength;
                 }
                 // 将其子节点都保存完后再保存该节点
@@ -523,11 +519,7 @@ public class BTree<K, V> {
                     index += Long.BYTES;
                 }
                 // 将byete[]写入文件
-                try{
-                    outputStream.write(data, 0, data.length);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                Constant.writeBytesToFile(data, fileName);
                 return totalLength;
             }
         }
@@ -560,12 +552,12 @@ public class BTree<K, V> {
     /**
      * 构造一颗B树，键值采用采用自然排序方式
      */
-    public BTree() {
+    public BTree_Indexer() {
         root = new BTreeNode<K, V>();
         root.setLeaf(true);
     }
 
-    public BTree(int t) {
+    public BTree_Indexer(int t) {
         this();
         this.t = t;
         minKeySize = t - 1;
@@ -573,7 +565,7 @@ public class BTree<K, V> {
     }
 
     // 构造函数，从文件fileName的offset偏移处读取root根节点，并解析构造B-Tree
-    public BTree(String fileName, long offset){
+    public BTree_Indexer(String fileName, long offset){
         root = new BTreeNode<K, V>(fileName, offset);
     }
 
@@ -582,13 +574,13 @@ public class BTree<K, V> {
      *
      * @param kComparator - 键值的比较函数对象
      */
-    public BTree(Comparator<K> kComparator) {
+    public BTree_Indexer(Comparator<K> kComparator) {
         root = new BTreeNode<K, V>(kComparator);
         root.setLeaf(true);
         this.kComparator = kComparator;
     }
 
-    public BTree(Comparator<K> kComparator, int t) {
+    public BTree_Indexer(Comparator<K> kComparator, int t) {
         this(kComparator);
         this.t = t;
         minKeySize = t - 1;
@@ -964,8 +956,8 @@ public class BTree<K, V> {
 
 
     // BTNodes的持久化保存, 写到fileName的开始偏移为offset的地方，返回值 1.存储占用的总字节数 2.根节点所在偏移
-    public long[] write(BufferedOutputStream outputStream, long offset){
-        root.write(outputStream, offset);
+    public long[] write(String fileName, long offset){
+        root.write(fileName, offset);
 
         // 计算占用总字节数
         long totalSize;

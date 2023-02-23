@@ -34,7 +34,7 @@ public class Arbitration {
     }
 
     public static void initialConfig(int copyNum, int minWriteNum, int minReadNum){
-        if(copyNum <= minWriteNum + minReadNum){
+        if(copyNum >= minWriteNum + minReadNum){
             System.out.println("仲裁配置参数不符要求，请重新配置！");
             return;
         }

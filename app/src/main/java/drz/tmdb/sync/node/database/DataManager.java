@@ -16,11 +16,17 @@ public class DataManager {
 
 
     public void putAction(Action action){
-        actionList.add(action);
+        synchronized (actionList){
+            actionList.add(action);
+            actionList.notifyAll();
+        }
     }
 
     public void putOldAction(Action action){
-        oldActionList.add(action);
+        synchronized (oldActionList){
+            oldActionList.add(action);
+            oldActionList.notifyAll();
+        }
     }
 
     public Action getAction(){

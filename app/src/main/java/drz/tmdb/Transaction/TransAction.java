@@ -18,18 +18,15 @@ import java.util.List;
 
 //import drz.tmdb.Level.LevelManager;
 import drz.tmdb.Level.LevelManager;
+import drz.tmdb.Log.*;
 import drz.tmdb.Memory.*;
 
 
 import drz.tmdb.Transaction.Transactions.Create;
-import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
-import drz.tmdb.Transaction.Transactions.Delete;
-import drz.tmdb.Transaction.Transactions.Drop;
 import drz.tmdb.Transaction.Transactions.Insert;
 import drz.tmdb.Transaction.Transactions.MemConnect;
 import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.SelectResult;
-import drz.tmdb.Transaction.Transactions.Update;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
 import drz.tmdb.Transaction.SystemTable.*;
@@ -56,7 +53,7 @@ public class TransAction {
     public static BiPointerTable biPointerT = memConnect.getBiPointerT();
     public static SwitchingTable switchingT = memConnect.getSwitchingT();
 
-//    LogManager log = new LogManager();
+    LogManager log = new LogManager();
 
     public MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
             deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
@@ -200,7 +197,7 @@ public class TransAction {
 //        return s;
 //    }
 
-    public String query2(String k, int op, String s) {
+    public String query2(int id,String k,int op,String s) {
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         try {
@@ -219,9 +216,8 @@ public class TransAction {
                 case "CreateDeputyClass":
 //                    switch
  //                   log.WriteLog(id,k,op,s);
-                    if(new CreateDeputyClass().createDeputyClass(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
-                    }
+                    CreateSelectDeputy(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     break;
 //                case "Create":
 //                    log.WriteLog(s);
@@ -230,9 +226,8 @@ public class TransAction {
 //                    break;
                 case "Drop":
 //                    log.WriteLog(id,k,op,s);
-                    if(new Drop().drop(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
-                    }
+                    Drop(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Insert":
 //                    log.WriteLog(id,k,op,s);
@@ -242,9 +237,8 @@ public class TransAction {
                     break;
                 case "Delete":
  //                   log.WriteLog(id,k,op,s);
-                    if(new Delete().delete(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
-                    }
+                    Delete(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Select":
                     Select select=new Select();
@@ -256,9 +250,8 @@ public class TransAction {
 //                    break;
                 case "Update":
  //                   log.WriteLog(id,k,op,s);
-                    if(new Update().update(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
-                    }
+                    Update(aa);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
                     break;
 //                case :
 //                    log.WriteLog(s);
@@ -288,7 +281,7 @@ public class TransAction {
             }
         }
         for (int i = 0; i < count; i++) {
-            classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori",""));
+            classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori"));
         }
 //        this.SaveAll();
         mem.loadClassTable();
@@ -520,6 +513,7 @@ public class TransAction {
 
     //DROP CLASS asd;
     //3,asd
+
     private void Drop(String[]p){
         List<DeputyTableItem> dti;
         dti = Drop1(p);
@@ -690,7 +684,7 @@ public class TransAction {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de",""));
+                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
                     //swi
                     if(Integer.parseInt(p[4+4*i]) == 1){
                         switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));

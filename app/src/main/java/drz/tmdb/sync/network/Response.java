@@ -5,12 +5,15 @@ import java.net.InetSocketAddress;
 
 import drz.tmdb.sync.node.database.Action;
 import drz.tmdb.sync.share.ResponseType;
+import drz.tmdb.sync.timeTest.Cost;
 import drz.tmdb.sync.vectorClock.VectorClock;
 
 public class Response implements Serializable {
     private ResponseType responseType;
 
     private String requestID;
+
+    private String nodeID;
 
     private Action action;
 
@@ -20,16 +23,25 @@ public class Response implements Serializable {
 
     private InetSocketAddress target;
 
+    private long sendTime;//响应发送的时刻
+
+    private long receiveTime;//请求接收的时刻
+
+    //测试时间使用
+    private Cost cost;
+
     public Response(){}
 
-    public Response(String requestID, ResponseType responseType, InetSocketAddress source, InetSocketAddress target) {
+    public Response(String nodeID,String requestID, ResponseType responseType, InetSocketAddress source, InetSocketAddress target) {
+        this.nodeID = nodeID;
         this.requestID = requestID;
         this.responseType = responseType;
         this.source = source;
         this.target = target;
     }
 
-    public Response(String requestID, ResponseType responseType, Action action, VectorClock vectorClock, InetSocketAddress source, InetSocketAddress target) {
+    public Response(String nodeID,String requestID, ResponseType responseType, Action action, VectorClock vectorClock, InetSocketAddress source, InetSocketAddress target) {
+        this.nodeID = nodeID;
         this.requestID = requestID;
         this.responseType = responseType;
         this.action = action;
@@ -50,9 +62,12 @@ public class Response implements Serializable {
         return target;
     }
 
-
     public String getRequestID() {
         return requestID;
+    }
+
+    public String getNodeID() {
+        return nodeID;
     }
 
     public Action getAction() {
@@ -61,5 +76,29 @@ public class Response implements Serializable {
 
     public VectorClock getVectorClock() {
         return vectorClock;
+    }
+
+    public long getSendTime() {
+        return sendTime;
+    }
+
+    public void setSendTime(long sendTime) {
+        this.sendTime = sendTime;
+    }
+
+    public long getReceiveTime() {
+        return receiveTime;
+    }
+
+    public void setReceiveTime(long receiveTime) {
+        this.receiveTime = receiveTime;
+    }
+
+    public void setCost(Cost cost) {
+        this.cost = cost;
+    }
+
+    public Cost getCost() {
+        return cost;
     }
 }
