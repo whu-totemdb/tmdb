@@ -44,7 +44,7 @@ BTree.java：实现B-Tree的功能，对其进行持久化/读取；
 
 Constant.java：记录一些常量以及静态方法；
 
-FileData.java：MemTable和SSTable的中间媒介，在其中进行SSTable的读写；
+SSTable.java：内存中的SSTable，提供SSTable的读写接口；
 
 LevelManager.java：LSM-Tree层级信息的管理，记录每个level有哪些SSTable等一些元数据，负责执行auto compaction，同时提供manul compaction的接口；
 
@@ -52,7 +52,7 @@ app/src/main/java/drz/tmdb/Memory/MemManager.java：内存管理，提供往MemT
 
 
 
-在FileData.java中已经实现了SSTable的写入以及SSTable中meta data (即zone map, bloom filter, index block, footer)的读取的代码，可以作为部分参考。
+在SSTable.java中已经实现了SSTable的写入以及SSTable中meta data (即zone map, bloom filter, index block, footer)的读取的代码，可以作为部分参考。
 
 
 
