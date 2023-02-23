@@ -15,9 +15,10 @@ import java.util.ArrayList;
 import drz.tmdb.Memory.Tuple;
 
 public class Formula {
+    //表达式后续遍历处理的核心
     public ArrayList<Object> formulaExecute(Expression expression,SelectResult selectResult){
         ArrayList<Object> res=new ArrayList<>();
-        switch ((expression.getClass().getSimpleName())){
+        switch ((expression.getClass().getSimpleName())){//根据表达式的类别，分别处理
             case "Addition": res=addition((Addition) expression,selectResult); break;
             case "Subtraction": res=subtraction((Subtraction) expression,selectResult); break;
             case "Division": res=division((Division) expression,selectResult); break;
@@ -30,9 +31,12 @@ public class Formula {
         return res;
     }
 
+    //最底层的算子之一，column，表示一个参数的信息
     public ArrayList<Object> column(Column column, SelectResult selectResult){
+        //获取columnName
         String columnName=column.getColumnName();
         int index=-1;
+        //找到这个column在selectResult中的对应index，在原始名和别名中都要进行寻找。
         for(int i=0;i<selectResult.className.length;i++){
             if(selectResult.attrname[i].equals(columnName)){
                 if(column.getTable()==null
@@ -44,6 +48,7 @@ public class Formula {
             }
         }
         ArrayList<Object> res=new ArrayList<>();
+        //这是另一种情况的处理，"a"*3，左边只是一个string，不是列元素，也会被当作column处理，这时候，只需要返回一列全是该元素的列表即可
         if(index>selectResult.className.length || index==-1){
             if(column.getColumnName().charAt(0)=='"'){
                 for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
@@ -51,6 +56,7 @@ public class Formula {
                 }
             }
         }
+        //正常的情况，从selectresult中提取出该列的数据
         else {
             for (Tuple tuple : selectResult.tpl.tuplelist) {
                 res.add(tuple.tuple[index]);
@@ -59,8 +65,11 @@ public class Formula {
         return res;
     }
 
+    //加法的处理
     public ArrayList<Object> addition(Addition expression, SelectResult selectResult){
+        //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
+        //获取表达式右边元素
         ArrayList<Object> right=formulaExecute(expression.getRightExpression(),selectResult);
         ArrayList<Object> res=new ArrayList<>();
         for(int i=0;i<left.size();i++){
@@ -69,8 +78,11 @@ public class Formula {
         return res;
     }
 
+    //减法处理
     public ArrayList<Object> subtraction(Subtraction expression, SelectResult selectResult){
+        //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
+        //获取表达式右边元素
         ArrayList<Object> right=formulaExecute(expression.getRightExpression(),selectResult);
         ArrayList<Object> res=new ArrayList<>();
         for(int i=0;i<left.size();i++){
@@ -79,8 +91,11 @@ public class Formula {
         return res;
     }
 
+    //乘法处理
     public ArrayList<Object> multiplication(Multiplication expression,SelectResult selectResult){
+        //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
+        //获取表达式右边元素
         ArrayList<Object> right=formulaExecute(expression.getRightExpression(),selectResult);
         ArrayList<Object> res=new ArrayList<>();
         for(int i=0;i<left.size();i++){
@@ -89,8 +104,11 @@ public class Formula {
         return res;
     }
 
+    //除法处理
     public ArrayList<Object> division(Division expression, SelectResult selectResult){
+        //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
+        //获取表达式右边元素
         ArrayList<Object> right=formulaExecute(expression.getRightExpression(),selectResult);
         ArrayList<Object> res=new ArrayList<>();
         for(int i=0;i<left.size();i++){
@@ -99,8 +117,11 @@ public class Formula {
         return res;
     }
 
+    //余数处理
     public ArrayList<Object> modulo(Modulo expression, SelectResult selectResult){
+        //获取表达式左边
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
+        //获取表达式右边
         ArrayList<Object> right=formulaExecute(expression.getRightExpression(),selectResult);
         ArrayList<Object> res=new ArrayList<>();
         for(int i=0;i<left.size();i++){
@@ -109,14 +130,17 @@ public class Formula {
         return res;
     }
 
+    //小括号（）处理，直接返回内部的表达式
     public ArrayList<Object> parenthesis(Parenthesis expression, SelectResult selectResult){
         ArrayList<Object> res=formulaExecute(expression.getExpression(),selectResult);
         return res;
     }
 
+    //数字元素处理
     public ArrayList<Object> longValue(LongValue value, SelectResult selectResult){
         double temp=(double)value.getValue();
         ArrayList<Object> res=new ArrayList<>();
+        //返回全是该数字元素的列
         for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
             res.add(temp);
         }

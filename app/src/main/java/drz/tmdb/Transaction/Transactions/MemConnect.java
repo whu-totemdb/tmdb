@@ -30,6 +30,7 @@ import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
 import drz.tmdb.Transaction.TransAction;
 
 public class MemConnect {
+    //进行内存操作的一些一些方法和数据
     private static MemManage mem = new MemManage();
     private static ObjectTable topt = mem.loadObjectTable();
     private static ClassTable classt = mem.loadClassTable();
@@ -42,28 +43,35 @@ public class MemConnect {
     public MemConnect(){
     };
 
+    //获取tuple
     public Tuple GetTuple(int id, int offset) {
         return mem.readTuple(id,offset);
     }
 
+    //插入tuple
     public int[] InsertTuple(Tuple tuple){
         return mem.writeTuple(tuple);
     }
 
+    //删除tuple
     public void DeleteTuple(int id, int offset){
         mem.deleteTuple();
-        return;
     }
 
+    //更新tuple
     public void UpateTuple(Tuple tuple,int blockid,int offset){
         mem.UpateTuple(tuple,blockid,offset);
     }
 
+    //获取表的属性元素
     public ArrayList<ClassTableItem> getSelectItem(FromItem fromItem){
         ArrayList<ClassTableItem> elicitAttrItemList=new ArrayList<>();
         for(ClassTableItem item : classt.classTable){
+            //如果classTableItem中的className对上了fromItem就加入结果中
             if(item.classname.equals(((Table)fromItem).getName())){
+                //硬拷贝，不然后续操作会影响原始信息。
                 ClassTableItem temp=item.getCopy();
+                //因为后续有许多针对alias的比对操作，所以，如果fromItem中使用了alias，则在classTableItem中的alias属性中存入该值
                 if(fromItem.getAlias()!=null) temp.alias=fromItem.getAlias().getName();
                 elicitAttrItemList.add(temp);
             }
@@ -92,6 +100,7 @@ public class MemConnect {
         return elicitAttrItemList;
     }
 
+    //获取表在classTable中的id值
     public int getClassId(String fromItem){
         for(ClassTableItem item : classt.classTable) {
             if (item.classname.equals(fromItem)) {
@@ -101,6 +110,7 @@ public class MemConnect {
         return -1;
     }
 
+    //输入需要获取的表名，得到对应的元祖值
     public TupleList getTable(FromItem fromItem){
         int classid=this.getClassId(((Table) fromItem).getName());
         TupleList res=new TupleList();
@@ -290,7 +300,7 @@ public class MemConnect {
     //CREATE SELECTDEPUTY aa SELECT  b1+2 AS c1,b2 AS c2,b3 AS c3 FROM  bb WHERE t1="1" ;
     //2,3,aa,b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
     //0 1 2  3  4 5 6  7  8 9 10 11 121314 15 16 17 18
-    public void CreateSelectDeputy(String[] p) {
+    public boolean CreateSelectDeputy(String[] p) {
         int count = Integer.parseInt(p[1]);
         String classname = p[2];//代理类的名字
         String bedeputyname = p[4*count+3];//代理的类的名字
@@ -385,6 +395,7 @@ public class MemConnect {
         for(ObjectTableItem item6:obj) {
             topt.objectTable.add(item6);
         }
+        return true;
     }
 
     //UPDATE Song SET type = ‘jazz’WHERE songId = 100;

@@ -7,7 +7,6 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 import java.util.ArrayList;
 
 public class Create {
-    private static MemConnect memConnect=new MemConnect();
     public Create(){}
 
     public boolean create(Statement stmt){
@@ -17,7 +16,9 @@ public class Create {
     //CREATE CLASS dZ123 (nB1 int,nB2 char) ;
     //1,2,dZ123,nB1,int,nB2,char
     public boolean execute(CreateTable stmt){
+        //获取新定义class具体元素
         ArrayList<ColumnDefinition> columnDefinitionArrayList= (ArrayList<ColumnDefinition>) stmt.getColumnDefinitions();
+        //以下操作创建memConnect中的create origin class需要的String 数组，传入其中进行实际的创建工作。
         String[] p=new String[columnDefinitionArrayList.size()*2+3];
         p[0]="";
         p[1]=""+columnDefinitionArrayList.size();
@@ -26,6 +27,6 @@ public class Create {
             p[3+2*i]=columnDefinitionArrayList.get(i).getColumnName();
             p[3+2*i+1]=columnDefinitionArrayList.get(i).toStringDataTypeAndSpec();
         }
-        return memConnect.CreateOriginClass(p);
+        return new MemConnect().CreateOriginClass(p);
     }
 }

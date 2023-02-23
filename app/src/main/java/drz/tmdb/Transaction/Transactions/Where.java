@@ -12,6 +12,7 @@ import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.schema.Column;
@@ -45,7 +46,8 @@ public class Where {
             case "AndExpression": res=andExpression((AndExpression) expression,selectResult); break;
             case "InExpression": res=inExpression((InExpression) expression,selectResult); break;
             case "EqualsTo": res=equalsToExpression((EqualsTo) expression,selectResult); break;
-            case "MinorThan": res=minorThan((MinorThan) expression,selectResult);
+            case "MinorThan": res=minorThan((MinorThan) expression,selectResult); break;
+            case "GreaterThan": res=greaterThan((GreaterThan) expression,selectResult); break;
         }
         return res;
     }
@@ -121,6 +123,18 @@ public class Where {
             String tempLeft=transType(left.get(i));
             String tempRight=transType(right.get(i));
             if(tempLeft.compareTo(tempRight)<0) set.add(selectResult.tpl.tuplelist.get(i));
+        }
+        return getSelectResultFromSet(selectResult,set);
+    }
+
+    public SelectResult greaterThan(GreaterThan expression,SelectResult selectResult){
+        ArrayList<Object> left=formula.formulaExecute(expression.getLeftExpression(),selectResult);
+        ArrayList<Object> right=formula.formulaExecute(expression.getRightExpression(),selectResult);
+        HashSet<Tuple> set=new HashSet<>();
+        for(int i=0;i<left.size();i++){
+            String tempLeft=transType(left.get(i));
+            String tempRight=transType(right.get(i));
+            if(tempLeft.compareTo(tempRight)>0) set.add(selectResult.tpl.tuplelist.get(i));
         }
         return getSelectResultFromSet(selectResult,set);
     }
