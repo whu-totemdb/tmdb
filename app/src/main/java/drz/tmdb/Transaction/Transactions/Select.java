@@ -41,13 +41,19 @@ public class Select {
 
     public SelectResult select(Object stmt){
         SelectBody selectBody = null;
+        //如果语法树的形式是Select，将查询主题赋值给selectBody
         if(stmt.getClass().getSimpleName().equals("Select")) selectBody=((net.sf.jsqlparser.statement.select.Select)stmt).getSelectBody();
+        //如果语法树形式是subselect（subSelect也要走select的逻辑）
         else if(stmt.getClass().getSimpleName().equals("SubSelect")) selectBody=((SubSelect)stmt).getSelectBody();
+
         SelectResult res=new SelectResult();
+
+        //如果selectBody形式是SetOperationList，那种带union，except的查询就是这种
         if((selectBody.getClass().getSimpleName().equals("SetOperationList"))){
             SetOperationList setOperationList= (SetOperationList) selectBody;
             return setOperation(setOperationList);
         }
+        //如果selectBody只是一个plainSelct
         else if(selectBody.getClass().getSimpleName().equals("PlainSelect")){
             res=plainSelect(selectBody);
         }
@@ -55,31 +61,45 @@ public class Select {
     }
 
     public SelectResult plainSelect(SelectBody stmt){
-//        if(plainSelect)
+//      //Values 也是一种plainSelect，如果是values，由values方法处理
         if(stmt.getClass().getSimpleName().equals("ValuesStatement")) return values((ValuesStatement) stmt);
+
         PlainSelect plainSelect= (PlainSelect) stmt;
+
+        //如果是对象代理的跨类查询，则用
         if(plainSelect.isDeputySelect()==true){
-            return plainSelect(stmt);
+            return deputySelect((PlainSelect) stmt);
         }
+
+        //以下是正常的plainselect逻辑，from->where->select
+        //先是from从存储中拿到数据
         SelectResult selectResult=from(plainSelect);
+        //通过where进行筛选
         if(plainSelect.getWhere()!=null){
             Where where=new Where();
             selectResult=where.where(plainSelect,selectResult);
         }
+        //然后通过selectItem提取想要的列
         selectResult=elicit(plainSelect,selectResult);
+        //最终返回selectResult
         return selectResult;
     }
 
+    //提取
     public SelectResult elicit(PlainSelect plainSelect,SelectResult selectResult){
         ArrayList<SelectItem> selectItemList= (ArrayList<SelectItem>) plainSelect.getSelectItems();
         int length=selectItemList.size();
         for(int i=0;i<selectItemList.size();i++) {
+            //如果当前情况是select * from，则显示作为选择allcolumns，直接返回全部
             if (selectItemList.get(i).getClass().getSimpleName().equals("AllColumns")) {
+                //要对attrid重拍以下，不然最终printresult的时候会有问题
                 for(int j=0;j<selectResult.attrid.length;j++){
                     selectResult.attrid[j]=j;
                 }
                 return selectResult;
             }
+            //如果是select a.* from a，b这种，a.*会显示为AllTableColumns，这时候，需要将a的所有的元素都加入结果集合中
+            //也就是说a.*虽然在selectItem中只显示为一个元素，但是需要输出多个元素，因此要更改以下length
             else if(selectItemList.get(i).getClass().getSimpleName().equals("AllTableColumns")){
                 AllTableColumns selectItem= (AllTableColumns) selectItemList.get(i);
                 for(int y=0;y<selectResult.className.length;y++){
@@ -105,26 +125,33 @@ public class Select {
         int i=0;
         int index=0;
         while(i<length){
+            //遍历selectItemList中的selectItem，分别处理
+            //这里是针对selectItem是表达式的判定，a或者a+2或者a+b*c都会被认定为表达式
             if(selectItemList.get(index).getClass().getSimpleName().equals("SelectExpressionItem")){
                 SelectExpressionItem selectItem=(SelectExpressionItem) selectItemList.get(index);
+                //如果有alias 例如a*b as c则需要将输出的attrname改成别名
                 if(selectItem.getAlias()!=null){
                     result.attrname[i]=selectItem.getAlias().getName();
                 }
                 else result.attrname[i]=selectItem.toString();
+                //调用formula对表达式进行解析，返回运算后的结果，存入res的tuplelist中
                 ArrayList<Object> thisColumn=(new Formula()).formulaExecute(selectItem.getExpression(),selectResult);
                 for(int j=0;j<resTupleList.tuplelist.size();j++){
                     resTupleList.tuplelist.get(j).tuple[i]=thisColumn.get(j);
                 }
+                //这里将所有的result的类型都定位char，后续可能需要优化。
                 result.type[i]="char";
                 result.attrid[i]=i;
                 i++;
                 index++;
             }
+            //这里是针对a.*这种情况的操作
             else if(selectItemList.get(index).getClass().getSimpleName().equals("AllTableColumns")){
                 AllTableColumns selectItem= (AllTableColumns) selectItemList.get(index);
                 for(int j=0;j<selectResult.className.length;j++){
                     String s=selectResult.className[j];
                     String alias=selectResult.alias[j];
+                    //将选取表的所有列加入结果集合中
                     if (s.equals(selectItem.getTable().getName()) || selectItem.getTable().getName().equals(alias)) {
                         result.attrname[i]=selectResult.attrname[j];
                         for(int x=0;x<resTupleList.tuplelist.size();x++){
@@ -184,24 +211,36 @@ public class Select {
 //        return res;
 //    }
 
+    //from部分
     public SelectResult from(PlainSelect plainSelect){
+        //获取plainselect的fromItem（多表查询的话，会取第一个table名）
         FromItem fromItem=plainSelect.getFromItem();
+        //获取这个table对应的tuple
         TupleList tupleList=memConnect.getTable(fromItem);
-         ArrayList<ClassTableItem> classTableItemList=memConnect.getSelectItem(fromItem);
+        //这是这个table对应的table Item
+        ArrayList<ClassTableItem> classTableItemList=memConnect.getSelectItem(fromItem);
+        //通过classTableItemList和tuplelist获取selectResult（基本所有操作都针对selectresult进行）
         SelectResult selectResult=getSelectResult(classTableItemList,tupleList);
+        //进行join操作
         if(!(plainSelect.getJoins() ==null)){
             for(Join join:plainSelect.getJoins()){
+                //获取当前join表的的一些元祖
                 ArrayList<ClassTableItem> tempClassTableItem=memConnect.getSelectItem(join.getRightItem());
                 TupleList tempTupleList=memConnect.getTable(join.getRightItem());
                 SelectResult tempSelectResult=getSelectResult(tempClassTableItem,tempTupleList);
+
+                //将本来的TupleList和当前操作的join的tuplelist根据join的形式进行组合
                 tupleList=join(selectResult,tempSelectResult,join);
+                //把classTableItem进行合并
                 classTableItemList.addAll(tempClassTableItem);
+                //根据join后的tuple和合并后的classtableItemlist生成selectResult
                 selectResult=getSelectResult(classTableItemList,tupleList);
             }
         }
         return selectResult;
     }
 
+    //跨类查询。。。。
     public SelectResult deputySelect(PlainSelect plainSelect){
         ArrayList<SelectItem> selectItemList=(ArrayList<SelectItem>)plainSelect.getSelectItems();
         FromItem fromItem=plainSelect.getFromItem();
@@ -212,19 +251,28 @@ public class Select {
         return getSelectResult(classTableItemList,tupleList);
     }
 
+    //进行union这种操作的方法
     public SelectResult setOperation(SetOperationList setOperationList){
         SelectResult selectResult=new SelectResult();
+        //提取出不同的select
         List<SelectBody> plainSelectList=setOperationList.getSelects();
+        //提取出不同的操作符
         List<SetOperation> setOperationList1=setOperationList.getOperations();
+        //首先获得第一个plainselect的selectResult，之后在这个之上进行累加或者删减
         selectResult=plainSelect(plainSelectList.get(0));
+        //对后面的plainSelect遍历获取selectResult，然后根据setOperation的规则进行操作
         for(int i=1;i<plainSelectList.size();i++){
+            //拿到第i个plainselect的selectResult
             SelectResult tempResult=plainSelect((PlainSelect) plainSelectList.get(i));
+            //根据当前setOperation的规则进行操作。
             selectResult=Operate(selectResult,tempResult,setOperationList1.get(i-1));
         }
         return selectResult;
     }
 
+    //setOperation核心方法
     public SelectResult Operate(SelectResult selectResult1, SelectResult selectResult2, SetOperation setOperation){
+        //根据setOperation的种类进行操作划分
         switch (setOperation.toString()){
             case "UNION": return union(selectResult1,selectResult2);
             case "INTERSECT": return intersect(selectResult1,selectResult2);
@@ -234,9 +282,11 @@ public class Select {
         return null;
     }
 
+    //union操作
     public SelectResult union(SelectResult selectResult1,SelectResult selectResult2){
         TupleList tupleList=new TupleList();
         HashSet<Tuple> set=new HashSet<>();
+        //将两个tuplelist都加入最终的结果集合里
         for(Tuple tuple:selectResult1.tpl.tuplelist){
             set.add(tuple);
         }
@@ -250,6 +300,7 @@ public class Select {
         return selectResult1;
     }
 
+    //intersect操作
     public SelectResult intersect(SelectResult selectResult1,SelectResult selectResult2){
         TupleList tupleList=new TupleList();
         HashSet<Tuple> set=new HashSet<>();
@@ -257,6 +308,7 @@ public class Select {
         for(Tuple tuple:selectResult1.tpl.tuplelist){
             set.add(tuple);
         }
+        //如果2中含有1中的tuple，则加入结果集合中
         for(Tuple tuple:selectResult2.tpl.tuplelist){
             if(set.contains(tuple)) res.add(tuple);
         }
@@ -272,6 +324,7 @@ public class Select {
         for(Tuple tuple:selectResult1.tpl.tuplelist){
             set.add(tuple);
         }
+        //如果2中含有tuple，则在结果集合中移除
         for(Tuple tuple:selectResult2.tpl.tuplelist){
             if(set.contains(tuple)) set.remove(tuple);
         }
@@ -282,6 +335,7 @@ public class Select {
         return selectResult1;
     }
 
+    //和except逻辑一样
     public SelectResult minus(SelectResult selectResult1,SelectResult selectResult2){
         TupleList tupleList=new TupleList();
         HashSet<Tuple> set=new HashSet<>();
@@ -298,20 +352,24 @@ public class Select {
         return selectResult1;
     }
 
+    //针对values的处理
     public SelectResult values(ValuesStatement valuesStatement){
         ExpressionList expressionList= (ExpressionList) valuesStatement.getExpressions();
         List<Expression> expressions=expressionList.getExpressions();
         TupleList tupleList=new TupleList();
         for(int i=0;i<expressions.size();i++){
+            //values按照行进行存储
             RowConstructor rowConstructor= (RowConstructor) expressions.get(i);
             ExpressionList expressionList1=rowConstructor.getExprList();
             Object[] tuple=new Object[expressionList1.getExpressions().size()];
+            //将每行的值传到新建的tuple中
             for(int j=0;j<expressionList1.getExpressions().size();j++){
                 tuple[j]=expressionList1.getExpressions().get(j).toString();
             }
             tupleList.addTuple(new Tuple(tuple));
         }
         ArrayList<ClassTableItem> classTableItemArrayList=new ArrayList<>();
+        //构建classtableItemlist，返回selctResult需要
         for(int i=0;i<tupleList.tuplelist.get(0).tuple.length;i++){
             ClassTableItem classTableItem=new ClassTableItem("", -1, tupleList.tuplelist.get(0).tuple.length,i, "attr"+i,tupleList.tuplelist.get(0).tuple.getClass().getSimpleName(),"","");
             classTableItemArrayList.add(classTableItem);
@@ -319,14 +377,22 @@ public class Select {
         return getSelectResult(classTableItemArrayList,tupleList);
     }
 
+    //join的核心方法
     public TupleList join(SelectResult left,SelectResult right,Join join){
+        //左边的tuplelist
         TupleList leftTupleList=left.tpl;
+        //右边的tuplelist
         TupleList rightTupleList=right.tpl;
+        //获取onExpression的表达式list（可以有多个on，但是这里只实现了一个的）
         LinkedList<Expression> expressionLinkedList=(LinkedList<Expression>)join.getOnExpressions();
         if(!expressionLinkedList.isEmpty()){
+            //默认只有一个onExpression 且为等于
             EqualsTo equals=(EqualsTo) expressionLinkedList.get(0);
+            //获取等于表达式的左边
             Column leftExpression=(Column) equals.getLeftExpression();
+            //获取等于表达式的右边
             Column rightExpression=(Column) equals.getRightExpression();
+            //获取等于表达式的左表达式和右表达式在分别selectresult中的index。例如test.a=company.b 获取a和b在各自表的index
             int leftIndex=0;
             int rightIndex=0;
             for(int i=0;i<left.attrname.length;i++){
@@ -341,20 +407,31 @@ public class Select {
                     break;
                 }
             }
+            //innerJoin
             if(join.isNatural() || join.isInner()){
                 leftTupleList=naturalJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
             }
+            //leftJoin
             else if(join.isLeft()){
                 leftTupleList=leftJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
             }
+            //rightJoin
             else if(join.isRight()){
                 leftTupleList=rightJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
             }
+            //outerJoin
             else if(join.isOuter()){
                 leftTupleList=outerJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
             }
-            else{
+            //naturalJoin
+            else if(join.isNatural()){
                 leftTupleList=naturalJoin(leftTupleList,rightTupleList,leftIndex,rightIndex);
+            }
+        }
+        else{
+            //如果没有join的话，直接进行拼接
+            for(Tuple tuple:rightTupleList.tuplelist){
+                leftTupleList.addTuple(tuple);
             }
         }
         return leftTupleList;
@@ -362,6 +439,7 @@ public class Select {
 
     public TupleList naturalJoin(TupleList left,TupleList right,int leftIndex, int rightIndex){
         TupleList tupleList=new TupleList();
+        //进行naturalJoin，判断在相连元素是否相等，等于才加入结果集中
         for(Tuple leftTuple:left.tuplelist){
             for(Tuple rightTuple:right.tuplelist){
                 if(leftTuple.tuple[leftIndex].equals(rightTuple.tuple[rightIndex])){
@@ -383,10 +461,13 @@ public class Select {
     }
 
     public TupleList leftJoin(TupleList left,TupleList right,int leftIndex, int rightIndex){
+        //leftjoin，如果右边对上了，就加上右边元祖，如果没对上，就加入空元祖。
         TupleList tupleList=new TupleList();
         if(left.tuplelist.isEmpty()) return tupleList;
         HashMap<Object,ArrayList<Integer>> map=new HashMap<>();
         HashMap<Object, Boolean> check=new HashMap<>();
+        //使用map存储左边的元素在连接处的元素值
+        //使用check存储当前元素在右边是否有被使用
         for(int i=0;i<left.tuplelist.size();i++){
             Tuple leftT=left.tuplelist.get(i);
             if(map.containsKey(leftT.tuple[leftIndex])){
@@ -399,9 +480,13 @@ public class Select {
                 check.put(leftT.tuple[leftIndex],false);
             }
         }
+        //先遍历右边的tuplelist，然后对
         for(Tuple rightTuple:right.tuplelist){
             if(map.containsKey(rightTuple.tuple[rightIndex])){
+                //如果右边有这个元素，修改check为true
                 check.replace(rightTuple.tuple[rightIndex],true);
+                //在res中加入每个左边的tuple拼接上当前匹配上的右边的tuple。
+                // 例如左边有2个join处匹配上了当前右边的tuple，那么这两个都要拼接上右边的tuple，然后加入结果集合
                 for(int index:map.get(rightTuple.tuple[rightIndex])) {
                     Tuple leftTuple=left.tuplelist.get(index);
                     Tuple tempTuple = new Tuple();
@@ -418,6 +503,7 @@ public class Select {
                 }
             }
         }
+        //针对没有被匹配上的左边的tuple，拼接空元祖加入结果集合
         for(Object obj:check.keySet()){
             if(check.get(obj)==false){
                 for(int index:map.get(obj)){
@@ -437,6 +523,7 @@ public class Select {
         return tupleList;
     }
 
+    //逻辑和leftjoin类似
     public TupleList rightJoin(TupleList left,TupleList right,int leftIndex, int rightIndex){
         TupleList tupleList=new TupleList();
         if(right.tuplelist.isEmpty()) return tupleList;
@@ -492,6 +579,7 @@ public class Select {
         return tupleList;
     }
 
+    //就是一个leftjoin和rightjoin的综合版
     public TupleList outerJoin(TupleList left,TupleList right,int leftIndex, int rightIndex){
         TupleList tupleList=new TupleList();
         if(left.tuplelist.isEmpty()) return tupleList;
@@ -499,6 +587,8 @@ public class Select {
         HashMap<Object,ArrayList<Integer>> mapRight=new HashMap<>();
         HashMap<Object, Boolean> checkLeft=new HashMap<>();
         HashMap<Object, Boolean> checkRight=new HashMap<>();
+        //分别用mapLeft存储左数组的join处的值对应的tupleindex和mapRight存右边的
+        //然后checkLeft存左边数据的访问情况，checkRight存右边的
         for(int i=0;i<left.tuplelist.size();i++){
             Tuple leftT=left.tuplelist.get(i);
             if(mapLeft.containsKey(leftT.tuple[leftIndex])){
@@ -576,7 +666,7 @@ public class Select {
         return tupleList;
     }
 
-
+    //对classTableItemList和tuplelist综合处理一下，获取selectResult
     public SelectResult getSelectResult(ArrayList<ClassTableItem> classTableItemList,TupleList tupleList){
         SelectResult selectResult=new SelectResult();
         selectResult.className=new String[classTableItemList.size()];
@@ -595,6 +685,7 @@ public class Select {
         return selectResult;
     }
 
+    //针对每个selectItem，得到其对应的column 比如a*b+c得到a，b，c
     public HashMap<SelectItem,ArrayList<Column>> getSelectItemColumn(ArrayList<SelectItem> selectItemArrayList){
         HashMap<SelectItem,ArrayList<Column>> res=new HashMap<>();
         for(SelectItem selectItem:selectItemArrayList){
@@ -605,6 +696,7 @@ public class Select {
         return res;
     }
 
+    //递归遍历，直到当前元素是column为止
     public void getSelectColumn(SimpleNode node,ArrayList<Column> selectColumnList){
         int i=0;
         while(i<node.jjtGetNumChildren()){
@@ -618,6 +710,7 @@ public class Select {
         }
     }
 
+    //在selectItem中出现的所有的column
     public ArrayList<Column> getSelectColumnList(HashMap<SelectItem,ArrayList<Column>> map){
         ArrayList<Column> res=new ArrayList<>();
         for(ArrayList<Column> columns:map.values()){

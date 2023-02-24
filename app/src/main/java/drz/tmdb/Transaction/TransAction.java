@@ -201,8 +201,10 @@ public class TransAction {
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         try {
+            //使用JSqlparser进行sql语句解析，会根据sql类型生成对应的语法树。
             Statement stmt= CCJSqlParserUtil.parse(byteArrayInputStream);
-            String[] aa = new String[2];
+//            String[] aa = new String[2];
+            //获取生成语法树的类型，用于进一步判断
             String sqlType=stmt.getClass().getSimpleName();
             switch (sqlType) {
                 case "CreateTable":
