@@ -401,7 +401,7 @@ public class MemConnect {
     //UPDATE Song SET type = ‘jazz’WHERE songId = 100;
     //OPT_CREATE_UPDATE，Song，type，“jazz”，songId，=，100
     //0                  1     2      3        4      5  6
-    public boolean update(String[] p){
+    public ArrayList<Integer> update(String[] p){
         String classname = p[1];
         String attrname = p[2];
         String cattrname = p[4];
@@ -431,17 +431,18 @@ public class MemConnect {
         }
 
 
-
+        ArrayList<Integer> integers = new ArrayList<>();
         for(ObjectTableItem item3:topt.objectTable){
             if(item3.classid == classid){
                 Tuple tuple = GetTuple(item3.blockid,item3.offset);
                 if(Condition(cattrtype,tuple,cattrid,p[6])){
+                    integers.add(item3.tupleid);
                     UpdatebyID(item3.tupleid,attrid,p[3].replace("\"",""));
 
                 }
             }
         }
-        return true;
+        return integers;
     }
     private void UpdatebyID(int tupleid,int attrid,String value){
         for(ObjectTableItem item: topt.objectTable){
@@ -491,7 +492,7 @@ public class MemConnect {
 
     //DELETE FROM bb WHERE t4="5SS";
     //5,bb,t4,=,"5SS"
-    public boolean delete(String[] p) {
+    public ArrayList<Integer> delete(String[] p) {
         String classname = p[1];
         String attrname = p[2];
         int classid = 0;
@@ -524,13 +525,15 @@ public class MemConnect {
                 }
             }
         }
+        ArrayList<Integer> integers = new ArrayList<>();
         for(ObjectTableItem obj:ob2.o){
+            integers.add(obj.tupleid);
             topt.objectTable.remove(obj);
         }
         for(BiPointerTableItem bip:ob2.b) {
             biPointerT.biPointerTable.remove(bip);
         }
-        return true;
+        return integers;
     }
 
     private MemConnect.OandB DeletebyID(int id){
@@ -577,10 +580,6 @@ public class MemConnect {
                 DeleteTuple(item.blockid,item.offset);
                 if(!todelete2.contains(item));
                 todelete1.add(item);
-
-
-
-
 
             }
         }

@@ -23,10 +23,14 @@ import drz.tmdb.Memory.*;
 
 
 import drz.tmdb.Transaction.Transactions.Create;
+import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
+import drz.tmdb.Transaction.Transactions.Delete;
+import drz.tmdb.Transaction.Transactions.Drop;
 import drz.tmdb.Transaction.Transactions.Insert;
 import drz.tmdb.Transaction.Transactions.MemConnect;
 import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.SelectResult;
+import drz.tmdb.Transaction.Transactions.Update;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
 import drz.tmdb.Transaction.SystemTable.*;
@@ -206,6 +210,7 @@ public class TransAction {
 //            String[] aa = new String[2];
             //获取生成语法树的类型，用于进一步判断
             String sqlType=stmt.getClass().getSimpleName();
+            ArrayList<Integer> tuples=new ArrayList<>();
             switch (sqlType) {
                 case "CreateTable":
 //                    log.WrteLog(s);
@@ -216,7 +221,7 @@ public class TransAction {
                 case "CreateDeputyClass":
 //                    switch
  //                   log.WriteLog(id,k,op,s);
-                    CreateSelectDeputy(aa);
+                    new CreateDeputyClass().createDeputyClass(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     break;
 //                case "Create":
@@ -226,18 +231,18 @@ public class TransAction {
 //                    break;
                 case "Drop":
 //                    log.WriteLog(id,k,op,s);
-                    Drop(aa);
+                    new Drop().drop(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Insert":
 //                    log.WriteLog(id,k,op,s);
                     Insert insert=new Insert();
-                    if(insert.insert(stmt)) new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
-                    else new AlertDialog.Builder(context).setTitle("提示").setMessage("插入失败").setPositiveButton("确定",null).show();
+                    tuples=insert.insert(stmt);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
                     break;
                 case "Delete":
  //                   log.WriteLog(id,k,op,s);
-                    Delete(aa);
+                    tuples= new Delete().delete(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Select":
@@ -250,7 +255,7 @@ public class TransAction {
 //                    break;
                 case "Update":
  //                   log.WriteLog(id,k,op,s);
-                    Update(aa);
+                    tuples=new Update().update(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
                     break;
 //                case :
@@ -281,7 +286,7 @@ public class TransAction {
             }
         }
         for (int i = 0; i < count; i++) {
-            classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori"));
+            classt.classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori",""));
         }
 //        this.SaveAll();
         mem.loadClassTable();
@@ -684,7 +689,7 @@ public class TransAction {
                     bedeputyid = item.classid;
                     bedeputyattrid[i] = item.attrid;
 
-                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de"));
+                    classt.classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de",""));
                     //swi
                     if(Integer.parseInt(p[4+4*i]) == 1){
                         switchingT.switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));

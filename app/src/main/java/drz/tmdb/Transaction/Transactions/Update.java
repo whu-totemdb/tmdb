@@ -10,14 +10,14 @@ import net.sf.jsqlparser.statement.update.UpdateSet;
 import java.util.ArrayList;
 
 public class Update {
-    public boolean update(Statement stmt){
+    public ArrayList<Integer> update(Statement stmt){
         return execute((net.sf.jsqlparser.statement.update.Update) stmt);
     }
 
     //UPDATE Song SET type = ‘jazz’ WHERE songId = 100;
     //OPT_CREATE_UPDATE，Song，type，“jazz”，songId，=，100
     //0                  1     2      3        4      5  6
-    public boolean execute(net.sf.jsqlparser.statement.update.Update update){
+    public ArrayList<Integer> execute(net.sf.jsqlparser.statement.update.Update update){
         String updateTable=update.getTable().getName();
         ArrayList<UpdateSet> updateSets = update.getUpdateSets();
         Expression where = update.getWhere();

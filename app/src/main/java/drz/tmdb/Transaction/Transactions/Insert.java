@@ -6,6 +6,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 
 import drz.tmdb.Memory.Tuple;
@@ -14,12 +15,12 @@ import drz.tmdb.Memory.TupleList;
 public class Insert {
     public Insert(){}
 
-    public boolean insert(Statement stmt){
+    public ArrayList<Integer> insert(Statement stmt){
         return execute((net.sf.jsqlparser.statement.insert.Insert)stmt);
     }
 
 //    public boolean executor()
-    public boolean execute(net.sf.jsqlparser.statement.insert.Insert stmt){
+    public ArrayList<Integer> execute(net.sf.jsqlparser.statement.insert.Insert stmt){
 //        ArrayList<ClassTableItem> classTableItems=memConnect.getSelectItem(table,columns);
         //获取表名
         Table table=stmt.getTable();
@@ -32,6 +33,7 @@ public class Insert {
         TupleList tupleList=selectResult.getTpl();
         //获取插入表的表名
         String tablename=table.getName();
+        ArrayList<Integer> integers = new ArrayList<>();
         for(int i=0;i<tupleList.tuplenum;i++){
             Tuple tuple=tupleList.tuplelist.get(i);
             //创建memConnect中的tupleInsert需要的字符串数组
@@ -43,9 +45,9 @@ public class Insert {
             for(int j=0;j<tuple.tuple.length;j++){
                 p[j+3]=tuple.tuple[j].toString();
             }
-            new MemConnect().tupleInsert(p);
+            integers.add(new MemConnect().tupleInsert(p));
         }
-        return true;
+        return integers;
     }
 
     //INSERT INTO aa VALUES (1,2,"3");

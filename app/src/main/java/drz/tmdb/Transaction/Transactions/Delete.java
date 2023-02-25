@@ -7,12 +7,14 @@ import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 
+import java.util.ArrayList;
+
 public class Delete {
-    public boolean delete(Statement statement){
+    public ArrayList<Integer> delete(Statement statement){
         return execute((net.sf.jsqlparser.statement.delete.Delete) statement);
     }
 
-    public boolean execute(net.sf.jsqlparser.statement.delete.Delete delete){
+    public ArrayList<Integer> execute(net.sf.jsqlparser.statement.delete.Delete delete){
         //获取需要删除的表名
         Table table = delete.getTable();
         //获取delete中的where表达式
