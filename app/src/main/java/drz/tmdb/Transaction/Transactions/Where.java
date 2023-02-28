@@ -150,11 +150,9 @@ public class Where {
 
     public SelectResult getSelectResultFromSet(SelectResult selectResult,HashSet<Tuple> set){
         TupleList tupleList=new TupleList();
-        List<Tuple> tupleList1=new ArrayList<>();
         for(Tuple tuple:set){
-            tupleList1.add(tuple);
+            tupleList.addTuple(tuple);
         }
-        tupleList.tuplelist=tupleList1;
         selectResult.tpl=tupleList;
         return selectResult;
     }

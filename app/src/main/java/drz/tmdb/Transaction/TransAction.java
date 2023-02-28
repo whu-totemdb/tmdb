@@ -193,7 +193,7 @@ public class TransAction {
 //                    break;
 //
 //            }
-//        } catch (ParseException e) {
+//        } catch (ParseException e) {ååå
 //
 //            e.printStackTrace();
 //        }
@@ -201,16 +201,17 @@ public class TransAction {
 //        return s;
 //    }
 
-    public String query2(int id,String k,int op,String s) {
+    public String query2(String k, int op, String s) {
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+
+        ArrayList<Integer> tuples=new ArrayList<>();
         try {
             //使用JSqlparser进行sql语句解析，会根据sql类型生成对应的语法树。
             Statement stmt= CCJSqlParserUtil.parse(byteArrayInputStream);
 //            String[] aa = new String[2];
             //获取生成语法树的类型，用于进一步判断
             String sqlType=stmt.getClass().getSimpleName();
-            ArrayList<Integer> tuples=new ArrayList<>();
             switch (sqlType) {
                 case "CreateTable":
 //                    log.WrteLog(s);
@@ -248,6 +249,11 @@ public class TransAction {
                 case "Select":
                     Select select=new Select();
                     SelectResult selectResult=select.select((net.sf.jsqlparser.statement.select.Select) stmt);
+                    for (Tuple t:
+                         selectResult.getTpl().tuplelist) {
+                        tuples.add(t.getTupleId());
+                    }
+
                     this.PrintSelectResult(selectResult);
                     break;
 //                case parse.OPT_SELECT_INDERECTSELECT:

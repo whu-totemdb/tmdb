@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BinaryOperator;
+import java.util.stream.Stream;
 
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
@@ -430,9 +431,15 @@ public class Select {
         }
         else{
             //如果没有join的话，直接进行拼接
+            TupleList tupleList = new TupleList();
             for(Tuple tuple:rightTupleList.tuplelist){
-                leftTupleList.addTuple(tuple);
+                for (Tuple t : leftTupleList.tuplelist) {
+                    Tuple newTuple=new Tuple(Stream.concat(Arrays.stream(t.tuple),Arrays.stream(tuple.tuple)).toArray());
+                    newTuple.setTupleId(t.getTupleId());
+                    tupleList.addTuple(newTuple);
+                }
             }
+            return tupleList;
         }
         return leftTupleList;
     }
@@ -452,6 +459,7 @@ public class Select {
                     for (int i = leftTuple.tuple.length; i < newLength; i++) {
                         tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
                     }
+                    tempTuple.setTupleId(leftTuple.getTupleId());
                     tempTuple.tuple=tuple;
                     tupleList.addTuple(tempTuple);
                 }
@@ -490,6 +498,7 @@ public class Select {
                 for(int index:map.get(rightTuple.tuple[rightIndex])) {
                     Tuple leftTuple=left.tuplelist.get(index);
                     Tuple tempTuple = new Tuple();
+                    tempTuple.setTupleId(leftTuple.getTupleId());
                     int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
                     Object[] tuple = new Object[newLength];
                     for (int i = 0; i < leftTuple.tuple.length; i++) {
@@ -515,6 +524,7 @@ public class Select {
                     }
                     Tuple tempTuple = new Tuple();
                     tempTuple.tuple=tuple;
+                    tempTuple.setTupleId(tempLeft.getTupleId());
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -547,6 +557,7 @@ public class Select {
                 for(int index:map.get(leftTuple.tuple[leftIndex])) {
                     Tuple rightTuple=right.tuplelist.get(index);
                     Tuple tempTuple = new Tuple();
+                    tempTuple.setTupleId(rightTuple.getTupleId());
                     int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
                     Object[] tuple = new Object[newLength];
                     for (int i = 0; i < leftTuple.tuple.length; i++) {
@@ -570,6 +581,7 @@ public class Select {
                         tuple[i]=tempRight.tuple[i-left.tuplelist.get(0).tuple.length];
                     }
                     Tuple tempTuple = new Tuple();
+                    tempTuple.setTupleId(tempRight.getTupleId());
                     tempTuple.tuple=tuple;
                     tupleList.addTuple(tempTuple);
                 }

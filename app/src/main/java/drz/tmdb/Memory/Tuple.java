@@ -6,11 +6,20 @@ import java.util.Objects;
 
 public class Tuple implements Serializable {
     public int tupleHeader;
+    private int tupleId;
     public Object[] tuple;
 
     public Tuple(Object[] values) {
         tuple = values.clone();
         tupleHeader = values.length;
+    }
+
+    public int getTupleId() {
+        return tupleId;
+    }
+
+    public void setTupleId(int tupleId) {
+        this.tupleId = tupleId;
     }
 
     public Tuple(){}

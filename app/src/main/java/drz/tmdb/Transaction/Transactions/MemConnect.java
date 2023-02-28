@@ -122,6 +122,7 @@ public class MemConnect {
 //                for(int i=0;i<elicitAttrItemList.size();i++){
 //                    newTuple.tuple[i]=tuple.tuple[elicitAttrItemList.get(i).attrid];
 //                }
+                tuple.setTupleId(item.tupleid);
                 res.addTuple(tuple);
             }
         }
@@ -177,10 +178,8 @@ public class MemConnect {
 
         Tuple tuple = new Tuple(tuple_);
         tuple.tupleHeader=count;
-
+        int tupleid = topt.maxTupleId++;
         int[] a = InsertTuple(tuple);
-        topt.maxTupleId++;
-        int tupleid = topt.maxTupleId;
         topt.objectTable.add(new ObjectTableItem(classid,tupleid,a[0],a[1]));
         //向代理类加元组
         for(DeputyTableItem item:deputyt.deputyTable){

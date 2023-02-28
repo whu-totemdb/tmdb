@@ -56,8 +56,8 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //onStop();
-                //trans.Test();
+                onStop();
+//                trans.Test();
 //                try {
 //                    trans.clear();
 //                } catch (IOException e) {
