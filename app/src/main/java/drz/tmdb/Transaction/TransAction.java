@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 //import drz.tmdb.Level.LevelManager;
 import drz.tmdb.Level.LevelManager;
@@ -34,6 +36,7 @@ import drz.tmdb.Transaction.Transactions.Update;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
 import drz.tmdb.Transaction.SystemTable.*;
+import drz.tmdb.sync.node.database.Action;
 
 public class TransAction {
     public TransAction(Context context) throws IOException {
@@ -204,7 +207,8 @@ public class TransAction {
     public String query2(String k, int op, String s) {
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
-
+        Action action = new Action();
+        action.generate(s);
         ArrayList<Integer> tuples=new ArrayList<>();
         try {
             //使用JSqlparser进行sql语句解析，会根据sql类型生成对应的语法树。
@@ -212,6 +216,7 @@ public class TransAction {
 //            String[] aa = new String[2];
             //获取生成语法树的类型，用于进一步判断
             String sqlType=stmt.getClass().getSimpleName();
+
             switch (sqlType) {
                 case "CreateTable":
 //                    log.WrteLog(s);
@@ -276,6 +281,11 @@ public class TransAction {
         } catch (JSQLParserException e) {
             e.printStackTrace();
         }
+        int[] ints = new int[tuples.size()];
+        for (int i = 0; i < tuples.size(); i++) {
+            ints[i]=tuples.get(i);
+        }
+//        action.setKey(ints);
         return s;
     }
 
