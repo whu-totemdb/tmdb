@@ -15,9 +15,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 //import drz.tmdb.Level.LevelManager;
 import drz.tmdb.Level.LevelManager;
+import drz.tmdb.Log.*;
 import drz.tmdb.Memory.*;
 
 
@@ -33,6 +36,7 @@ import drz.tmdb.Transaction.Transactions.Update;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
 import drz.tmdb.Transaction.SystemTable.*;
+import drz.tmdb.sync.node.database.Action;
 
 public class TransAction {
     public TransAction(Context context) throws IOException {
@@ -56,7 +60,7 @@ public class TransAction {
     public static BiPointerTable biPointerT = memConnect.getBiPointerT();
     public static SwitchingTable switchingT = memConnect.getSwitchingT();
 
-//    LogManager log = new LogManager();
+    LogManager log = new LogManager();
 
     public MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
             deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
@@ -192,7 +196,7 @@ public class TransAction {
 //                    break;
 //
 //            }
-//        } catch (ParseException e) {
+//        } catch (ParseException e) {ååå
 //
 //            e.printStackTrace();
 //        }
@@ -203,10 +207,16 @@ public class TransAction {
     public String query2(String k, int op, String s) {
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
+        Action action = new Action();
+        action.generate(s);
+        ArrayList<Integer> tuples=new ArrayList<>();
         try {
+            //使用JSqlparser进行sql语句解析，会根据sql类型生成对应的语法树。
             Statement stmt= CCJSqlParserUtil.parse(byteArrayInputStream);
-            String[] aa = new String[2];
+//            String[] aa = new String[2];
+            //获取生成语法树的类型，用于进一步判断
             String sqlType=stmt.getClass().getSimpleName();
+
             switch (sqlType) {
                 case "CreateTable":
 //                    log.WrteLog(s);
@@ -217,9 +227,8 @@ public class TransAction {
                 case "CreateDeputyClass":
 //                    switch
  //                   log.WriteLog(id,k,op,s);
-                    if(new CreateDeputyClass().createDeputyClass(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
-                    }
+                    new CreateDeputyClass().createDeputyClass(stmt);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     break;
 //                case "Create":
 //                    log.WriteLog(s);
@@ -228,25 +237,28 @@ public class TransAction {
 //                    break;
                 case "Drop":
 //                    log.WriteLog(id,k,op,s);
-                    if(new Drop().drop(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
-                    }
+                    new Drop().drop(stmt);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Insert":
 //                    log.WriteLog(id,k,op,s);
                     Insert insert=new Insert();
-                    if(insert.insert(stmt)) new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
-                    else new AlertDialog.Builder(context).setTitle("提示").setMessage("插入失败").setPositiveButton("确定",null).show();
+                    tuples=insert.insert(stmt);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
                     break;
                 case "Delete":
  //                   log.WriteLog(id,k,op,s);
-                    if(new Delete().delete(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
-                    }
+                    tuples= new Delete().delete(stmt);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Select":
                     Select select=new Select();
                     SelectResult selectResult=select.select((net.sf.jsqlparser.statement.select.Select) stmt);
+                    for (Tuple t:
+                         selectResult.getTpl().tuplelist) {
+                        tuples.add(t.getTupleId());
+                    }
+
                     this.PrintSelectResult(selectResult);
                     break;
 //                case parse.OPT_SELECT_INDERECTSELECT:
@@ -254,9 +266,8 @@ public class TransAction {
 //                    break;
                 case "Update":
  //                   log.WriteLog(id,k,op,s);
-                    if(new Update().update(stmt)) {
-                        new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
-                    }
+                    tuples=new Update().update(stmt);
+                    new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
                     break;
 //                case :
 //                    log.WriteLog(s);
@@ -270,6 +281,11 @@ public class TransAction {
         } catch (JSQLParserException e) {
             e.printStackTrace();
         }
+        int[] ints = new int[tuples.size()];
+        for (int i = 0; i < tuples.size(); i++) {
+            ints[i]=tuples.get(i);
+        }
+//        action.setKey(ints);
         return s;
     }
 
@@ -518,6 +534,7 @@ public class TransAction {
 
     //DROP CLASS asd;
     //3,asd
+
     private void Drop(String[]p){
         List<DeputyTableItem> dti;
         dti = Drop1(p);

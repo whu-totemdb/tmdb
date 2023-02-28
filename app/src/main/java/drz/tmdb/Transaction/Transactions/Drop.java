@@ -10,6 +10,7 @@ public class Drop {
     public boolean execute(net.sf.jsqlparser.statement.drop.Drop drop){
         String[] p=new String[2];
         p[0]="-1";
+        //这里是删除表的表名
         p[1]=drop.getName().getName();
         return new MemConnect().drop(p);
     }

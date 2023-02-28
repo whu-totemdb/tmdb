@@ -3,12 +3,12 @@ package drz.tmdb.Transaction.Transactions;
 import drz.tmdb.Memory.TupleList;
 
 public class SelectResult {
-    TupleList tpl;
-    String[] className;
-    String[] attrname;
-    String[] alias;
-    int[] attrid;
-    String[] type;
+    TupleList tpl; //存实际的元祖
+    String[] className; //每个列的类名
+    String[] attrname; //列名
+    String[] alias;//每列的别名，在进行select时会用到
+    int[] attrid;// 显示时使用
+    String[] type;//元素类型，char，int这种
 
     public SelectResult(TupleList tpl, String[] className,String[] attrname, String[] alias,int[] attrid, String[] type) {
         this.className=className;

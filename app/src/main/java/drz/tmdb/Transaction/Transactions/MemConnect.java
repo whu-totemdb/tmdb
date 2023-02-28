@@ -30,6 +30,7 @@ import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
 import drz.tmdb.Transaction.TransAction;
 
 public class MemConnect {
+    //进行内存操作的一些一些方法和数据
     private static MemManage mem = new MemManage();
     private static ObjectTable topt = mem.loadObjectTable();
     private static ClassTable classt = mem.loadClassTable();
@@ -42,28 +43,35 @@ public class MemConnect {
     public MemConnect(){
     };
 
+    //获取tuple
     public Tuple GetTuple(int id, int offset) {
         return mem.readTuple(id,offset);
     }
 
+    //插入tuple
     public int[] InsertTuple(Tuple tuple){
         return mem.writeTuple(tuple);
     }
 
+    //删除tuple
     public void DeleteTuple(int id, int offset){
         mem.deleteTuple();
-        return;
     }
 
+    //更新tuple
     public void UpateTuple(Tuple tuple,int blockid,int offset){
         mem.UpateTuple(tuple,blockid,offset);
     }
 
+    //获取表的属性元素
     public ArrayList<ClassTableItem> getSelectItem(FromItem fromItem){
         ArrayList<ClassTableItem> elicitAttrItemList=new ArrayList<>();
         for(ClassTableItem item : classt.classTable){
+            //如果classTableItem中的className对上了fromItem就加入结果中
             if(item.classname.equals(((Table)fromItem).getName())){
+                //硬拷贝，不然后续操作会影响原始信息。
                 ClassTableItem temp=item.getCopy();
+                //因为后续有许多针对alias的比对操作，所以，如果fromItem中使用了alias，则在classTableItem中的alias属性中存入该值
                 if(fromItem.getAlias()!=null) temp.alias=fromItem.getAlias().getName();
                 elicitAttrItemList.add(temp);
             }
@@ -92,6 +100,7 @@ public class MemConnect {
         return elicitAttrItemList;
     }
 
+    //获取表在classTable中的id值
     public int getClassId(String fromItem){
         for(ClassTableItem item : classt.classTable) {
             if (item.classname.equals(fromItem)) {
@@ -101,6 +110,7 @@ public class MemConnect {
         return -1;
     }
 
+    //输入需要获取的表名，得到对应的元祖值
     public TupleList getTable(FromItem fromItem){
         int classid=this.getClassId(((Table) fromItem).getName());
         TupleList res=new TupleList();
@@ -112,6 +122,7 @@ public class MemConnect {
 //                for(int i=0;i<elicitAttrItemList.size();i++){
 //                    newTuple.tuple[i]=tuple.tuple[elicitAttrItemList.get(i).attrid];
 //                }
+                tuple.setTupleId(item.tupleid);
                 res.addTuple(tuple);
             }
         }
@@ -167,10 +178,8 @@ public class MemConnect {
 
         Tuple tuple = new Tuple(tuple_);
         tuple.tupleHeader=count;
-
+        int tupleid = topt.maxTupleId++;
         int[] a = InsertTuple(tuple);
-        topt.maxTupleId++;
-        int tupleid = topt.maxTupleId;
         topt.objectTable.add(new ObjectTableItem(classid,tupleid,a[0],a[1]));
         //向代理类加元组
         for(DeputyTableItem item:deputyt.deputyTable){
@@ -272,11 +281,11 @@ public class MemConnect {
 //        while(!mem.flush());
 //        while(!mem.setLogCheck(log.LogT.logID));
 //        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
-        MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
-                deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
-        LevelManager levelManager = memManager.levelManager;
-        memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
-        levelManager.saveIndexToFile();
+//        MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
+//                deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
+ //       LevelManager levelManager = memManager.levelManager;
+  //      memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
+  //      levelManager.saveIndexToFile();
     }
 
     public void reload(){
@@ -290,7 +299,7 @@ public class MemConnect {
     //CREATE SELECTDEPUTY aa SELECT  b1+2 AS c1,b2 AS c2,b3 AS c3 FROM  bb WHERE t1="1" ;
     //2,3,aa,b1,1,2,c1,b2,0,0,c2,b3,0,0,c3,bb,t1,=,"1"
     //0 1 2  3  4 5 6  7  8 9 10 11 121314 15 16 17 18
-    public void CreateSelectDeputy(String[] p) {
+    public boolean CreateSelectDeputy(String[] p) {
         int count = Integer.parseInt(p[1]);
         String classname = p[2];//代理类的名字
         String bedeputyname = p[4*count+3];//代理的类的名字
@@ -385,12 +394,13 @@ public class MemConnect {
         for(ObjectTableItem item6:obj) {
             topt.objectTable.add(item6);
         }
+        return true;
     }
 
     //UPDATE Song SET type = ‘jazz’WHERE songId = 100;
     //OPT_CREATE_UPDATE，Song，type，“jazz”，songId，=，100
     //0                  1     2      3        4      5  6
-    public boolean update(String[] p){
+    public ArrayList<Integer> update(String[] p){
         String classname = p[1];
         String attrname = p[2];
         String cattrname = p[4];
@@ -420,17 +430,18 @@ public class MemConnect {
         }
 
 
-
+        ArrayList<Integer> integers = new ArrayList<>();
         for(ObjectTableItem item3:topt.objectTable){
             if(item3.classid == classid){
                 Tuple tuple = GetTuple(item3.blockid,item3.offset);
                 if(Condition(cattrtype,tuple,cattrid,p[6])){
+                    integers.add(item3.tupleid);
                     UpdatebyID(item3.tupleid,attrid,p[3].replace("\"",""));
 
                 }
             }
         }
-        return true;
+        return integers;
     }
     private void UpdatebyID(int tupleid,int attrid,String value){
         for(ObjectTableItem item: topt.objectTable){
@@ -480,7 +491,7 @@ public class MemConnect {
 
     //DELETE FROM bb WHERE t4="5SS";
     //5,bb,t4,=,"5SS"
-    public boolean delete(String[] p) {
+    public ArrayList<Integer> delete(String[] p) {
         String classname = p[1];
         String attrname = p[2];
         int classid = 0;
@@ -513,13 +524,15 @@ public class MemConnect {
                 }
             }
         }
+        ArrayList<Integer> integers = new ArrayList<>();
         for(ObjectTableItem obj:ob2.o){
+            integers.add(obj.tupleid);
             topt.objectTable.remove(obj);
         }
         for(BiPointerTableItem bip:ob2.b) {
             biPointerT.biPointerTable.remove(bip);
         }
-        return true;
+        return integers;
     }
 
     private MemConnect.OandB DeletebyID(int id){
@@ -566,10 +579,6 @@ public class MemConnect {
                 DeleteTuple(item.blockid,item.offset);
                 if(!todelete2.contains(item));
                 todelete1.add(item);
-
-
-
-
 
             }
         }
