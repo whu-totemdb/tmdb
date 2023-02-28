@@ -1,12 +1,13 @@
 package drz.tmdb.sync.arbitration;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import drz.tmdb.sync.network.GossipRequest;
 import drz.tmdb.sync.network.Response;
 
-public class ArbitrationController {
+public class ArbitrationController implements Serializable {
 
     //请求号与对应的仲裁器的映射关系，只有协助节点才会生成仲裁器并存储
     private HashMap<String, Arbitration> arbitrationHashMap = new HashMap<>();

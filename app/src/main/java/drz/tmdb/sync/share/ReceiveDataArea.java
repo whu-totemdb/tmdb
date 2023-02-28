@@ -1,11 +1,12 @@
 package drz.tmdb.sync.share;
 
+import java.io.Serializable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import drz.tmdb.sync.network.GossipRequest;
 import drz.tmdb.sync.network.Response;
 
-public class ReceiveDataArea {
+public class ReceiveDataArea implements Serializable {
     private int areaSize;
 
     private ConcurrentLinkedQueue<GossipRequest> receivedRequestQueue;//gossip请求接收队列

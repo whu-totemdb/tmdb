@@ -1,6 +1,7 @@
 package drz.tmdb.sync.node.database;
 
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.Statement;
@@ -22,8 +23,14 @@ import java.io.ByteArrayInputStream;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 
+import drz.tmdb.sync.node.Node;
+import drz.tmdb.sync.node.database.statement.MyDeleteVisitor;
+import drz.tmdb.sync.node.database.statement.MyInsertVisitor;
+import drz.tmdb.sync.node.database.statement.MySelectVisitor;
+import drz.tmdb.sync.node.database.statement.MyUpdateVisitor;
 
 
 //注意事项：
@@ -41,15 +48,20 @@ public class Action implements Serializable {
 
     //private int classID;//表的id，由下层存储进行分配，尚不清楚是否会使用到
 
-    private long key;//主键，即tupleid
+    private long key;//主键值
 
-    private int attrNum;//操作的属性的个数
+    private int attrNum;//操作修改的属性的个数或查询操作查询的属性个数
 
-    private String[] attrName;//属性的名称
+    private String[] attrName;//操作修改的属性的名称或查询操作需要查询的属性名
 
-    private String[] attrType;//属性的类型，基本数据类型（如Integer、Long等）和String
+    private String[] attrType;//操作修改的属性的类型，基本数据类型（如Integer、Long等）和String，对查询操作该成员为空
 
-    private String[] value;//属性的值
+    private String[] value;//操作修改的属性的值，对查询操作该成员为空
+
+    //private Attribute[] attributes;//操作修改的属性
+
+
+    //查询或修改条件所使用的属性之间的关系
 
 
 
@@ -72,6 +84,14 @@ public class Action implements Serializable {
         this.attrType = attrType;
         this.value = value;
     }
+
+    public Action(OperationType op, String className, long key) {
+        this.op = op;
+        this.className = className;
+        this.key = key;
+    }
+
+
 
 
     public OperationType getOp() {
@@ -114,29 +134,7 @@ public class Action implements Serializable {
         this.attrNum = attrNum;
     }
 
-    public String[] getAttrName() {
-        return attrName;
-    }
 
-    public void setAttrName(String[] attrName) {
-        this.attrName = attrName;
-    }
-
-    public String[] getAttrType() {
-        return attrType;
-    }
-
-    public void setAttrType(String[] attrType) {
-        this.attrType = attrType;
-    }
-
-    public String[] getValue() {
-        return value;
-    }
-
-    public void setValue(String[] value) {
-        this.value = value;
-    }
 
 
     //基本数据类型包名全称
@@ -182,6 +180,7 @@ public class Action implements Serializable {
         Object[] objs = new Object[attrNum];
 
         for(i = 0; i < attrNum; i++){
+            //Attribute attribute = attributes[i];
             switch (attrType[i]){
                 /*case "char":
                     char c1 = value[i].charAt(0);
@@ -276,7 +275,7 @@ public class Action implements Serializable {
             InvocationTargetException {
 
 
-        Class<?> clazz = Class.forName(packageName + className);//className必须为全路径，即包的名称+类的名称
+        Class<?> clazz = Class.forName(packageName + className);//参数必须为全路径，即包的名称+类的名称
 
         Constructor<?> constructor = clazz.getDeclaredConstructor(getAttrTypeClass());
         Object[] o = cast();
@@ -285,12 +284,11 @@ public class Action implements Serializable {
         return obj;
     }
 
-    //根据sql生成一个Action对象
-    public static Action generate(String sqlStatement){
-        Action action;
+    //根据sql生成Action对象列表
+    public static ArrayList<Action> generate(String sqlStatement,ArrayList<Long> keys){
         OperationType op;
         String className;
-        int attrNum;
+        ArrayList<Action> actions = new ArrayList<>();
 
 
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(sqlStatement.getBytes());
@@ -298,18 +296,14 @@ public class Action implements Serializable {
             Statement statement = CCJSqlParserUtil.parse(byteArrayInputStream);
             String operationType = statement.getClass().getSimpleName();
             switch (operationType){
-                case "CreateTable":
-                    op = OperationType.create;
-                    CreateTable createTable = (CreateTable) statement;
-                    className = createTable.getTable().getName();
-                    break;
                 case "Insert":
                     op = OperationType.insert;
                     Insert insert = (Insert) statement;
-                    className = insert.getTable().getName();
+                    className = insert.getTable().getName();//表名
+                    //long key = Node.getNextIndex(className);
 
                     List<Column> list = insert.getColumns();
-                    attrNum = list.size();
+                    int attrNum = list.size();
                     String[] attrName = new String[attrNum];
 
                     int index = 0;
@@ -319,24 +313,51 @@ public class Action implements Serializable {
                     }
 
                     Select s = insert.getSelect();
-                    String str = s.getSelectBody().getClass().getSimpleName();
 
-                    MySelectVisitor selectVisitor = new MySelectVisitor();
-                    s.getSelectBody().accept(selectVisitor);
+                    MyInsertVisitor insertVisitor = new MyInsertVisitor();
+                    s.getSelectBody().accept(insertVisitor);
 
-                    return new Action(op,"",className,-1,selectVisitor.attrNum,attrName,selectVisitor.attrType,selectVisitor.value);
+                    for (Long key : keys) {
+                        Action action = new Action(op, "", className, key, insertVisitor.attrNum, attrName, insertVisitor.attrType, insertVisitor.value);
+                        actions.add(action);
+                    }
+
+                    return actions;
 
                 case "Delete":
                     op = OperationType.delete;
                     Delete delete = (Delete) statement;
-                    break;
+
+                    className = delete.getTable().getName();//表名
+
+                    Expression expression = delete.getWhere();
+
+                    MyDeleteVisitor myDeleteVisitor = new MyDeleteVisitor();
+                    expression.accept(myDeleteVisitor);
+
+                    for (Long key : keys) {
+                        Action action = new Action(op, className, key);
+                        actions.add(action);
+                    }
+
+                    return actions;
                 case "Update":
                     op = OperationType.update;
                     Update update = (Update) statement;
+
+                    className = update.getTable().getName();//表名称
+
+                    MyUpdateVisitor myUpdateVisitor = new MyUpdateVisitor();
+
+
                     break;
                 case "Select":
                     op = OperationType.select;
                     Select select = (Select) statement;
+
+                    MySelectVisitor mySelectVisitor = new MySelectVisitor();
+                    select.getSelectBody().accept(mySelectVisitor);
+
 
                     break;
                 default:
@@ -349,8 +370,8 @@ public class Action implements Serializable {
             e.printStackTrace();
         }
 
-        return null;
-        //return action;
+
+        return actions;
     }
 
 

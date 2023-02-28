@@ -54,6 +54,10 @@ public class TimeTest {
         }
     }
 
+    public static void showCost(String requestID){
+        costTreeMap.get(requestID).showCosts();
+    }
+
     public static void showCostTreeMap(){
         for (String requestID : costTreeMap.keySet()){
             System.out.println("同步请求"+requestID+"各部分耗时为：");

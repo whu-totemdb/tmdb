@@ -5,6 +5,7 @@ import java.net.*;
 
 import drz.tmdb.sync.node.Node;
 
+import drz.tmdb.sync.serializable.Serialization;
 import drz.tmdb.sync.share.RequestType;
 import drz.tmdb.sync.share.ResponseType;
 import drz.tmdb.sync.timeTest.ReceiveTimeTest;
@@ -12,7 +13,7 @@ import drz.tmdb.sync.timeTest.SendTimeTest;
 import drz.tmdb.sync.timeTest.TimeTest;
 
 
-public class SocketService {
+public class SocketService{
 
     private DatagramSocket receiveDatagramSocket;
 
@@ -72,6 +73,8 @@ public class SocketService {
                 + request.getTargetIPAddress().getAddress().toString()
                 + "发送数据");
 
+
+
         sendToTargetNode(request.getTargetIPAddress(),request);
     }
 
@@ -93,9 +96,22 @@ public class SocketService {
 
         try{
             ObjectOutput oo = new ObjectOutputStream(byteArrayOutputStream);
-            if (message instanceof Response && ((Response) message).getResponseType() == ResponseType.broadcastResponse){
-                ((Response) message).setSendTime(System.currentTimeMillis());
-                System.out.println(((Response) message).getSource()+"的广播响应发送时刻为："+System.currentTimeMillis());
+            if(Node.isTest()){
+                if (message instanceof GossipRequest){
+                    ((GossipRequest) message).sendTime = System.currentTimeMillis();
+                }
+                else if(message instanceof Response){
+                    if (((Response) message).getResponseType() != ResponseType.broadcastResponse) {
+                        ((Response) message).requestProcessTime += System.currentTimeMillis();
+                    }
+                }
+            }
+            if (message instanceof Response){
+                ((Response) message).setSendTime(System.currentTimeMillis());//设置响应的发送时刻
+                if (((Response) message).getResponseType() == ResponseType.broadcastResponse) {
+                    System.out.println(((Response) message).getSource() + "的广播响应发送时刻为：" + System.currentTimeMillis());
+                }
+
             }
 
             oo.writeObject(message);//耗时点
@@ -132,21 +148,27 @@ public class SocketService {
             sendPort = serverSocket.getLocalPort();
         }while (sendPort == receivePort || sendPort == Node.broadcastPort);
         DatagramSocket sendDatagramSocket = new DatagramSocket(sendPort);
+
         long l1 = System.currentTimeMillis();
-        byte[] data = getDataToTransport(message);//序列化
+        byte[] data = Serialization.serialization(message);//序列化
         long l2 = System.currentTimeMillis();
-        System.out.println(Thread.currentThread().getName()+"：序列化耗时为"+(l2-l1)+"ms");
-        if(Node.isTest()) {
-            if(message instanceof GossipRequest) {
-                TimeTest.putInCostTreeMap(((GossipRequest) message).getRequestID(), Thread.currentThread().getName()+"序列化耗时", (l2 - l1));
-            }
-        }
 
         DatagramPacket packet = new DatagramPacket(data,data.length,target.getAddress(), target.getPort());
 
         try{
 
             sendDatagramSocket.send(packet);
+            long l3 = System.currentTimeMillis();
+            if(Node.isTest()) {
+                System.out.println(Thread.currentThread().getName()+"：序列化耗时为"+(l2-l1)+"ms");
+                System.out.println(Thread.currentThread().getName()+"：传输的数据大小为"+data.length+"B");
+                if(message instanceof GossipRequest) {
+
+                    TimeTest.putInCostTreeMap(((GossipRequest) message).getRequestID(), Thread.currentThread().getName() + "发送请求序列化耗时", (l2 - l1));
+                    Node.timeMap.get(((GossipRequest) message).getRequestID()).requestSendTime = l3;
+
+                }
+            }
         }catch (IOException e){
 
             e.printStackTrace();
@@ -162,12 +184,12 @@ public class SocketService {
         }while (sendPort == Node.broadcastPort);
         DatagramSocket sendDatagramSocket = new DatagramSocket(sendPort);
 
-        byte[] data = getDataToTransport(gossipRequest);//序列化
+        byte[] data = Serialization.serialization(gossipRequest);//序列化
         DatagramPacket packet = new DatagramPacket(data,data.length,address, Node.broadcastPort);
 
         try{
             sendDatagramSocket.send(packet);
-            Deviation.setRequestSendTime(System.currentTimeMillis());//记录请求发送完的时刻
+            Deviation.setRequestSendTime(System.currentTimeMillis());//记录广播请求发送完的时刻
             System.out.println("广播请求发送时刻为："+System.currentTimeMillis());
             System.out.println(Thread.currentThread().getName() + "成功向本子网内其他节点发送广播请求");
         }catch (IOException e){
@@ -179,41 +201,44 @@ public class SocketService {
     public Object receiveData(){
         try{
             receiveDatagramSocket.receive(receivePacket);
-
-            /*InetAddress a = receivePacket.getAddress();
-            int b = receivePacket.getPort();*/
             byte[] data = receivePacket.getData();
 
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
-            ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
-
-            Object message = null;
+            /*ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+            ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);*/
 
             try{
                 long packageBefore = System.currentTimeMillis();
-                message = objectInputStream.readObject();//耗时点
+                Object message = Serialization.disSerialization(data);//耗时点，反序列化
                 long packageAfter = System.currentTimeMillis();
-                System.out.println(Thread.currentThread().getName()+"：反序列化耗时："+(packageAfter - packageBefore)+"ms");
 
                 if (message instanceof Response){
+                    System.out.println(Thread.currentThread().getName()+"：响应反序列化耗时："+(packageAfter - packageBefore)+"ms");
                     Response response = (Response) message;
                     if (response.getResponseType() == ResponseType.broadcastResponse){
-                        Deviation.setResponseReceiveTime(System.currentTimeMillis());
-                        System.out.println("广播响应接收时刻为："+System.currentTimeMillis());
+                        Deviation.setResponseReceiveTime(packageBefore);
+                        System.out.println("广播响应接收时刻为："+packageBefore);
                     }
                     else {
                         if(Node.isTest()) {
-                            TimeTest.putInCostTreeMap(response.getRequestID(),"响应反序列化耗时",(packageAfter - packageBefore));
+                            response.setReceiveTime(packageBefore);//记录响应的接收时刻
+                            TimeTest.putInCostTreeMap(response.getRequestID(),"读写响应反序列化耗时",(packageAfter - packageBefore));
+
+                            Node.timeMap.get(response.getRequestID()).responseReceiveTime = packageBefore;
+                            Node.timeMap.get(response.getRequestID()).requestProcessTime = response.requestProcessTime;
+
                         }
                     }
                 }
                 else if(message instanceof GossipRequest){
+                    System.out.println(Thread.currentThread().getName()+"：请求反序列化耗时："+(packageAfter - packageBefore)+"ms");
                     GossipRequest request = (GossipRequest) message;
 
                     String id = request.getRequestID();
 
                     if(Node.isTest()) {
-                        TimeTest.putInCostTreeMap(request.getRequestID(),"请求反序列化耗时",(packageAfter - packageBefore));
+                        ((GossipRequest) message).receiveTime = packageBefore;
+
+                        TimeTest.putInCostTreeMap(id,"请求反序列化耗时",(packageAfter - packageBefore));
                     }
                     /*if (!Node.receiveTimeTest.containsKey(id)){
                         ReceiveTimeTest r = new ReceiveTimeTest();
@@ -221,17 +246,14 @@ public class SocketService {
                         Node.receiveTimeTest.put(id,r);
                     }*/
                 }
-
-
                 //System.out.println("数据流读取所需时间为："+(packageAfter-packageBefore)+"ms");
 
             }catch (ClassNotFoundException classNotFoundException){
                 classNotFoundException.printStackTrace();
-            }finally {
+            }/*finally {
                 objectInputStream.close();
                 return message;
-            }
-
+            }*/
         }catch (IOException e){
             e.printStackTrace();
         }
@@ -253,7 +275,12 @@ public class SocketService {
                 long packageBefore = System.currentTimeMillis();
                 message = objectInputStream.readObject();//耗时点
                 long packageAfter = System.currentTimeMillis();
-                System.out.println("反序列化耗时："+(packageAfter - packageBefore)+"ms");
+                if (Node.isTest()) {
+                    System.out.println("广播请求反序列化耗时为："+(packageAfter - packageBefore)+"ms");
+                    if (message instanceof GossipRequest) {
+                        ((GossipRequest) message).receiveTime = packageAfter;
+                    }
+                }
 
 
             }catch (ClassNotFoundException classNotFoundException){

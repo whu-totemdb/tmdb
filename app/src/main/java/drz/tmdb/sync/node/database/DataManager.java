@@ -1,17 +1,18 @@
 package drz.tmdb.sync.node.database;
 
+import java.io.Serializable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class DataManager {
+public class DataManager implements Serializable {
 
     private ConcurrentLinkedQueue<Action> actionList;//更新操作对应的Action对象
 
-    private ConcurrentLinkedQueue<Action> oldActionList;//更新操作在更新数据前将旧数据封装为Action对象存储在这里
+    //private ConcurrentLinkedQueue<Action> oldActionList;//更新操作在更新数据前将旧数据封装为Action对象存储在这里
 
     public DataManager() {
 
         actionList = new ConcurrentLinkedQueue<>();
-        oldActionList = new ConcurrentLinkedQueue<>();
+        //oldActionList = new ConcurrentLinkedQueue<>();
     }
 
 
@@ -22,12 +23,12 @@ public class DataManager {
         }
     }
 
-    public void putOldAction(Action action){
+    /*public void putOldAction(Action action){
         synchronized (oldActionList){
             oldActionList.add(action);
             oldActionList.notifyAll();
         }
-    }
+    }*/
 
     public Action getAction(){
         Action head;
@@ -48,7 +49,7 @@ public class DataManager {
         return head;
     }
 
-    public Action getOldAction(){
+    /*public Action getOldAction(){
         Action head;
 
         synchronized (oldActionList){
@@ -66,5 +67,5 @@ public class DataManager {
 
         return head;
 
-    }
+    }*/
 }

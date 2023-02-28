@@ -1,8 +1,10 @@
 package drz.tmdb.sync.share;
 
+import java.io.Serializable;
+
 import drz.tmdb.sync.node.database.Action;
 
-public class WindowEntry {
+public class WindowEntry implements Serializable {
     private RequestType requestType;
 
     private Action action;
