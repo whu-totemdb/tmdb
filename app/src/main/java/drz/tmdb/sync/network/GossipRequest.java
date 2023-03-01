@@ -30,6 +30,11 @@ public class GossipRequest implements Serializable {
     private InetSocketAddress targetIPAddress;
 
 
+    //统计使用
+
+    public long sendTime;//请求的发送时刻
+
+    public long receiveTime;//请求的接收时刻
 
 
 

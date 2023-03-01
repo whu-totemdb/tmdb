@@ -1,10 +1,11 @@
 package drz.tmdb.sync.share;
 
+import java.io.Serializable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import drz.tmdb.sync.network.GossipRequest;
 
-public class SendInfo {
+public class SendInfo implements Serializable {
     private int structureSize;
 
     private ConcurrentLinkedQueue<Object[]> targets;//目标节点的IP套接字地址

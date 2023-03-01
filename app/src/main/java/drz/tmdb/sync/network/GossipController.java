@@ -8,6 +8,7 @@ import drz.tmdb.sync.timeTest.SendTimeTest;
 import drz.tmdb.sync.timeTest.TimeTest;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
-public class GossipController {
+public class GossipController implements Serializable {
     private final InetSocketAddress socketAddress;
 
     public SocketService socketService;
@@ -35,23 +36,13 @@ public class GossipController {
 
     private boolean stop = false;
 
-    private ConcurrentLinkedQueue<GossipRequest> receivedRequestQueue = new ConcurrentLinkedQueue<>();//接收的请求队列
-
     private GossipConfig gossipConfig = null;
-
-    private GossipUpdater onNewMember = null;
-
-    private GossipUpdater onFailedMember = null;
-
-    private GossipUpdater onRemovedMember = null;
-
-    private GossipUpdater onRevivedMember = null;
 
     public GossipController(int sendInfoSize, int receiveDataAreaSize, InetSocketAddress socketAddress, GossipConfig gossipConfig) {
         this.socketAddress = socketAddress;
         this.gossipConfig = gossipConfig;
 
-        this.socketService =new SocketService(socketAddress.getPort());
+        this.socketService = new SocketService(socketAddress.getPort());
         //currentNode = self;
 
         sendInfo = new SendInfo(sendInfoSize);
@@ -61,17 +52,21 @@ public class GossipController {
 
     }
 
-    /*public GossipController(InetSocketAddress sourceAddress, InetSocketAddress targetAddress, GossipConfig gossipConfig) {
-        this(sourceAddress, gossipConfig);
-        Node initialTarget = new Node(targetAddress, 0, gossipConfig);
-        nodes.putIfAbsent(initialTarget.getNodeID(), initialTarget);
-    }*/
+    public GossipController(
+            InetSocketAddress socketAddress,
+            GossipConfig gossipConfig,
+            SendInfo sendInfo,
+            ReceiveDataArea receiveDataArea
+            ) {
+        this.socketAddress = socketAddress;
+        this.gossipConfig = gossipConfig;
 
+        this.sendInfo = sendInfo;
+        this.receiveDataArea = receiveDataArea;
 
-
-    public ConcurrentLinkedQueue<GossipRequest> getReceivedRequestQueue() {
-        return receivedRequestQueue;
+        this.socketService = new SocketService(socketAddress.getPort());
     }
+
 
     public SendInfo getSendInfo() {
         return sendInfo;
@@ -149,22 +144,6 @@ public class GossipController {
         stop = true;
     }
 
-    public void setOnNewMember(GossipUpdater onNewMember) {
-        this.onNewMember = onNewMember;
-    }
-
-    public void setOnFailedMember(GossipUpdater onFailedMember) {
-        this.onFailedMember = onFailedMember;
-    }
-
-    public void setOnRemovedMember(GossipUpdater onRemovedMember) {
-        this.onRemovedMember = onRemovedMember;
-    }
-
-    public void setOnRevivedMember(GossipUpdater onRevivedMember) {
-        this.onRevivedMember = onRevivedMember;
-    }
-
 
 
     private void startSendThread(){
@@ -173,7 +152,7 @@ public class GossipController {
         Thread sendThread = new Thread(() -> {
             while (!stop) {
                 //GossipRequest currentRequest = sendInfo.getRequestToSend().poll();//取队首并移出队
-                sendGossipRequestToOtherNodes(/*currentRequest*/);
+                sendGossipRequestToOtherNodes();
                 try {
                     Thread.sleep(gossipConfig.updateFrequency.toMillis());
                 } catch (InterruptedException e) {
@@ -219,12 +198,12 @@ public class GossipController {
         return i;
     }
 
-    private void sendGossipRequestToOtherNodes(/*GossipRequest gossipRequest*/){
-        //currentNode.increaseVersion();
+    private void sendGossipRequestToOtherNodes(){
+
         GossipRequest gossipRequest;
         Object[] currentNodes;
 
-        long l1;
+
         synchronized (sendInfo) {
             if (sendInfo.structureIsEmpty()) {
                 try {
@@ -233,7 +212,7 @@ public class GossipController {
                     e.printStackTrace();
                 }
             }
-            l1 = System.currentTimeMillis();
+
             gossipRequest = sendInfo.getRequestToSend().poll();//取队首并移出队
             currentNodes = sendInfo.getTargets().poll();//取队首并移出队列
 
@@ -243,6 +222,7 @@ public class GossipController {
         List<InetSocketAddress> otherNodes = new ArrayList<>();
         //Object[] keys = nodes.keySet().toArray();
 
+        //如果活跃的节点数超过设置的上限，那么随机选择最大数量个节点进行发送
         if (currentNodes.length < gossipConfig.maxTransmitNode) {
             for (int i = 0; i < currentNodes.length; i++) {
                 //String key = (String) currentNodes[i];
@@ -267,12 +247,10 @@ public class GossipController {
             }
         }
 
-        long l2 = System.currentTimeMillis();
-        if(Node.isTest()) {
-            TimeTest.putInCostTreeMap(gossipRequest.getRequestID(),"获取发送信息耗时",(l2-l1));
-        }
+
+
         /*
-         * 对每个需要发送的节点都会开启一个线程进行异步的传输
+         * 对每个需要发送的节点都会开启一个线程进行异步传输
          * */
         try {
             int count = 0;//发送线程计数
@@ -284,7 +262,12 @@ public class GossipController {
 
                 Thread thread = new Thread(() -> {
                         try {
+                            long l1 = System.currentTimeMillis();
                             socketService.sendGossipRequest(gossipRequest);
+                            long l2 = System.currentTimeMillis();
+                            if(Node.isTest()) {
+                                System.out.println(Thread.currentThread().getName()+"完成发送的耗时为："+(l2-l1)+"ms");
+                            }
                         } catch (IOException e) {
                         e.printStackTrace();
                         }
@@ -292,13 +275,10 @@ public class GossipController {
 
                 count++;
                 System.out.println("当前执行的线程为：" + Thread.currentThread().getName());
-                l1 = System.currentTimeMillis();
+
                 thread.start();
                 thread.join();
-                l2 = System.currentTimeMillis();
-                if(Node.isTest()) {
-                    TimeTest.putInCostTreeMap(gossipRequest.getRequestID(),"发送线程"+count+"完成发送耗时",(l2-l1));
-                }
+
 
                 //Node.sendTimeTest.get(batch_id).setSendRequestTimeOnce(SendTimeTest.calculate(l,l1));
             }
@@ -400,8 +380,8 @@ public class GossipController {
                 }
 
                 //request.setReceiveTime(System.currentTimeMillis());
-                Deviation.setRequestReceiveTime(System.currentTimeMillis());
-                System.out.println("广播请求接收时刻为："+System.currentTimeMillis());
+                //Deviation.setRequestReceiveTime(request.receiveTime);
+                System.out.println("广播请求接收时刻为："+request.receiveTime);
 
 
                 System.out.println(Thread.currentThread().getName() + "：节点" + socketAddress.toString() + "接收到来自节点" + request.getSourceIPAddress().toString() + "的广播请求");

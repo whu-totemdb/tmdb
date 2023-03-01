@@ -1,29 +1,18 @@
-package drz.tmdb.sync.node.database;
+package drz.tmdb.sync.node.database.statement;
 
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.RowConstructor;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.statement.select.AllColumns;
-import net.sf.jsqlparser.statement.select.AllTableColumns;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectBody;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.statement.select.SelectItemVisitor;
 import net.sf.jsqlparser.statement.select.SelectVisitor;
-import net.sf.jsqlparser.statement.select.SetOperation;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-
-public class MySelectVisitor implements SelectVisitor {
+public class MyInsertVisitor implements SelectVisitor {
 
     public int attrNum;
 
@@ -66,7 +55,5 @@ public class MySelectVisitor implements SelectVisitor {
             }
 
         }
-
     }
-
 }

@@ -23,12 +23,15 @@ public class Response implements Serializable {
 
     private InetSocketAddress target;
 
-    private long sendTime;//响应发送的时刻
+    private long sendTime;//广播响应发送的时刻或读写响应的发送时刻
 
-    private long receiveTime;//请求接收的时刻
+    private long receiveTime;//广播请求接收的时刻或读写响应的接收时刻
 
     //测试时间使用
     private Cost cost;
+
+    public long requestProcessTime;
+
 
     public Response(){}
 

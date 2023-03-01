@@ -1,8 +1,11 @@
 package drz.tmdb.sync.node;
 
+
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 
-public class NodeInfo {
+
+public class NodeInfo implements Serializable {
     public InetSocketAddress socketAddress;
 
     public long error;

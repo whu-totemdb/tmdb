@@ -1,8 +1,10 @@
 package drz.tmdb.sync.arbitration;
 
+import java.io.Serializable;
+
 import drz.tmdb.sync.share.RequestType;
 
-public class Arbitration {
+public class Arbitration implements Serializable {
     private static int copyNum;//副本数量
 
     private static int minWriteNum;//达成写成功所需的最小写请求数

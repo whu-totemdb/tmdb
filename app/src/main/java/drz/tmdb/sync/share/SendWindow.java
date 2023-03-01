@@ -1,10 +1,11 @@
 package drz.tmdb.sync.share;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import drz.tmdb.sync.node.database.Action;
 
-public class SendWindow {
+public class SendWindow implements Serializable {
     private final int maxNum;//数组最大长度，即所能容纳的最大请求数量
 
     private int nextIndex = 0;//数组中下一个待填入元素的索引值，即队尾指针
