@@ -37,6 +37,7 @@ public class Where {
         return selectResult;
     }
 
+    //核心类，将整个where语法树进行后续遍历
     public SelectResult execute(Expression expression,SelectResult selectResult){
         SelectResult res=new SelectResult();
         if(selectResult.tpl.tuplelist.isEmpty()) return selectResult;
@@ -61,6 +62,7 @@ public class Where {
         HashSet<Tuple> selectResultSet1=getTupleSet(selectResult1);
         HashSet<Tuple> selectResultSet2=getTupleSet(selectResult2);
         HashSet<Tuple> overlap=new HashSet<>();
+        //将两个条件都满足的Tuple加入overlap中
         for(Tuple tuple:selectResultSet2){
             if(selectResultSet1.contains(tuple)) overlap.add(tuple);
         }
@@ -74,6 +76,7 @@ public class Where {
         SelectResult selectResult2=execute(right,selectResult);
         HashSet<Tuple> selectResultSet1=getTupleSet(selectResult1);
         HashSet<Tuple> selectResultSet2=getTupleSet(selectResult2);
+        //将selectResultSet2中tuple加入selectResultSet1中，这里将selectResultSet1作为结果集合
         for(Tuple tuple:selectResultSet2){
             selectResultSet1.add(tuple);
         }
@@ -83,12 +86,14 @@ public class Where {
     public SelectResult inExpression(InExpression expression, SelectResult selectResult){
         ArrayList<Object> left=formula.formulaExecute(expression.getLeftExpression(),selectResult);
         List<Object> right=new ArrayList<>();
+        //in表达式右边可能是一个list
         if(expression.getRightItemsList()!=null){
             for(Expression expression1:((ExpressionList)expression.getRightItemsList()).getExpressions()){
                 ArrayList<Object> temp2=formula.formulaExecute(expression1,selectResult);
                 right.add(transType(temp2.get(0)));
             }
         }
+        //in表达式的右边可能是一个SubSelect
         else if(expression.getRightExpression().getClass().getSimpleName().equals("SubSelect")){
             SelectResult temp=(new Select()).select(expression.getRightExpression());
             for(int i=0;i<temp.tpl.tuplelist.size();i++){
@@ -96,6 +101,7 @@ public class Where {
             }
         }
         ArrayList<Tuple> resTuple=new ArrayList<>();
+        //最后，如果left存在于right的集合中，就加入到结果集合
         for(int i=0;i<left.size();i++){
             if(right.contains(transType(left.get(i)))) resTuple.add(selectResult.tpl.tuplelist.get(i));
         }
@@ -110,6 +116,7 @@ public class Where {
         for(int i=0;i<left.size();i++){
             String tempLeft=transType(left.get(i));
             String tempRight=transType(right.get(i));
+            //左边和右边相等则加入结果集合。
             if(tempLeft.equals(tempRight)) set.add(selectResult.tpl.tuplelist.get(i));
         }
         return getSelectResultFromSet(selectResult,set);
@@ -122,6 +129,7 @@ public class Where {
         for(int i=0;i<left.size();i++){
             String tempLeft=transType(left.get(i));
             String tempRight=transType(right.get(i));
+            //左边小于右边，则加入结果集合
             if(tempLeft.compareTo(tempRight)<0) set.add(selectResult.tpl.tuplelist.get(i));
         }
         return getSelectResultFromSet(selectResult,set);
@@ -134,6 +142,7 @@ public class Where {
         for(int i=0;i<left.size();i++){
             String tempLeft=transType(left.get(i));
             String tempRight=transType(right.get(i));
+            //左边大于右边，则加入结果集合
             if(tempLeft.compareTo(tempRight)>0) set.add(selectResult.tpl.tuplelist.get(i));
         }
         return getSelectResultFromSet(selectResult,set);
@@ -157,6 +166,7 @@ public class Where {
         return selectResult;
     }
 
+    //进行类型转换，很多时候需要使用
     public String transType(Object obj){
         switch(obj.getClass().getSimpleName()){
             case "String":
