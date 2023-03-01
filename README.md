@@ -20,7 +20,7 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 
 ### Task 3
-阅读参考资料TMDB总体设计文档中的查询部分，Task3对应功能。
+阅读参考资料TMDB总体设计文档中的查询部分，实现Task3对应功能。
 
 
 ## 解决思路
