@@ -20,14 +20,14 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 
 ### Task 3
-https://grm0cnze7e.feishu.cn/docx/CqU5dknQDoPKRwxVkgwc4xrfnSe
+参考以下文档[查询](https://grm0cnze7e.feishu.cn/docx/CqU5dknQDoPKRwxVkgwc4xrfnSe)
 
 
 ## 解决思路
 
 - [TASK1-解决思路](file/task1-solution.md)
 - [TASK2-解决思路](file/task2-solution.md)
-- [TASK3-解决思路](file/task3-solution.md) https://grm0cnze7e.feishu.cn/docx/CqU5dknQDoPKRwxVkgwc4xrfnSe
+- [TASK3-解决思路](file/task3-solution.md) [查询](https://grm0cnze7e.feishu.cn/docx/CqU5dknQDoPKRwxVkgwc4xrfnSe)
 
 ## 参考资料
 
