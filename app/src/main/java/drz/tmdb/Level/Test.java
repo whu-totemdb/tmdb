@@ -245,7 +245,7 @@ public class Test {
     }
 
     // compaction 选择SSTable 算法测试
-    public static void test12(){
+    public static void test12() throws IOException {
         // test1 : compaction in level 0
         LevelManager levelManager = new LevelManager(1);
         levelManager.levelInfo = new HashMap<>();
@@ -294,8 +294,35 @@ public class Test {
     }
 
 
+    // 测试B-Tree search
     public static void test14(){
+        BTree<String, Long> btree = new BTree<String, Long>(3);
+        for (int i = 0; i < 20; ++i) {
+            String k = "k" + i;
+            long v = 123L * i;
+            btree.insert(k, v);
+        }
+        try{
+            File f = new File(Constant.DATABASE_DIR + "test");
+            f.createNewFile();
+            BufferedOutputStream writeAccess = new BufferedOutputStream(new FileOutputStream(f, true));
+            long rootOffset = btree.write(writeAccess, 0)[1];
+            writeAccess.flush();
+            writeAccess.close();
+            BTree<String, Long> btree2 = new BTree<>("test", rootOffset);
 
+            long t1 = System.currentTimeMillis();
+            for (int i = 0; i < 10; ++i) {
+                int random = (new Random()).nextInt(30);
+                System.out.println(btree2.search("k" + random));
+            }
+            long t2 = System.currentTimeMillis();
+            System.out.println("查询b树1k次耗时" + (t2 - t1) + "ms");
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return;
 
 
     }

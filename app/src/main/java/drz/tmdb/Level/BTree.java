@@ -2,7 +2,9 @@ package drz.tmdb.Level;
 
 
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -93,7 +95,6 @@ public class BTree<K, V> {
     /**
      * B树中的节点。
      * <p>
-     * TODO 需要考虑并发情况下的存取。
      */
     private static class BTreeNode<K, V> {
         /**
@@ -443,7 +444,7 @@ public class BTree<K, V> {
         // type       int, 0表示非叶子节点，1表示叶子节点
         // k-v        首先用一个int表示有多少个键值对，k长度在Constant文件中有限制，v为long
         // children   type=1时不存在。首先用一个int表示有多少个子节点，每个子节点用一个long记录偏移
-        public long write(BufferedOutputStream outputStream, long offset){
+        public long write(BufferedOutputStream outputStream, long offset) throws IOException {
             // 更新offset
             this.offset = offset;
 
@@ -456,28 +457,16 @@ public class BTree<K, V> {
                 // 该节点所有Entry需要占用的字节数
                 // 额外的8个字节，一个字节记录该node的type，一个字节记录k-v对的个数
                 int totalLength = entrys.size() * singleEntryLength + 8;
-                byte[] data = new byte[totalLength];
-                int index = 0; // 用来记录当前填充的位置
                 // 首部4字节记录type
-                System.arraycopy(Constant.INT_TO_BYTES(1), 0, data, index, Integer.BYTES);
-                index += Integer.BYTES;
+                outputStream.write(Constant.INT_TO_BYTES(1));
                 // 再4字节记录k-v对的个数
-                System.arraycopy(Constant.INT_TO_BYTES(entrys.size()), 0, data, index, Integer.BYTES);
-                index += Integer.BYTES;
+                outputStream.write(Constant.INT_TO_BYTES(entrys.size()));
                 // 依次写入各Entry
                 for(Entry entry : entrys){
                     // 写key
-                    System.arraycopy(Constant.KEY_TO_BYTES(entry.key.toString()), 0, data, index, Constant.MAX_KEY_LENGTH);
-                    index += Constant.MAX_KEY_LENGTH;
+                    outputStream.write(Constant.KEY_TO_BYTES(entry.key.toString()));
                     // 写value，其实是个记录offset的long
-                    System.arraycopy(Constant.LONG_TO_BYTES((long)entry.value), 0, data, index, Long.BYTES);
-                    index += Long.BYTES;
-                }
-                // 将byete[]写入文件
-                try{
-                    outputStream.write(data, 0, data.length);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    outputStream.write(Constant.LONG_TO_BYTES((long)entry.value));
                 }
                 return totalLength;
             }
@@ -496,37 +485,23 @@ public class BTree<K, V> {
                 int singleChildLength = Long.BYTES;
                 // 额外还需要12字节，一个int记录节点type，一个int记录entry个数，一个int记录child个数
                 int totalLength = singleEntryLength * entrys.size() + singleChildLength * children.size() + 12;
-                byte[] data = new byte[totalLength];
-                int index = 0; // 用来记录当前填充的位置
                 // 首部4字节记录type
-                System.arraycopy(Constant.INT_TO_BYTES(0), 0, data, index, Integer.BYTES);
-                index += Integer.BYTES;
+                outputStream.write(Constant.INT_TO_BYTES(0));
                 // 再4字节记录k-v对的个数
-                System.arraycopy(Constant.INT_TO_BYTES(entrys.size()), 0, data, index, Integer.BYTES);
-                index += Integer.BYTES;
+                outputStream.write(Constant.INT_TO_BYTES(entrys.size()));
                 // 依次写入各Entry
                 for(Entry entry : entrys){
                     // 写key
-                    System.arraycopy(Constant.KEY_TO_BYTES(entry.key.toString()), 0, data, index, Constant.MAX_KEY_LENGTH);
-                    index += Constant.MAX_KEY_LENGTH;
+                    outputStream.write(Constant.KEY_TO_BYTES(entry.key.toString()));
                     // 写value，其实是个记录offset的long
-                    System.arraycopy(Constant.LONG_TO_BYTES((long)entry.value), 0, data, index, Long.BYTES);
-                    index += Long.BYTES;
+                    outputStream.write(Constant.LONG_TO_BYTES((long)entry.value));
                 }
                 // 再4字节记录children的个数
-                System.arraycopy(Constant.INT_TO_BYTES(children.size()), 0, data, index, Integer.BYTES);
-                index += Integer.BYTES;
+                outputStream.write(Constant.INT_TO_BYTES(children.size()));
                 // 依次写入各Children
                 for(BTreeNode child : children){
                     // 每个child保存其offset
-                    System.arraycopy(Constant.LONG_TO_BYTES((long)child.offset), 0, data, index, Long.BYTES);
-                    index += Long.BYTES;
-                }
-                // 将byete[]写入文件
-                try{
-                    outputStream.write(data, 0, data.length);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    outputStream.write(Constant.LONG_TO_BYTES((long)child.offset));
                 }
                 return totalLength;
             }
@@ -626,10 +601,8 @@ public class BTree<K, V> {
             if (node.isLeaf())
                 return null;
             else
-                search(node.childAt(result.getIndex()), key);
-
+                return search(node.childAt(result.getIndex()), key);
         }
-        return null;
     }
 
     /**
@@ -965,7 +938,11 @@ public class BTree<K, V> {
 
     // BTNodes的持久化保存, 写到fileName的开始偏移为offset的地方，返回值 1.存储占用的总字节数 2.根节点所在偏移
     public long[] write(BufferedOutputStream outputStream, long offset){
-        root.write(outputStream, offset);
+        try{
+            root.write(outputStream, offset);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
         // 计算占用总字节数
         long totalSize;
