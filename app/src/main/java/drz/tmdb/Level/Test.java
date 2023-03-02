@@ -293,7 +293,6 @@ public class Test {
 
     }
 
-
     // 测试B-Tree search
     public static void test14(){
         BTree<String, Long> btree = new BTree<String, Long>(3);
@@ -327,5 +326,37 @@ public class Test {
 
     }
 
+    // compaction测试
+    public static void test15() throws IOException {
+        SSTable sst1 = new SSTable("SSTable1", 1);
+        for(int i=0; i<1000; i++){
+            sst1.data.put("k" + 2 * i, "v1");
+        }
+        sst1.writeSSTable();
+        SSTable sst2 = new SSTable("SSTable2", 1);
+        for(int i=0; i<1000; i++){
+            sst2.data.put("k" + 3 * i, "v2");
+        }
+        sst2.writeSSTable();
+        SSTable sst3 = new SSTable("SSTable3", 1);
+        for(int i=0; i<1000; i++){
+            sst3.data.put("k" + 4 * i, "v3");
+        }
+        sst3.writeSSTable();
+        LevelManager levelManager = new LevelManager();
+        levelManager.level_1.add(1);
+        levelManager.level_1.add(2);
+        levelManager.level_2.add(3);
+        levelManager.levelInfo.put("1", "1-200-k0-k99");
+        levelManager.levelInfo.put("2", "1-200-k0-k99");
+        levelManager.levelInfo.put("3", "2-200-k0-k99");
+        levelManager.levelInfo.put("maxDataFileSuffix", "3");
+        long t1 = System.currentTimeMillis();
+        levelManager.manualCompaction(1);
+        long t2 = System.currentTimeMillis();
+        System.out.println("执行compaction耗时" + (t2 - t1) + "ms");
+        SSTable sst4 = new SSTable("SSTable4", 2);
+        return;
+    }
 
 }

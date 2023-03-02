@@ -37,6 +37,7 @@ public class SSTable {
     private BTree<String, Long> bTree = new BTree<>();
 
     // SSTable的写通道
+    // 为避免频繁new flush close outputStream而浪费大量时间，将其设置成类属性一次打开一次关闭
     private BufferedOutputStream outputStream;
 
     // SSTable的读通道
@@ -54,7 +55,7 @@ public class SSTable {
     // constructor
     // 将文件读到内存中
     // mode = 1 构造空的SSTable对象（用于写文件）
-    // mode = 2 从SSTable读meta数据（用于查询）
+    // mode = 2 从SSTable读meta数据（用于查询的示范）
     public SSTable(String fileName, int mode){
         if(mode == 1){
             this.fileName = fileName;
@@ -185,38 +186,28 @@ public class SSTable {
         // 1. 分data block写入
         long dataBlockStartOffset = 0; // 此data block的开始偏移（记录B树结点时有用）
         long totalOffset = 0; // 总偏移
-        StringBuilder writeIn = new StringBuilder();
         // 遍历所有k-v
         for(Entry<String, Object> entry : this.data.entrySet()){
             String key = entry.getKey();
             byte[] key_b = Constant.KEY_TO_BYTES(key);
             String value = JSONObject.toJSONString(entry.getValue());
             byte[] value_b = value.getBytes();
-            // buffer为需要写入文件的字节数组，前4字节为该k-v的总长度
-            byte[] buffer = new byte[Integer.BYTES + key_b.length + value_b.length];
-            // buffer = length + key + value;
-            System.arraycopy(Constant.INT_TO_BYTES(key_b.length + value_b.length), 0, buffer, 0, Integer.BYTES);
-            System.arraycopy(key_b, 0, buffer, Integer.BYTES, key_b.length);
-            System.arraycopy(value_b, 0, buffer, Integer.BYTES + key_b.length, value_b.length);
-            // 为避免频繁调用接口写文件，现将buffer中的数据暂时记录，每次data block装满统一写入
-            writeIn.append(new String(buffer));
-            totalOffset += buffer.length;
+            // 写入 length + key + value;
+            appendToFile(Constant.INT_TO_BYTES(key_b.length + value_b.length));
+            appendToFile(key_b);
+            appendToFile(value_b);
+            totalOffset += Integer.BYTES + key_b.length + value_b.length;
             // 如果data block写满，则开启新data block，将旧data block的最大key和起始偏移记录到B树中
             if(totalOffset - dataBlockStartOffset > Constant.MAX_DATA_BLOCK_SIZE){
                 this.bTree.insert(key, dataBlockStartOffset);
-                appendToFile(writeIn.toString().getBytes());
                 dataBlockStartOffset = totalOffset;
-                writeIn = new StringBuilder("");
             }
-            // k-v 写入SSTable
-            //Constant.writeBytesToFile(buffer, this.fileName);
             // 更新Bloom Filter
             this.bloomFilter.add(key);
         }
         //  遍历结束时，未满的data block信息也写入B-Tree
         if(dataBlockStartOffset != totalOffset){
             this.bTree.insert(this.data.lastKey(), dataBlockStartOffset);
-            appendToFile(writeIn.toString().getBytes());
         }
 
         // 3. 写zone map
@@ -244,14 +235,12 @@ public class SSTable {
         // 6. 写Footer
         long footerStartOffset = indexBlockStartOffset + indexBlockLength;
         long footerLength = Long.BYTES * 6;
-        buffer = new byte[(int) footerLength];
-        System.arraycopy(Constant.LONG_TO_BYTES(zoneMapStartOffset), 0, buffer, 0, Long.BYTES);
-        System.arraycopy(Constant.LONG_TO_BYTES(zoneMapLength), 0, buffer, Long.BYTES, Long.BYTES);
-        System.arraycopy(Constant.LONG_TO_BYTES(bloomFilterStartOffset), 0, buffer, Long.BYTES * 2, Long.BYTES);
-        System.arraycopy(Constant.LONG_TO_BYTES(bloomFilterLength), 0, buffer, Long.BYTES * 3, Long.BYTES);
-        System.arraycopy(Constant.LONG_TO_BYTES(bTreeRootOffset), 0, buffer, Long.BYTES * 4, Long.BYTES);
-        System.arraycopy(Constant.LONG_TO_BYTES(indexBlockLength), 0, buffer, Long.BYTES * 5, Long.BYTES);
-        appendToFile(buffer);
+        appendToFile(Constant.LONG_TO_BYTES(zoneMapStartOffset));
+        appendToFile(Constant.LONG_TO_BYTES(zoneMapLength));
+        appendToFile(Constant.LONG_TO_BYTES(bloomFilterStartOffset));
+        appendToFile(Constant.LONG_TO_BYTES(bloomFilterLength));
+        appendToFile(Constant.LONG_TO_BYTES(bTreeRootOffset));
+        appendToFile(Constant.LONG_TO_BYTES(indexBlockLength));
 
         // flush
         try{

@@ -14,11 +14,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -123,7 +125,7 @@ public class LevelManager {
 
 
     // 手动调用的compaction，指定需要进行compaction的level
-    public void manualCompaction(int level){
+    public void manualCompaction(int level) throws IOException {
         if(level < 0 || level >= Constant.MAX_LEVEL)
             return;
 
@@ -167,18 +169,209 @@ public class LevelManager {
             filesToCompact.addAll(files2);
         }
 
-        compact(filesToCompact);
+        compact(filesToCompact, level + 1);
     }
 
-    // 对集合set中所有SSTable执行compaction
-    // target      = []   目标合并的SSTables（int型的后缀）
-    // pointers    = []   指针，记录每个SSTable当前处理的进度（long型的offset）
-    // ceilings    = []   记录每个SSTable的最大offset（通过读取Footer中zone map的偏移-1 得到）
-    // totalString = ""   记录写入新SSTable的内容
-    // 每次处理众多pointer指向的最小key，若
-    private void compact(Set<Integer> set){
+    // 对集合set中所有SSTable执行compaction,新SSTable置于level层
+    // target         = []   目标合并的SSTables（int型的后缀）
+    // pointers       = []   指针，记录每个SSTable当前处理的进度（long型的offset）
+    // ceilings       = []   记录每个SSTable的最大offset（通过读取Footer中zone map的偏移-1 得到）
+    // currentKeys    = []   记录当前pointer对应的key
+    // currentLength  = []   记录当前pointer对应的k-v的总length
+    // 每次keys中的最小值，若pointer超出ceiling则对应的SSTable扫描完毕，若所有pointer都扫描完毕则结束
+    // 执行思路：
+    // 1.各种初始化
+    // 2.while(pointers未达到ceilings){
+    //     找出currentKeys中最小的Key（可能为多个）
+    //     将最小key和它对应的value写入新SSTable
+    //     更新pointers：最小key对应的SSTable的pointer往后移动（移动距离根据currentLength）
+    //     更新currentKeys
+    //     更新currentKeys
+    // 3.新SSTable的meta data写入，并flush写通道
+    private void compact(Set<Integer> set, int level) throws IOException {
 
-        // todo
+        // 获取最新dataFileSuffix并+1
+        int dataFileSuffix = Integer.parseInt(this.levelInfo.get("maxDataFileSuffix")) + 1;
+        this.levelInfo.put("maxDataFileSuffix", "" + dataFileSuffix);
+
+        // 打开新SSTable的写通道
+        File f = new File(Constant.DATABASE_DIR + "SSTable" + dataFileSuffix);
+        BufferedOutputStream writeAccess = new BufferedOutputStream(new FileOutputStream(f, true));
+
+        // 初始化compaction需要的参数
+        List<Integer> targetSSTable = new ArrayList<>(set);
+        int size = targetSSTable.size();
+        List<Long> pointers = new ArrayList<>(size);
+        List<Long> ceilings = new ArrayList<>(size);
+        List<RandomAccessFile> readAccesses = new ArrayList<>(size); // 对应每个SSTable的读通道
+        List<String> currentKeys = new ArrayList<>(size);
+        List<Integer> currentLength = new ArrayList<>(size);
+
+        // 初始化readAccesses和ceilings
+        // 读取各个SSTable的bloom filter部分，估计总元素个数
+        int estimateItemCount = 0; // 总元素个数
+        for(int i=0; i<size; i++){
+            pointers.add(0L);
+            // 初始化readAccesses
+            RandomAccessFile raf = new RandomAccessFile(DATABASE_DIR + "SSTable" + targetSSTable.get(i), "r");
+            readAccesses.add(raf);
+            // 初始化ceilings
+            long len = raf.length() - 6 * Long.BYTES; // Footer最后48字节，
+            byte[] buffer = new byte[Long.BYTES];
+            raf.seek(len);
+            raf.read(buffer);
+            ceilings.add(Constant.BYTES_TO_LONG(buffer) - 1);
+            // 初始化estimateItemCount
+            len = raf.length() - 4 * Long.BYTES; // bloom filter对应的start offset
+            raf.seek(len);
+            long offset = raf.readLong();
+            raf.seek(offset);
+            estimateItemCount += raf.readInt();
+            // 将读文件的指针重新指回0
+            raf.seek(0);
+        }
+
+        // 读各个SSTable的第一个K-V，初始化currentKeys和currentLength
+        for(int i=0; i<size; i++){
+            if(pointers.get(i) > ceilings.get(i))
+                continue;
+            readAccesses.get(i).seek(pointers.get(i));
+            currentLength.add(readAccesses.get(i).readInt());
+            byte[] keyBuffer = new byte[Constant.MAX_KEY_LENGTH];
+            readAccesses.get(i).read(keyBuffer, 0, Constant.MAX_KEY_LENGTH);
+            currentKeys.add(Constant.BYTES_TO_KEY(keyBuffer));
+        }
+
+        // 初始化new SSTable 的 meta data
+        BTree<String, Long> bTree = new BTree<>(); // B树，记录每个data block的最大key的offset
+        BloomFilter bloomFilter = new BloomFilter(estimateItemCount); // BloomFilter
+        String maxKey = "";
+        String minKey = "";
+        // 写SSTable需要的一些参数，用来进行data block划分
+        long dataBlockStartOffset = 0; // 此data block的开始偏移
+        long totalOffset = 0; // 总偏移
+
+        // 开始扫描各个SSTable
+        while(true){
+
+            // 找到currentkeys中最小的（可能不止一个）
+            List<Integer> minKeyIndex = findMinKeyIndex(pointers, ceilings, currentKeys);
+            if(minKeyIndex.size() == 0)
+                break;
+
+            // 最小key对应的在targetSSTable中的下标
+            int targetIndex;
+            // 如果最小key不止一个，则根据SSTable后缀的数字大小选择保留最大的后缀对应的value
+            if(minKeyIndex.size() > 1){
+                List<Integer> list = new ArrayList<>();
+                for(Integer x : minKeyIndex)
+                    list.add(targetSSTable.get(x));
+                int m = Collections.max(list); // SSTable的下标最大的为最新值，其他为过期数据
+                targetIndex = targetSSTable.indexOf(m);
+            }else{
+                targetIndex = minKeyIndex.get(0);
+            }
+
+            // 需要写入的值
+            readAccesses.get(targetIndex).seek(pointers.get(targetIndex));
+            byte[] data = new byte[currentLength.get(targetIndex) + Integer.BYTES];
+            readAccesses.get(targetIndex).read(data);
+
+            // 写入新SSTable
+            writeAccess.write(data);
+            totalOffset += data.length;
+
+            // 更新minKey和maxKey，由于是归并合并，第一次一定是minKey，最后一次的一定是maxKey
+            if(minKey.equals(""))
+                minKey = currentKeys.get(targetIndex);
+            maxKey = currentKeys.get(targetIndex);
+
+            // 如果data block写满，则开启新data block，将旧data block的最大key和起始偏移记录到B树中
+            if(totalOffset - dataBlockStartOffset > Constant.MAX_DATA_BLOCK_SIZE){
+                // (max key in this data block -> data block start offset)插入B-Tree
+                bTree.insert(currentKeys.get(targetIndex), dataBlockStartOffset);
+                // 更新dataBlockStartOffset
+                dataBlockStartOffset = totalOffset;
+            }
+
+            // 更新Bloom Filter
+            bloomFilter.add(currentKeys.get(targetIndex));
+
+            // 更新pointers、currentKeys、currentLength
+            for(Integer x : minKeyIndex){
+                pointers.set(x, pointers.get(x) + currentLength.get(x) + Integer.BYTES);
+                if(pointers.get(x) > ceilings.get(x))
+                    continue;
+                readAccesses.get(x).seek(pointers.get(x));
+                currentLength.set(x,readAccesses.get(x).readInt());
+                byte[] keyBuffer = new byte[Constant.MAX_KEY_LENGTH];
+                readAccesses.get(x).read(keyBuffer, 0, Constant.MAX_KEY_LENGTH);
+                currentKeys.set(x, Constant.BYTES_TO_KEY(keyBuffer));
+            }
+        }
+        //  遍历结束时，未满的data block信息也写入B-Tree
+        if(dataBlockStartOffset != totalOffset){
+            bTree.insert(maxKey, dataBlockStartOffset);
+        }
+
+        // 新SSTable的meta data写入
+        // 写zone map
+        long zoneMapStartOffset = totalOffset; // zone map的开始偏移
+        long zoneMapLength = Constant.MAX_KEY_LENGTH * 2; // zone map的长度
+        writeAccess.write(Constant.KEY_TO_BYTES(minKey));
+        writeAccess.write(Constant.KEY_TO_BYTES(maxKey));
+        // 写Bloom filter
+        long bloomFilterStartOffset = zoneMapStartOffset + zoneMapLength;
+        long bloomFilterLength = 4 + bloomFilter.getByteCount(); // +4 的原因见BloomFilter写文件的格式
+        bloomFilter.writeToFile(writeAccess);
+        // 写index block
+        long indexBlockStartOffset = bloomFilterStartOffset + bloomFilterLength;
+        long[] info = bTree.write(writeAccess, indexBlockStartOffset);
+        long indexBlockLength = info[0];
+        long bTreeRootOffset = info[1];
+        // 写Footer
+        long footerStartOffset = indexBlockStartOffset + indexBlockLength;
+        long footerLength = Long.BYTES * 6;
+        writeAccess.write(Constant.LONG_TO_BYTES(zoneMapStartOffset));
+        writeAccess.write(Constant.LONG_TO_BYTES(zoneMapLength));
+        writeAccess.write(Constant.LONG_TO_BYTES(bloomFilterStartOffset));
+        writeAccess.write(Constant.LONG_TO_BYTES(bloomFilterLength));
+        writeAccess.write(Constant.LONG_TO_BYTES(bTreeRootOffset));
+        writeAccess.write(Constant.LONG_TO_BYTES(indexBlockLength));
+
+        // flush close 各种写通道和读通道
+        writeAccess.flush();
+        writeAccess.close();
+        for(RandomAccessFile ra : readAccesses){
+            ra.close();
+        }
+
+        // 将该SSTable添加到对应level中
+        this.levels[level].add(dataFileSuffix);
+        // levelInfo 的结构  dataFileSuffix : level-length-minKey-maxKey
+        this.levelInfo.put("" + dataFileSuffix, level + "-" + (footerLength + footerStartOffset) + "-" + minKey + "-" + maxKey);
+    }
+
+    // 在currentKeys中找到最小的key，返回对应的下标（可能不止一个）
+    // 如果pointer > ceiling，则不在考虑范围内
+    private List<Integer> findMinKeyIndex(List<Long> pointers, List<Long> ceilings, List<String> currentKeys){
+        List<String> scope = new ArrayList<>();// 考虑范围内的key
+        // 如果pointer > ceiling，则不在考虑范围内
+        for(int i=0; i<pointers.size(); i++){
+            if(pointers.get(i) < ceilings.get(i)){
+                scope.add(currentKeys.get(i));
+            }
+        }
+        List<Integer> ret = new ArrayList<>();
+        if(scope.size() == 0)
+            return ret;
+        String minKey = Collections.min(scope);
+        for(int i=0; i<currentKeys.size(); i++){
+            if(currentKeys.get(i).equals(minKey)){
+                ret.add(i);
+            }
+        }
+        return ret;
     }
 
     // 遍历level层中所有文件，找出与s中所有SSTable均无重叠的文件名后缀
@@ -223,7 +416,7 @@ public class LevelManager {
 
 
     // 自动调用的compaction，根据score选择最需要执行的一个就行
-    public void autoCompaction(){
+    public void autoCompaction() throws IOException {
         List<Float> scores = calScore();
         // 遍历一遍找最大score的level
         float maxScore = -1;
