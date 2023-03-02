@@ -1,6 +1,6 @@
 package drz.tmdb.Memory;
 
-import static drz.tmdb.Level.Test.test;
+import static drz.tmdb.Level.Test.test14;
 
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import drz.tmdb.Level.Constant;
-import drz.tmdb.Level.FileData;
 import drz.tmdb.Level.LevelManager;
+import drz.tmdb.Level.SSTable;
 import drz.tmdb.Log.LogManager;
 import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
 import drz.tmdb.Transaction.SystemTable.ClassTableItem;
@@ -46,7 +46,7 @@ public class MemManager {
         this.biPointerTable = b;
         this.switchingTable = s;
 
-        test();
+        test14();
     }
 
 
@@ -102,47 +102,52 @@ public class MemManager {
         int dataFileSuffix = Integer.parseInt(levelManager.levelInfo.get("maxDataFileSuffix")) + 1;
         levelManager.levelInfo.put("maxDataFileSuffix", "" + dataFileSuffix);
 
-        // 生成FileData对象，将内存中的对象以k-v的形式转移到FileData中
-        FileData f = new FileData("SSTable" + dataFileSuffix, 1);
+        // 生成SSTable对象，将内存中的对象以k-v的形式转移到FileData中
+        SSTable sst= new SSTable("SSTable" + dataFileSuffix, 1);
         for(Object o : this.biPointerTable){
             String k = Constant.calculateKey(o);
-            f.data.put(k, o);
+            sst.data.put(k, o);
 
         }
         for(Object o : this.classTable){
             String k = Constant.calculateKey(o);
-            f.data.put(k, o);
+            sst.data.put(k, o);
 
         }
         for(Object o : this.deputyTable){
             String k = Constant.calculateKey(o);
-            f.data.put(k, o);
+            sst.data.put(k, o);
 
         }
         for(Object o : this.objectTable){
             String k = Constant.calculateKey(o);
-            f.data.put(k, o);
+            sst.data.put(k, o);
 
         }
         for(Object o : this.switchingTable){
             String k = Constant.calculateKey(o);
-            f.data.put(k, o);
+            sst.data.put(k, o);
 
         }
 
         // 写SSTable
-        long SSTableTotalSize = f.writeSSTable();
+        long SSTableTotalSize = sst.writeSSTable();
 
         // 将该文件添加到对应level中
         levelManager.level_0.add(dataFileSuffix);
-        // totalIndex 的结构  dataFileSuffix : level-length-minKey-maxKey
-        levelManager.levelInfo.put("" + dataFileSuffix, "0" + "-" + SSTableTotalSize + "-" + f.getMinKey() + "-" + f.getMaxKey());
+        // levelInfo 的结构  dataFileSuffix : level-length-minKey-maxKey
+        levelManager.levelInfo.put("" + dataFileSuffix, "0" + "-" + SSTableTotalSize + "-" + sst.getMinKey() + "-" + sst.getMaxKey());
 
         // 内存清空
         clearMem();
         //设置检查点
         logManager.setCheckpoint();
     }
+
+    // todo
+//    public String search(String key){
+//
+//    }
 
 
 }
