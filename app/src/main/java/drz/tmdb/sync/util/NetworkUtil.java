@@ -28,7 +28,7 @@ public class NetworkUtil {
                 while (inet.hasMoreElements())
                 {
                     InetAddress ip = inet.nextElement();
-                    if (!ip.isLoopbackAddress() && isIPv4Address(ip.getHostAddress()))
+                    if (ip != null && ip instanceof  Inet4Address && !ip.isLoopbackAddress() && isIPv4Address(ip.getHostAddress()))
                     {
                         ipaddress = ip.getHostAddress();
                         return ipaddress;

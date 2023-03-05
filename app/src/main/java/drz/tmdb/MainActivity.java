@@ -17,6 +17,7 @@ import drz.tmdb.Transaction.TransAction;
 import drz.tmdb.sync.Sync;
 import drz.tmdb.sync.node.database.Action;
 import drz.tmdb.sync.node.database.OperationType;
+import drz.tmdb.sync.util.FilePathUtil;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,7 +43,9 @@ public class MainActivity extends AppCompatActivity {
         new Thread(()->{
 
             try {
-                Sync.initialNode(9090);
+                System.out.println(FilePathUtil.getFileDir(this));
+                //Sync.setPathName(FilePathUtil.getFileDir(this));
+                Sync.initialNode(9090,this);
                 //node.start();
             }catch (Exception e){
                 e.printStackTrace();
@@ -122,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        //广播按钮
+       /* //广播按钮
         Button broadcast_button = findViewById(R.id.broadcast_button);
 
         broadcast_button.setOnClickListener(new View.OnClickListener() {
@@ -138,12 +141,12 @@ public class MainActivity extends AppCompatActivity {
 
 
             }
-        });
+        });*/
 
 
 
         //同步按钮
-        Button sync_button = findViewById(R.id.sync_button);
+        /*Button sync_button = findViewById(R.id.sync_button);
         sync_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -162,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                 Sync.syncStart(action);
 
             }
-        });
+        });*/
 
 
 

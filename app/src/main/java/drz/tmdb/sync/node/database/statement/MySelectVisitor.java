@@ -115,11 +115,14 @@ public class MySelectVisitor implements SelectVisitor,
         FromItemVisitor,
         ExpressionVisitor {
 
-    public int attrNum;
+    public String className;
 
-    public String[] attrType;
+    public int attrNum = 0;
 
-    public String[] value;
+    private int index = 0;
+
+    public String[] attrName;
+
 
     @Override
     public void visit(BitwiseRightShift bitwiseRightShift) {
@@ -303,7 +306,9 @@ public class MySelectVisitor implements SelectVisitor,
 
     @Override
     public void visit(Column column) {
-
+        String name = column.getColumnName();
+        attrName[index] = name;
+        index++;
     }
 
     @Override
@@ -543,7 +548,7 @@ public class MySelectVisitor implements SelectVisitor,
 
     @Override
     public void visit(Table table) {
-
+        className = table.getName();
     }
 
     @Override
@@ -588,15 +593,14 @@ public class MySelectVisitor implements SelectVisitor,
 
     @Override
     public void visit(SelectExpressionItem selectExpressionItem) {
-        if (Function.class.isInstance(selectExpressionItem.getExpression())) {
-            Function function = (Function) selectExpressionItem.getExpression();
-            function.accept(this);
-        }
+        selectExpressionItem.getExpression().accept(this);
     }
 
     @Override
     public void visit(PlainSelect plainSelect) {
         List<SelectItem> selectItems = plainSelect.getSelectItems();
+        attrNum = selectItems.size();
+        attrName = new String[attrNum];
         if (selectItems != null && selectItems.size() > 0) {
             selectItems.forEach(selectItem -> {
                 selectItem.accept(this);
@@ -608,8 +612,6 @@ public class MySelectVisitor implements SelectVisitor,
         if (fromItem!=null){
             fromItem.accept(this);
         }
-
-        //处理where字段
 
     }
 

@@ -432,9 +432,9 @@ public class Node implements Serializable {
             clocks = new VectorClock();
         }
 
-        clocks.increaseVersion(getNodeID()/*getIPAddress().toString()*/,System.currentTimeMillis());
-        vectorClockMap.putIfAbsent(key,clocks);
-
+        clocks.increaseVersion(getNodeID(),System.currentTimeMillis());
+        //vectorClockMap.putIfAbsent(key,clocks);
+        vectorClockMap.put(key,clocks);
 
     }
 

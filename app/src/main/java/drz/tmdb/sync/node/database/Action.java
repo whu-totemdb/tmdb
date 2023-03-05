@@ -17,6 +17,7 @@ import net.sf.jsqlparser.statement.select.SetOperation;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.WithItem;
 import net.sf.jsqlparser.statement.update.Update;
+import net.sf.jsqlparser.statement.update.UpdateSet;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
 
 import java.io.ByteArrayInputStream;
@@ -85,10 +86,20 @@ public class Action implements Serializable {
         this.value = value;
     }
 
-    public Action(OperationType op, String className, long key) {
+    public Action(OperationType op, String schema, String className, long key) {
         this.op = op;
+        this.schema = schema;
         this.className = className;
         this.key = key;
+    }
+
+    public Action(OperationType op, String schema, String className, long key, int attrNum, String[] attrName) {
+        this.op = op;
+        this.schema = schema;
+        this.className = className;
+        this.key = key;
+        this.attrNum = attrNum;
+        this.attrName = attrName;
     }
 
 
@@ -285,7 +296,7 @@ public class Action implements Serializable {
     }
 
     //根据sql生成Action对象列表
-    public static ArrayList<Action> generate(String sqlStatement,ArrayList<Long> keys){
+    public static ArrayList<Action> generate(String schema, String sqlStatement, ArrayList<Long> keys){
         OperationType op;
         String className;
         ArrayList<Action> actions = new ArrayList<>();
@@ -303,8 +314,7 @@ public class Action implements Serializable {
                     //long key = Node.getNextIndex(className);
 
                     List<Column> list = insert.getColumns();
-                    int attrNum = list.size();
-                    String[] attrName = new String[attrNum];
+                    String[] attrName = new String[list.size()];
 
                     int index = 0;
                     for (Column column : list){
@@ -318,7 +328,7 @@ public class Action implements Serializable {
                     s.getSelectBody().accept(insertVisitor);
 
                     for (Long key : keys) {
-                        Action action = new Action(op, "", className, key, insertVisitor.attrNum, attrName, insertVisitor.attrType, insertVisitor.value);
+                        Action action = new Action(op, schema, className, key, insertVisitor.attrNum, attrName, insertVisitor.attrType, insertVisitor.value);
                         actions.add(action);
                     }
 
@@ -330,13 +340,13 @@ public class Action implements Serializable {
 
                     className = delete.getTable().getName();//表名
 
-                    Expression expression = delete.getWhere();
+                    /*Expression expression = delete.getWhere();
 
                     MyDeleteVisitor myDeleteVisitor = new MyDeleteVisitor();
-                    expression.accept(myDeleteVisitor);
+                    expression.accept(myDeleteVisitor);*/
 
                     for (Long key : keys) {
-                        Action action = new Action(op, className, key);
+                        Action action = new Action(op, schema, className, key);
                         actions.add(action);
                     }
 
@@ -347,10 +357,29 @@ public class Action implements Serializable {
 
                     className = update.getTable().getName();//表名称
 
-                    MyUpdateVisitor myUpdateVisitor = new MyUpdateVisitor();
+                    int attrNum = update.getUpdateSets().size();
+                    String[] attributeName = new String[attrNum];
+                    String[] attributeType = new String[attrNum];
+                    String[] value = new String[attrNum];
 
+                    int i = 0;
+                    for (UpdateSet set : update.getUpdateSets()){
+                        attributeName[i] = set.getColumns().get(0).getColumnName();//属性名
 
-                    break;
+                        MyUpdateVisitor myUpdateVisitor = new MyUpdateVisitor();
+                        set.getExpressions().get(0).accept(myUpdateVisitor);
+
+                        attributeType[i] = myUpdateVisitor.type;
+                        value[i] = myUpdateVisitor.value;
+                        i++;
+                    }
+
+                    for (Long key : keys) {
+                        Action action = new Action(op, schema, className, key, attrNum, attributeName, attributeType, value);
+                        actions.add(action);
+                    }
+
+                    return actions;
                 case "Select":
                     op = OperationType.select;
                     Select select = (Select) statement;
@@ -358,8 +387,12 @@ public class Action implements Serializable {
                     MySelectVisitor mySelectVisitor = new MySelectVisitor();
                     select.getSelectBody().accept(mySelectVisitor);
 
+                    for (Long key : keys) {
+                        Action action = new Action(op, schema, mySelectVisitor.className, key, mySelectVisitor.attrNum, mySelectVisitor.attrName);
+                        actions.add(action);
+                    }
 
-                    break;
+                    return actions;
                 default:
                     break;
             }
@@ -374,6 +407,16 @@ public class Action implements Serializable {
         return actions;
     }
 
+    public static ArrayList<Action> generate(OperationType op, String schema,String table,ArrayList<Long> keys,int attrNum,String[] attrName,String[] attrType,String[] value){
+        ArrayList<Action> actions = new ArrayList<>();
 
+        Action action;
+        for (long key : keys){
+            action = new Action(op,schema,table,key,attrNum,attrName,attrType,value);
+            actions.add(action);
+        }
+
+        return actions;
+    }
 
 }

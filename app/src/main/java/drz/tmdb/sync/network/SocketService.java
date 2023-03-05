@@ -203,12 +203,14 @@ public class SocketService{
             receiveDatagramSocket.receive(receivePacket);
             byte[] data = receivePacket.getData();
 
-            /*ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
-            ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);*/
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+            ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
 
+            Object message = null;
             try{
                 long packageBefore = System.currentTimeMillis();
-                Object message = Serialization.disSerialization(data);//耗时点，反序列化
+                //Object message = Serialization.disSerialization(data);//耗时点，反序列化
+                message = objectInputStream.readObject();
                 long packageAfter = System.currentTimeMillis();
 
                 if (message instanceof Response){
@@ -250,10 +252,10 @@ public class SocketService{
 
             }catch (ClassNotFoundException classNotFoundException){
                 classNotFoundException.printStackTrace();
-            }/*finally {
+            }finally {
                 objectInputStream.close();
                 return message;
-            }*/
+            }
         }catch (IOException e){
             e.printStackTrace();
         }
@@ -278,7 +280,7 @@ public class SocketService{
                 if (Node.isTest()) {
                     System.out.println("广播请求反序列化耗时为："+(packageAfter - packageBefore)+"ms");
                     if (message instanceof GossipRequest) {
-                        ((GossipRequest) message).receiveTime = packageAfter;
+                        ((GossipRequest) message).receiveTime = packageBefore;
                     }
                 }
 

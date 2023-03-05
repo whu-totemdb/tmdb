@@ -40,6 +40,7 @@ public class Serialization {
                     }
                 }
             }
+
             if (message instanceof Response){
                 ((Response) message).setSendTime(System.currentTimeMillis());//设置响应的发送时刻
                 if (((Response) message).getResponseType() == ResponseType.broadcastResponse) {

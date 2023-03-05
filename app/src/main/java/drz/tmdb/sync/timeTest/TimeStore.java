@@ -3,11 +3,11 @@ package drz.tmdb.sync.timeTest;
 public class TimeStore {
     public long requestStartTime;
 
-    public long requestSendTime;
+    public long requestSendTime;//请求发送时刻
 
     public long requestProcessTime;
 
-    public long responseReceiveTime;
+    public long responseReceiveTime;//响应接收时刻
 
     public long endTime;
 

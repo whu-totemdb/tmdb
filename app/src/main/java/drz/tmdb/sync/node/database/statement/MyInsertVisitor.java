@@ -50,7 +50,13 @@ public class MyInsertVisitor implements SelectVisitor {
             value=new String[attrNum];
 
             for(int j=0;j<expressionList1.getExpressions().size();j++){
-                attrType[j] = expressionList1.getExpressions().get(j).getClass().getSimpleName();
+                if (expressionList1.getExpressions().get(j).getClass().getSimpleName().equals("Column")){
+                    attrType[j] = "String";
+                }
+                else {
+                    attrType[j] = expressionList1.getExpressions().get(j).getClass().getSimpleName();
+                }
+
                 value[j] = expressionList1.getExpressions().get(j).toString();
             }
 
