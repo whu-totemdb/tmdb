@@ -2,18 +2,17 @@ package drz.tmdb.Level;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
-import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 
 // 定义一些常量和静态方法
 public class Constant {
@@ -176,21 +175,21 @@ public class Constant {
     }
 
 
-//    // 将字节流data，以追加的形式，写到文件fileName中
-//    public static void writeBytesToFile(byte[] data, String fileName){
-//        try{
-//            File file = new File(DATABASE_DIR + fileName);
-//            // 写data
-//            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
-//            output.write(data,0,data.length);
-//            output.flush();
-//            output.close();
-//        }catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    // 将字节流data，以追加的形式，写到文件fileName中
+    public static void writeBytesToFile(byte[] data, String fileName){
+        try{
+            File file = new File(DATABASE_DIR + fileName);
+            // 写data
+            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
+            output.write(data,0,data.length);
+            output.flush();
+            output.close();
+        }catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     // 从文件fileName的offset偏移处读取长度为length的字节流
     public static byte[] readBytesFromFile(String fileName, long offset, int length) {

@@ -14,7 +14,7 @@ import android.widget.TextView;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Transaction.SystemTable.ObjectTable;
+import drz.tmdb.Memory.SystemTable.ObjectTable;
 
 public class ShowObj extends AppCompatActivity implements Serializable {
     private final int W = ViewGroup.LayoutParams.WRAP_CONTENT;

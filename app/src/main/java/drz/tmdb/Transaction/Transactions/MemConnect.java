@@ -2,32 +2,25 @@ package drz.tmdb.Transaction.Transactions;
 
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.create.deputyclass.CreateDeputyClass;
 import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
-import net.sf.jsqlparser.statement.select.SelectItem;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import drz.tmdb.Level.LevelManager;
-import drz.tmdb.Log.LogManager;
 import drz.tmdb.Memory.MemManage;
-import drz.tmdb.Memory.MemManager;
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Transaction.SystemTable.BiPointerTable;
-import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
-import drz.tmdb.Transaction.SystemTable.ClassTable;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.DeputyTable;
-import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTable;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTable;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
-import drz.tmdb.Transaction.TransAction;
+import drz.tmdb.Memory.SystemTable.BiPointerTable;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTable;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTable;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTable;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTable;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 
 public class MemConnect {
     //进行内存操作的一些一些方法和数据

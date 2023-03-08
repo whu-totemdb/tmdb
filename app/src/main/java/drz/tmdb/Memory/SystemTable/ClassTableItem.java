@@ -1,8 +1,6 @@
-package drz.tmdb.Transaction.SystemTable;
+package drz.tmdb.Memory.SystemTable;
 
 import java.io.Serializable;
-
-import drz.tmdb.Transaction.Transactions.SelectResult;
 
 public class ClassTableItem implements Serializable {
     public String classname = null;        //类名

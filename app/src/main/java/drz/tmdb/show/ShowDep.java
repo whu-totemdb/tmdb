@@ -14,7 +14,7 @@ import android.widget.TextView;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Transaction.SystemTable.DeputyTable;
+import drz.tmdb.Memory.SystemTable.DeputyTable;
 
 public class ShowDep extends AppCompatActivity implements Serializable {
     private final int W = ViewGroup.LayoutParams.WRAP_CONTENT;

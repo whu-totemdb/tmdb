@@ -14,7 +14,7 @@ import android.widget.TextView;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Transaction.SystemTable.ClassTable;
+import drz.tmdb.Memory.SystemTable.ClassTable;
 
 public class ShowCla extends AppCompatActivity implements Serializable {
     private final int W = ViewGroup.LayoutParams.WRAP_CONTENT;

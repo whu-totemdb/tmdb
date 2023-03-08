@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -21,7 +22,7 @@ public class SSTable {
 
     // k-v
     // 使用SortedMap，自动按照key升序排序
-    public TreeMap<String, Object> data = new TreeMap<>();
+    public TreeMap<String, String> data = new TreeMap<>();
 
     // SSTable的文件名
     private String fileName;
@@ -31,10 +32,10 @@ public class SSTable {
     private String minKey = "";
 
     // BloomFilter
-    private BloomFilter bloomFilter;
+    public BloomFilter bloomFilter;
 
     // B树，记录每个data block的最大key的offset
-    private BTree<String, Long> bTree = new BTree<>();
+    private BTree<String, Long> bTree = new BTree<>(3);
 
     // SSTable的写通道
     // 为避免频繁new flush close outputStream而浪费大量时间，将其设置成类属性一次打开一次关闭
@@ -187,10 +188,10 @@ public class SSTable {
         long dataBlockStartOffset = 0; // 此data block的开始偏移（记录B树结点时有用）
         long totalOffset = 0; // 总偏移
         // 遍历所有k-v
-        for(Entry<String, Object> entry : this.data.entrySet()){
+        for(Entry<String, String> entry : this.data.entrySet()){
             String key = entry.getKey();
             byte[] key_b = Constant.KEY_TO_BYTES(key);
-            String value = JSONObject.toJSONString(entry.getValue());
+            String value = entry.getValue();
             byte[] value_b = value.getBytes();
             // 写入 length + key + value;
             appendToFile(Constant.INT_TO_BYTES(key_b.length + value_b.length));
@@ -250,6 +251,12 @@ public class SSTable {
         }
 
         return footerStartOffset + footerLength;
+    }
+
+
+    // todo: write your code here
+    public String search(String key) throws IOException {
+        return null;
     }
 
 }

@@ -15,8 +15,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 //import drz.tmdb.Level.LevelManager;
 import drz.tmdb.Level.LevelManager;
@@ -24,6 +22,16 @@ import drz.tmdb.Log.*;
 import drz.tmdb.Memory.*;
 
 
+import drz.tmdb.Memory.SystemTable.BiPointerTable;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTable;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTable;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTable;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTable;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 import drz.tmdb.Transaction.Transactions.Create;
 import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
 import drz.tmdb.Transaction.Transactions.Delete;
@@ -35,7 +43,7 @@ import drz.tmdb.Transaction.Transactions.SelectResult;
 import drz.tmdb.Transaction.Transactions.Update;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
-import drz.tmdb.Transaction.SystemTable.*;
+import drz.tmdb.Memory.SystemTable.*;
 import drz.tmdb.sync.Sync;
 import drz.tmdb.sync.node.database.Action;
 

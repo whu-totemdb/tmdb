@@ -1,11 +1,12 @@
 package drz.tmdb.Memory;
 
-import static drz.tmdb.Level.Test.test14;
+import static drz.tmdb.Level.Test.*;
 
 
 import org.apache.lucene.util.RamUsageEstimator;
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,11 +15,11 @@ import drz.tmdb.Level.Constant;
 import drz.tmdb.Level.LevelManager;
 import drz.tmdb.Level.SSTable;
 import drz.tmdb.Log.LogManager;
-import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 
 public class MemManager {
 
@@ -46,7 +47,7 @@ public class MemManager {
         this.biPointerTable = b;
         this.switchingTable = s;
 
-        test14();
+        test17();
     }
 
 
@@ -106,27 +107,27 @@ public class MemManager {
         SSTable sst= new SSTable("SSTable" + dataFileSuffix, 1);
         for(Object o : this.biPointerTable){
             String k = Constant.calculateKey(o);
-            sst.data.put(k, o);
+            sst.data.put(k, JSONObject.toJSONString(o));
 
         }
         for(Object o : this.classTable){
             String k = Constant.calculateKey(o);
-            sst.data.put(k, o);
+            sst.data.put(k, JSONObject.toJSONString(o));
 
         }
         for(Object o : this.deputyTable){
             String k = Constant.calculateKey(o);
-            sst.data.put(k, o);
+            sst.data.put(k, JSONObject.toJSONString(o));
 
         }
         for(Object o : this.objectTable){
             String k = Constant.calculateKey(o);
-            sst.data.put(k, o);
+            sst.data.put(k, JSONObject.toJSONString(o));
 
         }
         for(Object o : this.switchingTable){
             String k = Constant.calculateKey(o);
-            sst.data.put(k, o);
+            sst.data.put(k, JSONObject.toJSONString(o));
 
         }
 
@@ -144,10 +145,61 @@ public class MemManager {
         logManager.setCheckpoint();
     }
 
-    // todo
-//    public String search(String key){
-//
-//    }
 
+    // 查询key对应的value
+    // todo: write your code here
+    public String search(String key) throws IOException {
+        return null;
+    }
+
+
+    public void saveSystemTable(){
+        saveBiPointerTable();
+        saveClassTable();
+        saveDeputyTable();
+        saveSwitchingTable();
+    }
+
+    public void loadSystemTable(){
+        loadBiPointerTable();
+        loadClassTable();
+        loadDeputyTable();
+        loadSwitchingTable();
+    }
+
+    // BiPointerTableItem 有四个int属性
+    //  classid  objectid deputyid  deputyobjectid
+    private void saveBiPointerTable(){
+        File f = new File(Constant.DATABASE_DIR + "bpt");
+
+    }
+
+    private void loadBiPointerTable(){
+
+    }
+
+    private void saveClassTable(){
+
+    }
+
+    private void loadClassTable(){
+
+    }
+
+    private void saveDeputyTable(){
+
+    }
+
+    private void loadDeputyTable(){
+
+    }
+
+    private void saveSwitchingTable(){
+
+    }
+
+    private void loadSwitchingTable(){
+
+    }
 
 }

@@ -189,6 +189,8 @@ public class LevelManager {
     //     更新currentKeys
     // 3.新SSTable的meta data写入，并flush写通道
     private void compact(Set<Integer> set, int level) throws IOException {
+        if(level <= 0)
+            return;
 
         // 获取最新dataFileSuffix并+1
         int dataFileSuffix = Integer.parseInt(this.levelInfo.get("maxDataFileSuffix")) + 1;
@@ -350,6 +352,13 @@ public class LevelManager {
         this.levels[level].add(dataFileSuffix);
         // levelInfo 的结构  dataFileSuffix : level-length-minKey-maxKey
         this.levelInfo.put("" + dataFileSuffix, level + "-" + (footerLength + footerStartOffset) + "-" + minKey + "-" + maxKey);
+
+        // 旧SSTable从level中删除
+        for(Integer i : set){
+            this.levels[level - 1].remove(i);
+            this.levels[level].remove(i);
+            this.levelInfo.remove("" + i);
+        }
     }
 
     // 在currentKeys中找到最小的key，返回对应的下标（可能不止一个）

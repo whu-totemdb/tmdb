@@ -1,31 +1,25 @@
 package drz.tmdb.Transaction.Transactions;
 
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.RowConstructor;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.parser.SimpleNode;
 import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.*;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.BinaryOperator;
 import java.util.stream.Stream;
 
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
 
 //1、from子句组装来自不同数据源的数据；
 //2、where子句基于指定的条件对记录行进行筛选；

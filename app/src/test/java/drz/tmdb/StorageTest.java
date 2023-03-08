@@ -6,7 +6,7 @@ import java.io.IOException;
 
 import drz.tmdb.Level.SSTable;
 import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
 
 public class StorageTest {
     @Test

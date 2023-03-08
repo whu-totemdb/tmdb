@@ -12,10 +12,17 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import drz.tmdb.Log.LogTable;
-import drz.tmdb.Log.LogTableItem;
+import drz.tmdb.Memory.SystemTable.BiPointerTable;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTable;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTable;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTable;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 import drz.tmdb.Transaction.SystemTable.*;
-import drz.tmdb.Transaction.SystemTable.ObjectTable;
+import drz.tmdb.Memory.SystemTable.ObjectTable;
 
 public class MemManage implements Serializable {
     final private int attrstringlen=8; //属性最大字符串长度为8Byte
