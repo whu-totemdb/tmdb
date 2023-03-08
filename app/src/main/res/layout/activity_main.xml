@@ -107,28 +107,4 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/sync_button"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:layout_marginEnd="52dp"
-        android:text="sync"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.904"
-        app:layout_constraintStart_toEndOf="@+id/broadcast_button"
-        app:layout_constraintTop_toBottomOf="@+id/exit_button"
-        app:layout_constraintVertical_bias="0.578" />
-
-    <Button
-        android:id="@+id/broadcast_button"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
-        android:text="broadcast"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.199"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/exit_button" />
-
 </android.support.constraint.ConstraintLayout>

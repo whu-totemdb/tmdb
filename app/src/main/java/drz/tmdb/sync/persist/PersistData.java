@@ -15,25 +15,25 @@ import drz.tmdb.sync.vectorClock.VectorClock;
 //需要持久化保存的数据
 public class PersistData implements Serializable {
 
-    public String nodeID;
+    public String nodeID;//节点标识符
 
-    public int requestNum;
+    public int requestNum;//节点当前分配的本地请求号
 
-    public LocalDateTime lastUpdateTime;
+    public LocalDateTime lastUpdateTime;//上一次更新的本地时间
 
-    public ConcurrentHashMap<Long, VectorClock> vectorClockMap;
+    public ConcurrentHashMap<Long, VectorClock> vectorClockMap;//向量时钟表
 
-    public DataManager dataManager;
+    public DataManager dataManager;//同步数据区
 
-    public SendWindow sendWindow;
+    public SendWindow sendWindow;//发送窗口
 
-    public ConcurrentHashMap<String, NodeInfo> cluster;
+    public ConcurrentHashMap<String, NodeInfo> cluster;//集群节点信息
 
-    public ArbitrationController arbitrationController;
+    public ArbitrationController arbitrationController;//仲裁管理器
 
-    public SendInfo sendInfo;
+    public SendInfo sendInfo;//当前处理的同步请求的发送数据
 
-    public ReceiveDataArea receiveDataArea;
+    public ReceiveDataArea receiveDataArea;//本节点目前接收的数据区
 
     public PersistData(
             String nodeID,

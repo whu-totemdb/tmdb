@@ -1,34 +1,37 @@
 package drz.tmdb.sync.node.database;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class DataManager implements Serializable {
 
-    private ConcurrentLinkedQueue<Action> actionList;//更新操作对应的Action对象
+    private ConcurrentLinkedQueue<Action> actionList;
 
-    //private ConcurrentLinkedQueue<Action> oldActionList;//更新操作在更新数据前将旧数据封装为Action对象存储在这里
+    private final int maxActionNum = 65536;
+
+    private volatile int count;
+
+    private Action[] actions;
 
     public DataManager() {
-
         actionList = new ConcurrentLinkedQueue<>();
-        //oldActionList = new ConcurrentLinkedQueue<>();
+
+        actions = new Action[maxActionNum];
+        count = 0;
     }
 
+    public boolean isFull(){
+        return (count >= maxActionNum);
+    }
 
     public void putAction(Action action){
         synchronized (actionList){
             actionList.add(action);
             actionList.notifyAll();
         }
-    }
 
-    /*public void putOldAction(Action action){
-        synchronized (oldActionList){
-            oldActionList.add(action);
-            oldActionList.notifyAll();
-        }
-    }*/
+    }
 
     public Action getAction(){
         Action head;
@@ -44,28 +47,10 @@ public class DataManager implements Serializable {
 
             head = actionList.poll();
             actionList.notifyAll();
+
         }
 
         return head;
     }
 
-    /*public Action getOldAction(){
-        Action head;
-
-        synchronized (oldActionList){
-            if(oldActionList.isEmpty()){
-                try {
-                    oldActionList.wait();
-                }catch (InterruptedException e){
-                    e.printStackTrace();
-                }
-            }
-
-            head = oldActionList.poll();
-            oldActionList.notifyAll();
-        }
-
-        return head;
-
-    }*/
 }

@@ -30,6 +30,7 @@ public class Persist {
         File file = new File(pathName,fileName);
 
         if (!file.exists()){
+            file.getParentFile().mkdirs();
             file.createNewFile();
         }
 
