@@ -17,11 +17,8 @@ import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 // 定义一些常量和静态方法
 public class Constant {
 
-    // 数据库文件目录
+    // LSM-Tree文件目录
     public static final String DATABASE_DIR = "/data/data/drz.tmdb/level/";
-
-    // memTable最大大小为4MB=4*1024*1024B，超过就会触发compact到外存
-    public static final long MAX_MEM_SIZE = 4L * 1024 * 1024;
 
     // 最大level数
     public static final int MAX_LEVEL = 6;

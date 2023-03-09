@@ -4,11 +4,12 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.FromItem;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import drz.tmdb.Memory.MemManage;
+import drz.tmdb.Memory.MemManager;
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
 import drz.tmdb.Memory.SystemTable.BiPointerTable;
@@ -24,41 +25,50 @@ import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 
 public class MemConnect {
     //进行内存操作的一些一些方法和数据
-    private static MemManage mem = new MemManage();
-    private static ObjectTable topt = mem.loadObjectTable();
-    private static ClassTable classt = mem.loadClassTable();
-    private static DeputyTable deputyt = mem.loadDeputyTable();
-    private static BiPointerTable biPointerT = mem.loadBiPointerTable();
-    private static SwitchingTable switchingT = mem.loadSwitchingTable();
+    private static MemManager mem;
+    private static ObjectTable topt;
+    private static ClassTable classt;
+    private static DeputyTable deputyt;
+    private static BiPointerTable biPointerT;
+    private static SwitchingTable switchingT;
 
-//        LogManager log = new LogManager(this);
+    public MemConnect(){}
 
-    public MemConnect(){
+    public MemConnect(MemManager memManager){
+        this.mem = memManager;
+        topt = mem.objectTable;
+        classt = mem.classTable;
+        deputyt = mem.deputyTable;
+        biPointerT = mem.biPointerTable;
+        switchingT = mem.switchingTable;
+
     };
 
     //获取tuple
-    public Tuple GetTuple(int id, int offset) {
-        return mem.readTuple(id,offset);
-    }
-
-    public Tuple GetTuple(int id){
-        return null;
+    // todo
+    public Tuple GetTuple(int id) {
+        //return mem.readTuple(id,offset);
+        return new Tuple();
     }
 
     //插入tuple
+    // todo
     public int[] InsertTuple(Tuple tuple){
-        return mem.writeTuple(tuple);
+        //
+        return null;
     }
 
     //删除tuple
+    // todo
     public void DeleteTuple(int id, int offset){
-        mem.deleteTuple();
+        //mem.deleteTuple();
     }
 
 
     //更新tuple
+    // todo
     public void UpateTuple(Tuple tuple,int blockid,int offset){
-        mem.UpateTuple(tuple,blockid,offset);
+        //mem.UpateTuple(tuple,blockid,offset);
     }
 
     //获取表的属性元素
@@ -114,7 +124,7 @@ public class MemConnect {
         TupleList res=new TupleList();
         for(ObjectTableItem item : topt.objectTable) {
             if (item.classid == classid) {
-                Tuple tuple = this.GetTuple(item.blockid,item.offset);
+                Tuple tuple = this.GetTuple(item.blockid);
 //                Tuple newTuple=new Tuple();
 //                newTuple.tuple=new Object[elicitAttrItemList.size()];
 //                for(int i=0;i<elicitAttrItemList.size();i++){
@@ -267,31 +277,15 @@ public class MemConnect {
         return false;
     }
 
-    public void SaveAll( )
-    {
-
-        mem.saveObjectTable(topt);
-        mem.saveClassTable(classt);
-        mem.saveDeputyTable(deputyt);
-        mem.saveBiPointerTable(biPointerT);
-        mem.saveSwitchingTable(switchingT);
-//        mem.saveLog(log.LogT);
-//        while(!mem.flush());
-//        while(!mem.setLogCheck(log.LogT.logID));
-//        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
-//        MemManager memManager = new MemManager(topt.objectTable, classt.classTable,
-//                deputyt.deputyTable, biPointerT.biPointerTable, switchingT.switchingTable);
- //       LevelManager levelManager = memManager.levelManager;
-  //      memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
-  //      levelManager.saveIndexToFile();
+    public void SaveAll( ) throws IOException {
+        mem.saveAll();
     }
 
-    public void reload(){
-        this.topt = mem.loadObjectTable();
-        this.classt = mem.loadClassTable();
-        this.deputyt = mem.loadDeputyTable();
-        this.biPointerT = mem.loadBiPointerTable();
-        this.switchingT = mem.loadSwitchingTable();
+    public void reload() throws IOException {
+        mem.loadClassTable();
+        mem.loadDeputyTable();
+        mem.loadBiPointerTable();
+        mem.loadSwitchingTable();
     }
 
     //CREATE SELECTDEPUTY aa SELECT  b1+2 AS c1,b2 AS c2,b3 AS c3 FROM  bb WHERE t1="1" ;
@@ -356,7 +350,7 @@ public class MemConnect {
         List<ObjectTableItem> obj = new ArrayList<>();
         for(ObjectTableItem item2:topt.objectTable){
             if(item2.classid ==bedeputyid){
-                Tuple tuple = GetTuple(item2.blockid,item2.offset);
+                Tuple tuple = GetTuple(item2.blockid);
                 if(Condition(contype,tuple,conid,con[2])){
                     //插入
                     //swi
@@ -431,7 +425,7 @@ public class MemConnect {
         ArrayList<Integer> integers = new ArrayList<>();
         for(ObjectTableItem item3:topt.objectTable){
             if(item3.classid == classid){
-                Tuple tuple = GetTuple(item3.blockid,item3.offset);
+                Tuple tuple = GetTuple(item3.blockid);
                 if(Condition(cattrtype,tuple,cattrid,p[6])){
                     integers.add(item3.tupleid);
                     UpdatebyID(item3.tupleid,attrid,p[3].replace("\"",""));
@@ -444,10 +438,10 @@ public class MemConnect {
     private void UpdatebyID(int tupleid,int attrid,String value){
         for(ObjectTableItem item: topt.objectTable){
             if(item.tupleid ==tupleid){
-                Tuple tuple = GetTuple(item.blockid,item.offset);
+                Tuple tuple = GetTuple(item.blockid);
                 tuple.tuple[attrid] = value;
                 UpateTuple(tuple,item.blockid,item.offset);
-                Tuple tuple1 = GetTuple(item.blockid,item.offset);
+                Tuple tuple1 = GetTuple(item.blockid);
                 UpateTuple(tuple1,item.blockid,item.offset);
             }
         }
@@ -508,7 +502,7 @@ public class MemConnect {
         for (Iterator it1 = topt.objectTable.iterator(); it1.hasNext();){
             ObjectTableItem item = (ObjectTableItem)it1.next();
             if(item.classid == classid){
-                Tuple tuple = GetTuple(item.blockid,item.offset);
+                Tuple tuple = GetTuple(item.blockid);
                 if(Condition(attrtype,tuple,attrid,p[4])){
                     //需要删除的元组
                     MemConnect.OandB ob =new MemConnect.OandB(DeletebyID(item.tupleid));

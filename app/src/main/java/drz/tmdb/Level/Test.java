@@ -16,9 +16,11 @@ import java.util.HashMap;
 import java.util.Random;
 
 import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 
 public class Test {
 
@@ -332,7 +334,10 @@ public class Test {
         for(int i=0; i<1000; i++){
             sst1.data.put("k" + 2 * i, "v1");
         }
+        long t1 = System.currentTimeMillis();
         sst1.writeSSTable();
+        long t2 = System.currentTimeMillis();
+        System.out.println("写一个SSTable耗时" + (t2 - t1) + "ms");
         SSTable sst2 = new SSTable("SSTable2", 1);
         for(int i=0; i<1000; i++){
             sst2.data.put("k" + 3 * i, "v2");
@@ -347,15 +352,99 @@ public class Test {
         levelManager.level_1.add(1);
         levelManager.level_1.add(2);
         levelManager.level_2.add(3);
-        levelManager.levelInfo.put("1", "1-200-k0-k99");
-        levelManager.levelInfo.put("2", "1-200-k0-k99");
-        levelManager.levelInfo.put("3", "2-200-k0-k99");
+        levelManager.levelInfo.put("1", "1-200-k0-k999");
+        levelManager.levelInfo.put("2", "1-200-k0-k999");
+        levelManager.levelInfo.put("3", "2-200-k0-k999");
         levelManager.levelInfo.put("maxDataFileSuffix", "3");
-        long t1 = System.currentTimeMillis();
+        System.out.println("开始compaction");
+        t1 = System.currentTimeMillis();
         levelManager.manualCompaction(1);
-        long t2 = System.currentTimeMillis();
+        t2 = System.currentTimeMillis();
         System.out.println("执行compaction耗时" + (t2 - t1) + "ms");
         SSTable sst4 = new SSTable("SSTable4", 2);
+        return;
+    }
+
+    // bloom filter 命中率检测 -> 假阳性概率约为0.5%
+    public static void test16(){
+        int hit = 0;
+        int in = 0;
+        int falsePositive = 0;
+        SSTable sst1 = new SSTable("test_3", 1);
+        for(int i=0; i<100000; i++){
+            sst1.data.put("k" + i, "v1");
+        }
+        sst1.writeSSTable();
+        Random random = new Random();
+        for(int i=0; i<100000; i++){
+            int randomInt = random.nextInt(200000);
+            String searchKey = "k" + randomInt;
+            if(randomInt < 100000){
+                in++;
+                if(sst1.bloomFilter.check(searchKey))
+                    hit++;
+            }else if(sst1.bloomFilter.check(searchKey)){
+                falsePositive++;
+            }
+        }
+        System.out.println("执行1w次，其中应在SSTable中" + in + "次，检测到" + hit + "次，假阳性" + falsePositive + "次");
+        return;
+
+    }
+
+    // 测试B树 right search
+    public static void test18(){
+        BTree bTree = new BTree<>(3);
+        for(int i=0; i<10; i++){
+            bTree.insert("k" + i, (long)i);
+        }
+        System.out.println(bTree.getMaxKey());
+        System.out.println(bTree.rightSearch("k"+10));
+        System.out.println(bTree.rightSearch("k"+0));
+        System.out.println(bTree.rightSearch("k"+22));
+        System.out.println(bTree.rightSearch("k"+55));
+        System.out.println(bTree.rightSearch("k"+35));
+        System.out.println(bTree.rightSearch("k"+99));
+        System.out.println(bTree.rightSearch("k"+49));
+        System.out.println(bTree.rightSearch("k"+69));
+        return;
+    }
+
+    // 测试search
+    public static void test17() throws IOException {
+        SSTable sst1 = new SSTable("SSTable1", 1);
+        for(int i=0; i<1000; i++){
+            sst1.data.put("k" + 2 * i, "v1");
+        }
+        sst1.writeSSTable();
+        sst1 = new SSTable("SSTable1", 2);
+        System.out.println("开始search");
+        long t1 = System.currentTimeMillis();
+        int findCount = 0;
+        for(int i=0; i<1000; i++){
+            String result = sst1.search("k" + i);
+            if(result != null)
+                findCount++;
+        }
+        long t2 = System.currentTimeMillis();
+        System.out.println("执行1000次search耗时" + (t2 - t1) + "ms"); // 1.464s
+        return;
+
+    }
+
+    // 测试系统表的读写
+    public static void test19() throws IOException {
+        MemManager memManager1 = new MemManager();
+        memManager1.add(new BiPointerTableItem(1,2,3,4));
+        memManager1.add(new BiPointerTableItem(100,200,300,400));
+        memManager1.add(new ClassTableItem("1", 1, 2, 3, "4", "5", "6", "7"));
+        memManager1.add(new ClassTableItem("zvfz", 1, 2, 3, "zfwzf", "zfwsz", "zfws", "fdzg"));
+        memManager1.add(new SwitchingTableItem("zdfa", "dawd", "dasd"));
+        memManager1.add(new SwitchingTableItem("zzvc", "zsdsz", "dwww"));
+        memManager1.add(new DeputyTableItem(0, 1, new String[]{"120", "arwar", "fafaf"}));
+        memManager1.add(new DeputyTableItem(100, 555, new String[]{"122220", "arwagsr", "faf358af", "444fww"}));
+        memManager1.saveAll();
+        MemManager memManager2 = new MemManager();
         return;
     }
 

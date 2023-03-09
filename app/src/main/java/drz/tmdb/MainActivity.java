@@ -193,7 +193,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 //保存
-                trans.SaveAll();
+                try {
+                    trans.SaveAll();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 //退出
                 android.os.Process.killProcess(android.os.Process.myPid());
 

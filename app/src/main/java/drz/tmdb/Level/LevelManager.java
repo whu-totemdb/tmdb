@@ -32,7 +32,6 @@ public class LevelManager {
     // "dataFileSuffix" : "level-size-minKey-maxKey"
     // "maxDataFileSuffix" : "131"  // 自增的文件下标
     // 此外，ClassTable中的maxid和ObjectTable中的maxTupleId也需要记录在此处，每次跟随其他属性一起进行保存或初始化
-    // "maxClassId" : "45"
     // "maxTupleId" : "522"
     public Map<String, String> levelInfo = new HashMap<String, String>();
 
@@ -122,7 +121,6 @@ public class LevelManager {
             e.printStackTrace();
         }
     }
-
 
     // 手动调用的compaction，指定需要进行compaction的level
     public void manualCompaction(int level) throws IOException {

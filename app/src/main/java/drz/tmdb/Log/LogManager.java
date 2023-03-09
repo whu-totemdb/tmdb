@@ -39,14 +39,14 @@ public class LogManager {
 
 
     public LogManager() throws IOException {
-        raf = new RandomAccessFile(logFile, "rw");
+        //raf = new RandomAccessFile(logFile, "rw");
         checkpoint=-1;
         check_off=-1;
         currentOffset = 0;
         currentId = 0;
         start = 0;
         //app启动时将b树从磁盘加载到内存
-        bTree_indexer=new BTree_Indexer<>("tmdbLog",bTree_off);
+        //bTree_indexer=new BTree_Indexer<>("tmdbLog",bTree_off);
     }
 
     //初始化新日志文件

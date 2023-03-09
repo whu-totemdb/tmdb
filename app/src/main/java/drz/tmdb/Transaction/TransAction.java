@@ -1,5 +1,7 @@
 package drz.tmdb.Transaction;
 
+import static drz.tmdb.Level.Test.*;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -39,26 +41,40 @@ import drz.tmdb.show.ShowTable;
 import drz.tmdb.sync.node.database.Action;
 
 public class TransAction {
-    public TransAction(Context context) throws IOException {
-        this.context = context;
-//        RedoRest();
-    }
+
+    Context context;
+    public MemManager mem;
+    public LevelManager levelManager;
+    public LogManager log;
+
+    static MemConnect memConnect;
+
+
+    public static ObjectTable topt;
+    public static ClassTable classt;
+    public static DeputyTable deputyt;
+    public static BiPointerTable biPointerT;
+    public static SwitchingTable switchingT;
 
     public TransAction() throws IOException {}
 
-    Context context;
-    public static MemManage mem = new MemManage();
-//    public static ObjectTable topt = mem.loadObjectTable();
-//    public static ClassTable classt = mem.loadClassTable();
-//    public static DeputyTable deputyt = mem.loadDeputyTable();
-//    public static BiPointerTable biPointerT = mem.loadBiPointerTable();
-//    public static SwitchingTable switchingT = mem.loadSwitchingTable();
-    static MemConnect memConnect=new MemConnect();
+    public TransAction(Context context) throws IOException {
+        test19();
+        this.context = context;
+        this.mem = new MemManager();
+        this.levelManager = new LevelManager();
+        this.memConnect=new MemConnect(mem);
 
-    LogManager log = new LogManager();
+        topt = mem.objectTable;
+        classt = mem.classTable;
+        deputyt = mem.deputyTable;
+        biPointerT = mem.biPointerTable;
+        switchingT = mem.switchingTable;
 
-    public MemManager memManager = new MemManager();
-    public LevelManager levelManager = memManager.levelManager;
+
+
+    }
+
 
     public void clear() throws IOException {
 //        File classtab=new File("/data/data/drz.tmdb/transaction/classtable");
@@ -67,24 +83,11 @@ public class TransAction {
         objtab.delete();
     }
 
-    public void SaveAll( )
-    {
+    public void SaveAll( ) throws IOException {
         memConnect.SaveAll();
-//        mem.saveObjectTable(topt);
-//        mem.saveClassTable(classt);
-//        mem.saveDeputyTable(deputyt);
-//        mem.saveBiPointerTable(biPointerT);
-//        mem.saveSwitchingTable(switchingT);
-////        mem.saveLog(log.LogT);
-////        while(!mem.flush());
-////        while(!mem.setLogCheck(log.LogT.logID));
-//        mem.setCheckPoint(log.LogT.logID);//成功退出,所以新的事务块一定全部执行
-//
-//        memManager.saveMemTableToFile();// 先保存memTable再保存index，因为memTable保存的过程中可能会修改index
-//        levelManager.saveIndexToFile();
     }
 
-    public void reload(){
+    public void reload() throws IOException {
         memConnect.reload();
     }
 
@@ -201,7 +204,7 @@ public class TransAction {
     public String query2(String k, int op, String s) {
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
-        Action action = new Action();
+        //Action action = new Action();
 //        action.generate(s);
         ArrayList<Integer> tuples=new ArrayList<>();
         try {
