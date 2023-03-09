@@ -34,16 +34,17 @@ import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 public class MemManager {
 
     // 系统表
-    private static ObjectTable objectTable;
-    private static ClassTable classTable;
-    private static DeputyTable deputyTable;
-    private static BiPointerTable biPointerTable;
-    private static SwitchingTable switchingTable;
+    public static ObjectTable objectTable = new ObjectTable();
+    public static ClassTable classTable = new ClassTable();
+    public static DeputyTable deputyTable = new DeputyTable();
+    public static BiPointerTable biPointerTable = new BiPointerTable();
+    public static SwitchingTable switchingTable = new SwitchingTable();
 
     // 数据表
     public TupleList tupleList = new TupleList();
 
-    private int currentMemSize = 0; // 当前数据表占用内存大小
+    // 当前数据表占用内存大小
+    private int currentMemSize = 0;
 
     public LevelManager levelManager = new LevelManager();
 
@@ -76,7 +77,7 @@ public class MemManager {
 
 
     // 往MemManager中添加对象
-    public void add(Object o) throws IOException {
+    public void add(Object o){
         //先写日志
         //String k = Constant.calculateKey(o);
         //String v = JSONObject.toJSONString(o);
@@ -92,9 +93,12 @@ public class MemManager {
             this.deputyTable.deputyTable.add((DeputyTableItem) o);
         }else if(o instanceof SwitchingTableItem){
             this.switchingTable.switchingTable.add((SwitchingTableItem) o);
+        }else if(o instanceof Tuple){
+            this.tupleList.addTuple((Tuple) o);
+            this.currentMemSize += RamUsageEstimator.sizeOf(o);
         }
 
-        this.currentMemSize += RamUsageEstimator.sizeOf(o);
+
         // 如果内存数据大小超过限制则开始compaction
         if(this.currentMemSize > drz.tmdb.Memory.Constant.MAX_MEM_SIZE){
             System.out.println("内存已满，开始写入外存--------");
@@ -105,7 +109,12 @@ public class MemManager {
             clearMem();
 
             // 同时触发levelManager的autoCompaction
-            this.levelManager.autoCompaction();
+            try{
+                this.levelManager.autoCompaction();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
         }
 
     }
@@ -152,7 +161,7 @@ public class MemManager {
 
     // 查询key对应的value
     // todo: write your code here
-    public String search(String key) throws IOException {
+    public String search(String key){
         return null;
     }
 
@@ -418,7 +427,6 @@ public class MemManager {
     // int classid
     // int tupleid
     // int sstSuffix
-    // boolean delete
     public void saveObjectTable() throws IOException {
         File f = new File(drz.tmdb.Memory.Constant.SYSTEM_TABLE_DIR + "ot");
         if(!f.exists())
@@ -436,8 +444,6 @@ public class MemManager {
             raf.writeInt(item.tupleid);
             // 存sstSuffix
             raf.writeInt(item.sstSuffix);
-            // 存delete
-            raf.writeBoolean(item.delete);
         }
         raf.close();
     }
@@ -465,9 +471,6 @@ public class MemManager {
             // 读sstSuffix
             item.sstSuffix = raf.readInt();
             cur += Integer.BYTES;
-            // 读delete
-            item.delete = raf.readBoolean();
-            cur += 1;
 
             this.objectTable.objectTable.add(item);
         }

@@ -1,5 +1,7 @@
 package drz.tmdb.Transaction.Transactions;
 
+import com.alibaba.fastjson.JSON;
+
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.FromItem;
@@ -45,30 +47,29 @@ public class MemConnect {
     };
 
     //获取tuple
-    // todo
     public Tuple GetTuple(int id) {
-        //return mem.readTuple(id,offset);
-        return new Tuple();
+        String str = this.mem.search("" + id);
+        Tuple tuple = JSON.parseObject(str, Tuple.class);
+        return tuple;
     }
 
     //插入tuple
-    // todo
-    public int[] InsertTuple(Tuple tuple){
-        //
-        return null;
+    public void InsertTuple(Tuple tuple){
+        this.mem.add(tuple);
     }
 
     //删除tuple
-    // todo
-    public void DeleteTuple(int id, int offset){
-        //mem.deleteTuple();
+    public void DeleteTuple(int id){
+        Tuple tuple = new Tuple();
+        tuple.tupleId = id;
+        tuple.delete = true;
+        this.mem.add(tuple);
     }
 
-
     //更新tuple
-    // todo
-    public void UpateTuple(Tuple tuple,int blockid,int offset){
-        //mem.UpateTuple(tuple,blockid,offset);
+    public void UpateTuple(Tuple tuple,int tupleId){
+        tuple.tupleId = tupleId;
+        this.mem.add(tuple);
     }
 
     //获取表的属性元素
@@ -187,8 +188,8 @@ public class MemConnect {
         Tuple tuple = new Tuple(tuple_);
         tuple.tupleHeader=count;
         int tupleid = topt.maxTupleId++;
-        int[] a = InsertTuple(tuple);
-        topt.objectTable.add(new ObjectTableItem(classid,tupleid,a[0],a[1]));
+        InsertTuple(tuple);
+        topt.objectTable.add(new ObjectTableItem(classid,tupleid));
         //向代理类加元组
         for(DeputyTableItem item:deputyt.deputyTable){
             if(classid == item.originid){
@@ -375,7 +376,7 @@ public class MemConnect {
 
                     int [] aa = InsertTuple(ituple);
                     //topt.objectTable.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-                    obj.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
+                    obj.add(new ObjectTableItem(classid,tupid,false));
 
                     //bi
                     biPointerT.biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));

@@ -11,5 +11,13 @@ public class ObjectTable implements Serializable {
        objectTable.clear();
         maxTupleId = 0;
     }
+
+    public int getClassIdByTupleId(int tupleId){
+        for(ObjectTableItem item : this.objectTable){
+            if(item.tupleid == tupleId)
+                return item.classid;
+        }
+        return -1;
+    }
 }
 

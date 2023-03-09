@@ -443,8 +443,8 @@ public class Test {
         memManager1.add(new SwitchingTableItem("zzvc", "zsdsz", "dwww"));
         memManager1.add(new DeputyTableItem(0, 1, new String[]{"120", "arwar", "fafaf"}));
         memManager1.add(new DeputyTableItem(100, 555, new String[]{"122220", "arwagsr", "faf358af", "444fww"}));
-        memManager1.add(new ObjectTableItem(10,20,false));
-        memManager1.add(new ObjectTableItem(50,70,true));
+        memManager1.add(new ObjectTableItem(10,20));
+        memManager1.add(new ObjectTableItem(50,70));
         memManager1.saveAll();
         MemManager memManager2 = new MemManager();
         return;
