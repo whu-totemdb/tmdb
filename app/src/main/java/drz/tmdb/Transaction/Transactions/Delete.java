@@ -1,64 +1,12 @@
 package drz.tmdb.Transaction.Transactions;
 
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 
-import drz.tmdb.Memory.Tuple;
+import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
-public class Delete {
-    public ArrayList<Integer> delete(Statement statement) throws JSQLParserException {
-        return execute((net.sf.jsqlparser.statement.delete.Delete) statement);
-    }
-
-    public ArrayList<Integer> execute(net.sf.jsqlparser.statement.delete.Delete delete) throws JSQLParserException {
-        //获取需要删除的表名
-        Table table = delete.getTable();
-        //获取delete中的where表达式
-        Expression where = delete.getWhere();
-        String sql="select * from " + table + " where " + where.toString() + ";";
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(sql.getBytes());
-        net.sf.jsqlparser.statement.select.Select parse = (net.sf.jsqlparser.statement.select.Select) CCJSqlParserUtil.parse(byteArrayInputStream);
-        SelectResult selectResult = new Select().select(parse);
-        MemConnect memConnect=new MemConnect();
-        for(Tuple tuple:selectResult.tpl.tuplelist){
-//            memConnect().DeleteTuple(tuple.getTupleId());
-        }
-        String[] p=new String[5];
-        p[0]="-1";
-        p[1]=table.getName();
-        //获取表达式的形式
-        String temp=where.getClass().getSimpleName();
-        switch (temp){
-            case "EqualsTo" ://等于的处理
-                EqualsTo equals=(EqualsTo) where;
-                p[2]=equals.getLeftExpression().toString();
-                p[3]="=";
-                p[4]=equals.getRightExpression().toString();
-                break;
-            case "GreaterThan" ://大于的处理
-                GreaterThan greaterThan =(GreaterThan) where;
-                p[2]=greaterThan.getLeftExpression().toString();
-                p[3]=">";
-                p[4]=greaterThan.getRightExpression().toString();
-                break;
-            case "MinorThan" ://小于的处理
-                MinorThan minorThan =(MinorThan) where;
-                p[2]=minorThan.getLeftExpression().toString();
-                p[3]=">";
-                p[4]=minorThan.getRightExpression().toString();
-                break;
-            default:
-                break;
-        }
-        return new MemConnect().delete(p);
-    }
+public interface Delete {
+    public ArrayList<Integer> delete(Statement statement) throws JSQLParserException, TMDBException;
 }

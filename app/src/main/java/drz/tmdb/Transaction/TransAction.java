@@ -15,10 +15,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 //import drz.tmdb.Level.LevelManager;
 import drz.tmdb.Level.LevelManager;
@@ -27,15 +23,23 @@ import drz.tmdb.Memory.*;
 
 
 import drz.tmdb.Memory.SystemTable.*;
+import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Create;
 import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
 import drz.tmdb.Transaction.Transactions.Delete;
 import drz.tmdb.Transaction.Transactions.Drop;
 import drz.tmdb.Transaction.Transactions.Insert;
-import drz.tmdb.Transaction.Transactions.MemConnect;
-import drz.tmdb.Transaction.Transactions.Select;
-import drz.tmdb.Transaction.Transactions.SelectResult;
 import drz.tmdb.Transaction.Transactions.Update;
+import drz.tmdb.Transaction.Transactions.impl.CreateImpl;
+import drz.tmdb.Transaction.Transactions.impl.CreateDeputyClassImpl;
+import drz.tmdb.Transaction.Transactions.impl.DeleteImpl;
+import drz.tmdb.Transaction.Transactions.impl.DropImpl;
+import drz.tmdb.Transaction.Transactions.impl.InsertImpl;
+import drz.tmdb.Transaction.Transactions.utils.MemConnect;
+import drz.tmdb.Transaction.Transactions.Select;
+import drz.tmdb.Transaction.Transactions.impl.SelectImpl;
+import drz.tmdb.Transaction.Transactions.utils.SelectResult;
+import drz.tmdb.Transaction.Transactions.impl.UpdateImpl;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
 import drz.tmdb.sync.node.database.Action;
@@ -59,17 +63,17 @@ public class TransAction {
     public TransAction() throws IOException {}
 
     public TransAction(Context context) throws IOException {
-        test19();
+//        test19();
         this.context = context;
-        this.mem = new MemManager();
+//        this.mem = new MemManager();
         this.levelManager = new LevelManager();
-        this.memConnect=new MemConnect(mem);
+        this.memConnect=new MemConnect();
 
-        topt = mem.objectTable;
-        classt = mem.classTable;
-        deputyt = mem.deputyTable;
-        biPointerT = mem.biPointerTable;
-        switchingT = mem.switchingTable;
+//        topt = mem.objectTable;
+//        classt = mem.classTable;
+//        deputyt = mem.deputyTable;
+//        biPointerT = mem.biPointerTable;
+//        switchingT = mem.switchingTable;
 
 
 
@@ -217,15 +221,17 @@ public class TransAction {
             switch (sqlType) {
                 case "CreateTable":
 //                    log.WrteLog(s);
-                    Create create=new Create();
+                    Create create =new CreateImpl();
                     if(create.create(stmt)) new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     else new AlertDialog.Builder(context).setTitle("提示").setMessage("创建失败").setPositiveButton("确定",null).show();
                     break;
                 case "CreateDeputyClass":
 //                    switch
  //                   log.WriteLog(id,k,op,s);
-                    new CreateDeputyClass().createDeputyClass(stmt);
-                    new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+                    CreateDeputyClass createDeputyClass=new CreateDeputyClassImpl();
+                    if(createDeputyClass.createDeputyClass(stmt)) {
+                        new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
+                    }
                     break;
 //                case "Create":
 //                    log.WriteLog(s);
@@ -234,22 +240,24 @@ public class TransAction {
 //                    break;
                 case "Drop":
 //                    log.WriteLog(id,k,op,s);
-                    new Drop().drop(stmt);
+                    Drop drop=new DropImpl();
+                    drop.drop(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Insert":
 //                    log.WriteLog(id,k,op,s);
-                    Insert insert=new Insert();
+                    Insert insert=new InsertImpl();
                     tuples=insert.insert(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
                     break;
                 case "Delete":
  //                   log.WriteLog(id,k,op,s);
-                    tuples= new Delete().delete(stmt);
+                    Delete delete=new DeleteImpl();
+                    tuples= delete.delete(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Select":
-                    Select select=new Select();
+                    Select select=new SelectImpl();
                     SelectResult selectResult=select.select((net.sf.jsqlparser.statement.select.Select) stmt);
                     for (Tuple t:
                          selectResult.getTpl().tuplelist) {
@@ -263,7 +271,8 @@ public class TransAction {
 //                    break;
                 case "Update":
  //                   log.WriteLog(id,k,op,s);
-                    tuples=new Update().update(stmt);
+                    Update update=new UpdateImpl();
+                    tuples=update.update(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
                     break;
 //                case :
@@ -277,6 +286,10 @@ public class TransAction {
             }
         } catch (JSQLParserException e) {
             e.printStackTrace();
+            new AlertDialog.Builder(context).setTitle("提示").setMessage("SQL语法错误").setPositiveButton("确定",null).show();
+        } catch (TMDBException e) {
+            e.printStackTrace();
+            new AlertDialog.Builder(context).setTitle("提示").setMessage(e.getMessage()).setPositiveButton("确定",null).show();
         }
         int[] ints = new int[tuples.size()];
         for (int i = 0; i < tuples.size(); i++) {

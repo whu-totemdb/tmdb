@@ -1,4 +1,4 @@
-package drz.tmdb.Transaction.Transactions;
+package drz.tmdb.Transaction.Transactions.utils;
 
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -22,27 +22,37 @@ import drz.tmdb.Memory.SystemTable.ObjectTable;
 import drz.tmdb.Memory.SystemTable.ObjectTableItem;
 import drz.tmdb.Memory.SystemTable.SwitchingTable;
 import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public class MemConnect {
     //进行内存操作的一些一些方法和数据
     private static MemManager mem;
-    private static ObjectTable topt;
-    private static ClassTable classt;
-    private static DeputyTable deputyt;
-    private static BiPointerTable biPointerT;
-    private static SwitchingTable switchingT;
+    private static ObjectTable topt = mem.objectTable;
+    private static ClassTable classt = mem.classTable;
+    private static DeputyTable deputyt = mem.deputyTable;
+    private static BiPointerTable biPointerT = mem.biPointerTable;
+    private static SwitchingTable switchingT = mem.switchingTable;
+
+    private static void initilize() throws IOException {
+        mem.loadObjectTable();
+        mem.loadClassTable();
+        mem.loadDeputyTable();
+        mem.loadBiPointerTable();
+        mem.loadSwitchingTable();
+    }
+
+
 
     public MemConnect(){}
 
-    public MemConnect(MemManager memManager){
-        this.mem = memManager;
-        topt = mem.objectTable;
-        classt = mem.classTable;
-        deputyt = mem.deputyTable;
-        biPointerT = mem.biPointerTable;
-        switchingT = mem.switchingTable;
-
-    };
+//    public MemConnect(MemManager memManager){
+//        this.mem = memManager;
+//        classt.classTable = (List<ClassTableItem>) mem.getClassTable();
+//        deputyt.deputyTable = (List<DeputyTableItem>) mem.getDeputyTable();
+//        biPointerT.biPointerTable = (List<BiPointerTableItem>) mem.getBiPointerTable();
+//        switchingT.switchingTable = (List<SwitchingTableItem>) mem.getSwitchingTable();
+//
+//    };
 
     //获取tuple
     // todo
@@ -109,22 +119,23 @@ public class MemConnect {
     }
 
     //获取表在classTable中的id值
-    public int getClassId(String fromItem){
+    public int getClassId(String fromItem) throws TMDBException {
         for(ClassTableItem item : classt.classTable) {
             if (item.classname.equals(fromItem)) {
                 return item.classid;
             }
         }
-        return -1;
+        throw new TMDBException(fromItem+"表不存在");
+//        return -1;
     }
 
     //输入需要获取的表名，得到对应的元祖值
-    public TupleList getTable(FromItem fromItem){
+    public TupleList getTable(FromItem fromItem) throws TMDBException {
         int classid=this.getClassId(((Table) fromItem).getName());
         TupleList res=new TupleList();
         for(ObjectTableItem item : topt.objectTable) {
             if (item.classid == classid) {
-                Tuple tuple = this.GetTuple(item.blockid);
+                Tuple tuple = this.GetTuple(item.tupleid);
 //                Tuple newTuple=new Tuple();
 //                newTuple.tuple=new Object[elicitAttrItemList.size()];
 //                for(int i=0;i<elicitAttrItemList.size();i++){
@@ -139,14 +150,14 @@ public class MemConnect {
 
     //CREATE CLASS dZ123 (nB1 int,nB2 char) ;
     //1,2,dZ123,nB1,int,nB2,char
-    public boolean CreateOriginClass(String[] p) {
+    public boolean CreateOriginClass(String[] p) throws TMDBException {
         String classname = p[2];
         int count = Integer.parseInt(p[1]);
         classt.maxid++;
         int classid = classt.maxid;
         for(ClassTableItem item : classt.classTable){
             if(item.classname.equals(classname)){
-                return false;
+                throw new TMDBException(classname+"已经存在！");
             }
         }
         for (int i = 0; i < count; i++) {
@@ -159,7 +170,7 @@ public class MemConnect {
     //INSERT INTO aa VALUES (1,2,"3");
     //4,3,aa,1,2,"3"
     //0 1 2  3 4  5
-    public int tupleInsert(String[] p){
+    public int tupleInsert(String[] p) throws TMDBException {
         int count = Integer.parseInt(p[1]);
         for(int o =0;o<count+3;o++){
             p[o] = p[o].replace("\"","");
@@ -168,16 +179,18 @@ public class MemConnect {
         String classname = p[2];
         Object[] tuple_ = new Object[count];
 
-        int classid = 0;
+        int classid = -1;
 
         for(ClassTableItem item:classt.classTable)
         {
             if(item.classname.equals(classname)){
+                if(item.attrnum!=count) throw new TMDBException("插入参数长度不匹配实际参数长度");
                 classid = item.classid;
                 break;
             }
         }
-        if(classid==0) return -1;
+        if(classid==-1) throw new TMDBException("找不到"+classname);
+
 
 
         for(int j = 0;j<count;j++){
@@ -595,7 +608,7 @@ public class MemConnect {
 
     //DROP CLASS asd;
     //3,asd
-    public boolean drop(String[]p){
+    public boolean drop(String[]p) throws TMDBException {
         List<DeputyTableItem> dti;
         dti = Drop1(p);
         for(DeputyTableItem item:dti){
@@ -604,10 +617,11 @@ public class MemConnect {
         return  true;
     }
 
-    private List<DeputyTableItem> Drop1(String[] p){
+    private List<DeputyTableItem> Drop1(String[] p) throws TMDBException {
         String classname = p[1];
-        int classid = 0;
+        int classid = getClassId(p[1]);
         //找到classid顺便 清除类表和switch表
+
         for (Iterator it1 = classt.classTable.iterator(); it1.hasNext();) {
             ClassTableItem item =(ClassTableItem) it1.next();
             if (item.classname.equals(classname) ){
