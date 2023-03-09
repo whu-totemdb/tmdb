@@ -41,6 +41,10 @@ public class MemConnect {
         return mem.readTuple(id,offset);
     }
 
+    public Tuple GetTuple(int id){
+        return null;
+    }
+
     //插入tuple
     public int[] InsertTuple(Tuple tuple){
         return mem.writeTuple(tuple);
@@ -50,6 +54,7 @@ public class MemConnect {
     public void DeleteTuple(int id, int offset){
         mem.deleteTuple();
     }
+
 
     //更新tuple
     public void UpateTuple(Tuple tuple,int blockid,int offset){

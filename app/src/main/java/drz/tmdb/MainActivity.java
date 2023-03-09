@@ -40,18 +40,18 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
-        new Thread(()->{
-
-            try {
-                System.out.println(FilePathUtil.getFileDir(this));
-                //Sync.setPathName(FilePathUtil.getFileDir(this));
-                Sync.initialNode(9090,this);
-                //node.start();
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-
-        },"initialNodeThread").start();
+//        new Thread(()->{
+//
+//            try {
+//                System.out.println(FilePathUtil.getFileDir(this));
+//                //Sync.setPathName(FilePathUtil.getFileDir(this));
+//                Sync.initialNode(9090,this);
+//                //node.start();
+//            }catch (Exception e){
+//                e.printStackTrace();
+//            }
+//
+//        },"initialNodeThread").start();
 
         //查询按钮
         Button button = findViewById(R.id.button);
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onStop();
+//                onStop();
 //                trans.Test();
 //                try {
 //                    trans.clear();
@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
 //                    e.printStackTrace();
 //                }
                 trans.query2("",-1,editText.getText().toString());
-            }
+           }
         });
 
         //退出按钮
@@ -193,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 //保存
-                //trans.SaveAll();
+                trans.SaveAll();
                 //退出
                 android.os.Process.killProcess(android.os.Process.myPid());
 

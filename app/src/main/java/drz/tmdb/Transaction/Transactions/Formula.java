@@ -3,6 +3,7 @@ package drz.tmdb.Transaction.Transactions;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.Parenthesis;
+import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
 import net.sf.jsqlparser.expression.operators.arithmetic.Division;
 import net.sf.jsqlparser.expression.operators.arithmetic.Modulo;
@@ -26,7 +27,19 @@ public class Formula {
             case "Multiplication": res= multiplication((Multiplication) expression,selectResult); break;
             case "LongValue": res=longValue((LongValue) expression,selectResult); break;
             case "Column": res=column((Column) expression,selectResult); break;
-            case "Parenthesis": res=parenthesis((Parenthesis) expression,selectResult); break;
+            case "Parenthesis": res=parenthesis((Parenthesis) expression,selectResult);break;
+            case "StringValue" :res=StringValue((StringValue)expression,selectResult); break;
+        }
+        return res;
+    }
+
+    private ArrayList<Object> StringValue(StringValue expression, SelectResult selectResult) {
+
+        String temp=expression.getValue();
+        ArrayList<Object> res=new ArrayList<>();
+        //返回全是该数字元素的列
+        for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
+            res.add(temp);
         }
         return res;
     }
