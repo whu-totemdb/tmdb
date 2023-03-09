@@ -38,7 +38,7 @@ public class ShowObj extends AppCompatActivity implements Serializable {
         //ArrayAdapter<String> adapter = new ArrayAdapter<String>(ShowObj.this,android.R.layout.simple_list_item_1,objects);
         //ListView tableList = findViewById(R.id.tablelist);
         //tableList.setAdapter(adapter);
-        int tabCol  = 4;
+        int tabCol  = 2;
         int tabH = topt.objectTable.size();
         Object oj1,oj2,oj3,oj4;
         String stemp1,stemp2,stemp3,stemp4;
@@ -50,26 +50,26 @@ public class ShowObj extends AppCompatActivity implements Serializable {
             if(i == 0){
                 stemp1 = "classid";
                 stemp2 = "tupleid";
-                stemp3 = "blockid";
-                stemp4 = "offset";
+//                stemp3 = "blockid";
+//                stemp4 = "offset";
             }
             else{
                 oj1 = topt.objectTable.get(i-1).classid;
                 oj2 = topt.objectTable.get(i-1).tupleid;
-                oj3 = topt.objectTable.get(i-1).blockid;
-                oj4 = topt.objectTable.get(i-1).offset;
+//                oj3 = topt.objectTable.get(i-1).blockid;
+//                oj4 = topt.objectTable.get(i-1).offset;
                 stemp1 = oj1.toString();
                 stemp2 = oj2.toString();
-                stemp3 = oj3.toString();
-                stemp4 = oj4.toString();
+//                stemp3 = oj3.toString();
+//                stemp4 = oj4.toString();
             }
             for(int j = 0;j < tabCol;j++){
                 TextView tv = new TextView(this);
                 switch (j){
                     case 0:tv.setText(stemp1);break;
                     case 1:tv.setText(stemp2);break;
-                    case 2:tv.setText(stemp3);break;
-                    case 3:tv.setText(stemp4);break;
+//                    case 2:tv.setText(stemp3);break;
+//                    case 3:tv.setText(stemp4);break;
 
                 }
                 tv.setGravity(Gravity.CENTER);

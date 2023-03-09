@@ -29,21 +29,29 @@ import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 public class MemConnect {
     //进行内存操作的一些一些方法和数据
     private static MemManager mem;
-    private static ObjectTable topt = mem.objectTable;
+
+    static {
+        try {
+            mem = new MemManager();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static ObjectTable topt=mem.objectTable;
     private static ClassTable classt = mem.classTable;
     private static DeputyTable deputyt = mem.deputyTable;
     private static BiPointerTable biPointerT = mem.biPointerTable;
     private static SwitchingTable switchingT = mem.switchingTable;
 
-    private static void initilize() throws IOException {
-        mem.loadObjectTable();
-        mem.loadClassTable();
-        mem.loadDeputyTable();
-        mem.loadBiPointerTable();
-        mem.loadSwitchingTable();
+    public static void initialize() throws IOException {
+        mem=new MemManager();
+        topt=mem.objectTable;
+        classt = mem.classTable;
+        deputyt = mem.deputyTable;
+        biPointerT = mem.biPointerTable;
+        switchingT = mem.switchingTable;
     }
-
-
 
     public MemConnect(){}
 
@@ -65,7 +73,7 @@ public class MemConnect {
 
     //插入tuple
     public void InsertTuple(Tuple tuple){
-        this.mem.add(tuple);
+        mem.add(tuple);
     }
 
     //删除tuple
@@ -364,7 +372,7 @@ public class MemConnect {
         List<ObjectTableItem> obj = new ArrayList<>();
         for(ObjectTableItem item2:topt.objectTable){
             if(item2.classid ==bedeputyid){
-                Tuple tuple = GetTuple(item2.blockid);
+                Tuple tuple = GetTuple(item2.tupleid);
                 if(Condition(contype,tuple,conid,con[2])){
                     //插入
                     //swi
@@ -387,9 +395,9 @@ public class MemConnect {
                     topt.maxTupleId++;
                     int tupid = topt.maxTupleId;
 
-                    int [] aa = InsertTuple(ituple);
+                    InsertTuple(ituple);
                     //topt.objectTable.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
-                    obj.add(new ObjectTableItem(classid,tupid,false));
+                    obj.add(new ObjectTableItem(classid,tupid));
 
                     //bi
                     biPointerT.biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));
@@ -439,7 +447,7 @@ public class MemConnect {
         ArrayList<Integer> integers = new ArrayList<>();
         for(ObjectTableItem item3:topt.objectTable){
             if(item3.classid == classid){
-                Tuple tuple = GetTuple(item3.blockid);
+                Tuple tuple = GetTuple(item3.tupleid);
                 if(Condition(cattrtype,tuple,cattrid,p[6])){
                     integers.add(item3.tupleid);
                     UpdatebyID(item3.tupleid,attrid,p[3].replace("\"",""));
@@ -452,11 +460,11 @@ public class MemConnect {
     private void UpdatebyID(int tupleid,int attrid,String value){
         for(ObjectTableItem item: topt.objectTable){
             if(item.tupleid ==tupleid){
-                Tuple tuple = GetTuple(item.blockid);
+                Tuple tuple = GetTuple(item.tupleid);
                 tuple.tuple[attrid] = value;
-                UpateTuple(tuple,item.blockid,item.offset);
-                Tuple tuple1 = GetTuple(item.blockid);
-                UpateTuple(tuple1,item.blockid,item.offset);
+                UpateTuple(tuple,item.tupleid);
+                Tuple tuple1 = GetTuple(item.tupleid);
+                UpateTuple(tuple1,item.tupleid);
             }
         }
 
@@ -516,7 +524,7 @@ public class MemConnect {
         for (Iterator it1 = topt.objectTable.iterator(); it1.hasNext();){
             ObjectTableItem item = (ObjectTableItem)it1.next();
             if(item.classid == classid){
-                Tuple tuple = GetTuple(item.blockid);
+                Tuple tuple = GetTuple(item.tupleid);
                 if(Condition(attrtype,tuple,attrid,p[4])){
                     //需要删除的元组
                     MemConnect.OandB ob =new MemConnect.OandB(DeletebyID(item.tupleid));
@@ -582,7 +590,7 @@ public class MemConnect {
 
 
                 //删除自身
-                DeleteTuple(item.blockid,item.offset);
+                DeleteTuple(item.tupleid);
                 if(!todelete2.contains(item));
                 todelete1.add(item);
 

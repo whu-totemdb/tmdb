@@ -53,48 +53,47 @@ public class UpdateImpl implements Update {
             }
             if(indexs[i]==-1) throw new TMDBException(updateSet.getColumns().get(0).getColumnName()+"在"+updateTable+"中不存在");
         }
-
+        ArrayList<Integer> integers = new ArrayList<>();
         for(Tuple tuple:selectResult.getTpl().tuplelist){
             for (int i = 0; i < indexs.length; i++) {
                 tuple.tuple[indexs[i]]=updateValue[i];
             }
-//            memConnect.UpateTuple(tuple);
-//            memConnect.DeleteTuple(tuple.getTupleId());
-//            memConnect.InsertTuple(tuple);
+            memConnect.UpateTuple(tuple,tuple.getTupleId());
+            integers.add(tuple.getTupleId());
         }
-
-        Expression where = update.getWhere();
-        String[] p=new String[2+2*updateSets.size()+3];
-        p[0]="-1";
-        p[1]=updateTable;
-        for(int i=0;i<updateSets.size();i++){
-            UpdateSet updateSet = updateSets.get(i);
-            p[2+i*2]=updateSet.getColumns().get(0).getColumnName();
-            p[3+i*2]=updateSet.getExpressions().get(0).toString();
-        }
-        String temp=where.getClass().getSimpleName();
-        switch (temp){
-            case "EqualsTo" :
-                EqualsTo equals=(EqualsTo) where;
-                p[2+2*updateSets.size()]=equals.getLeftExpression().toString();
-                p[3+2*updateSets.size()]="=";
-                p[4+2*updateSets.size()]=equals.getRightExpression().toString();
-                break;
-            case "GreaterThan" :
-                GreaterThan greaterThan =(GreaterThan) where;
-                p[2+2*updateSets.size()]=greaterThan.getLeftExpression().toString();
-                p[3+2*updateSets.size()]=">";
-                p[4+2*updateSets.size()]=greaterThan.getRightExpression().toString();
-                break;
-            case "MinorThan" :
-                MinorThan minorThan =(MinorThan) where;
-                p[2+2*updateSets.size()]=minorThan.getLeftExpression().toString();
-                p[3+2*updateSets.size()]=">";
-                p[4+2*updateSets.size()]=minorThan.getRightExpression().toString();
-                break;
-            default:
-                break;
-        }
-        return new MemConnect().update(p);
+        return integers;
+//        Expression where = update.getWhere();
+//        String[] p=new String[2+2*updateSets.size()+3];
+//        p[0]="-1";
+//        p[1]=updateTable;
+//        for(int i=0;i<updateSets.size();i++){
+//            UpdateSet updateSet = updateSets.get(i);
+//            p[2+i*2]=updateSet.getColumns().get(0).getColumnName();
+//            p[3+i*2]=updateSet.getExpressions().get(0).toString();
+//        }
+//        String temp=where.getClass().getSimpleName();
+//        switch (temp){
+//            case "EqualsTo" :
+//                EqualsTo equals=(EqualsTo) where;
+//                p[2+2*updateSets.size()]=equals.getLeftExpression().toString();
+//                p[3+2*updateSets.size()]="=";
+//                p[4+2*updateSets.size()]=equals.getRightExpression().toString();
+//                break;
+//            case "GreaterThan" :
+//                GreaterThan greaterThan =(GreaterThan) where;
+//                p[2+2*updateSets.size()]=greaterThan.getLeftExpression().toString();
+//                p[3+2*updateSets.size()]=">";
+//                p[4+2*updateSets.size()]=greaterThan.getRightExpression().toString();
+//                break;
+//            case "MinorThan" :
+//                MinorThan minorThan =(MinorThan) where;
+//                p[2+2*updateSets.size()]=minorThan.getLeftExpression().toString();
+//                p[3+2*updateSets.size()]=">";
+//                p[4+2*updateSets.size()]=minorThan.getRightExpression().toString();
+//                break;
+//            default:
+//                break;
+//        }
+//        return new MemConnect().update(p);
     }
 }

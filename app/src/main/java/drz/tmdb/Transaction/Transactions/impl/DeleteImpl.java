@@ -35,36 +35,39 @@ public class DeleteImpl implements Delete {
         Select select=new SelectImpl();
         SelectResult selectResult = select.select(parse);
         MemConnect memConnect=new MemConnect();
+        ArrayList<Integer> integers = new ArrayList<>();
         for(Tuple tuple:selectResult.getTpl().tuplelist){
-//            memConnect().DeleteTuple(tuple.getTupleId());
+            memConnect.DeleteTuple(tuple.getTupleId());
+            integers.add(tuple.getTupleId());
         }
-        String[] p=new String[5];
-        p[0]="-1";
-        p[1]=table.getName();
-        //获取表达式的形式
-        String temp=where.getClass().getSimpleName();
-        switch (temp){
-            case "EqualsTo" ://等于的处理
-                EqualsTo equals=(EqualsTo) where;
-                p[2]=equals.getLeftExpression().toString();
-                p[3]="=";
-                p[4]=equals.getRightExpression().toString();
-                break;
-            case "GreaterThan" ://大于的处理
-                GreaterThan greaterThan =(GreaterThan) where;
-                p[2]=greaterThan.getLeftExpression().toString();
-                p[3]=">";
-                p[4]=greaterThan.getRightExpression().toString();
-                break;
-            case "MinorThan" ://小于的处理
-                MinorThan minorThan =(MinorThan) where;
-                p[2]=minorThan.getLeftExpression().toString();
-                p[3]=">";
-                p[4]=minorThan.getRightExpression().toString();
-                break;
-            default:
-                break;
-        }
-        return new MemConnect().delete(p);
+        return integers;
+//        String[] p=new String[5];
+//        p[0]="-1";
+//        p[1]=table.getName();
+//        //获取表达式的形式
+//        String temp=where.getClass().getSimpleName();
+//        switch (temp){
+//            case "EqualsTo" ://等于的处理
+//                EqualsTo equals=(EqualsTo) where;
+//                p[2]=equals.getLeftExpression().toString();
+//                p[3]="=";
+//                p[4]=equals.getRightExpression().toString();
+//                break;
+//            case "GreaterThan" ://大于的处理
+//                GreaterThan greaterThan =(GreaterThan) where;
+//                p[2]=greaterThan.getLeftExpression().toString();
+//                p[3]=">";
+//                p[4]=greaterThan.getRightExpression().toString();
+//                break;
+//            case "MinorThan" ://小于的处理
+//                MinorThan minorThan =(MinorThan) where;
+//                p[2]=minorThan.getLeftExpression().toString();
+//                p[3]=">";
+//                p[4]=minorThan.getRightExpression().toString();
+//                break;
+//            default:
+//                break;
+//        }
+//        return new MemConnect().delete(p);
     }
 }
