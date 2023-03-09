@@ -1,13 +1,6 @@
-package drz.tmdb.Transaction.Transactions;
+package drz.tmdb.Transaction.Transactions.impl;
 
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.Parenthesis;
-import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
-import net.sf.jsqlparser.expression.operators.arithmetic.Division;
-import net.sf.jsqlparser.expression.operators.arithmetic.Modulo;
-import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
-import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
@@ -15,32 +8,31 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.SubSelect;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
+import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
+import drz.tmdb.Transaction.Transactions.Select;
+import drz.tmdb.Transaction.Transactions.utils.Formula;
+import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 
 public class Where {
     Formula formula=new Formula();
-    public SelectResult where(PlainSelect plainSelect,SelectResult selectResult){
+    public SelectResult where(PlainSelect plainSelect, SelectResult selectResult) throws TMDBException {
         execute(plainSelect.getWhere(),selectResult);
 
         return selectResult;
     }
 
     //核心类，将整个where语法树进行后续遍历
-    public SelectResult execute(Expression expression,SelectResult selectResult){
+    public SelectResult execute(Expression expression,SelectResult selectResult) throws TMDBException {
         SelectResult res=new SelectResult();
-        if(selectResult.tpl.tuplelist.isEmpty()) return selectResult;
+        if(selectResult.getTpl().tuplelist.isEmpty()) return selectResult;
         String a=expression.getClass().getSimpleName();
         switch (expression.getClass().getSimpleName()){
             case "OrExpression": res=orExpression((OrExpression) expression,selectResult); break;
@@ -54,7 +46,7 @@ public class Where {
     }
 
 
-    public SelectResult andExpression(AndExpression expression, SelectResult selectResult){
+    public SelectResult andExpression(AndExpression expression, SelectResult selectResult) throws TMDBException {
         Expression left=expression.getLeftExpression();
         Expression right=expression.getRightExpression();
         SelectResult selectResult1=execute(left,selectResult);
@@ -69,7 +61,7 @@ public class Where {
         return getSelectResultFromSet(selectResult,overlap);
     }
 
-    public SelectResult orExpression(OrExpression expression,SelectResult selectResult){
+    public SelectResult orExpression(OrExpression expression,SelectResult selectResult) throws TMDBException {
         Expression left=expression.getLeftExpression();
         Expression right=expression.getRightExpression();
         SelectResult selectResult1=execute(left,selectResult);
@@ -83,7 +75,7 @@ public class Where {
         return getSelectResultFromSet(selectResult,selectResultSet1);
     }
 
-    public SelectResult inExpression(InExpression expression, SelectResult selectResult){
+    public SelectResult inExpression(InExpression expression, SelectResult selectResult) throws TMDBException {
         ArrayList<Object> left=formula.formulaExecute(expression.getLeftExpression(),selectResult);
         List<Object> right=new ArrayList<>();
         //in表达式右边可能是一个list
@@ -95,21 +87,22 @@ public class Where {
         }
         //in表达式的右边可能是一个SubSelect
         else if(expression.getRightExpression().getClass().getSimpleName().equals("SubSelect")){
-            SelectResult temp=(new Select()).select(expression.getRightExpression());
-            for(int i=0;i<temp.tpl.tuplelist.size();i++){
-                right.add(transType(temp.tpl.tuplelist.get(i).tuple[0]));
+            Select select=new SelectImpl();
+            SelectResult temp=select.select(expression.getRightExpression());
+            for(int i=0;i<temp.getTpl().tuplelist.size();i++){
+                right.add(transType(temp.getTpl().tuplelist.get(i).tuple[0]));
             }
         }
         ArrayList<Tuple> resTuple=new ArrayList<>();
         //最后，如果left存在于right的集合中，就加入到结果集合
         for(int i=0;i<left.size();i++){
-            if(right.contains(transType(left.get(i)))) resTuple.add(selectResult.tpl.tuplelist.get(i));
+            if(right.contains(transType(left.get(i)))) resTuple.add(selectResult.getTpl().tuplelist.get(i));
         }
-        selectResult.tpl.tuplelist=resTuple;
+        selectResult.getTpl().tuplelist=resTuple;
         return selectResult;
     }
 
-    public SelectResult equalsToExpression(EqualsTo expression,SelectResult selectResult){
+    public SelectResult equalsToExpression(EqualsTo expression,SelectResult selectResult) throws TMDBException {
         ArrayList<Object> left=formula.formulaExecute(expression.getLeftExpression(),selectResult);
         ArrayList<Object> right=formula.formulaExecute(expression.getRightExpression(),selectResult);
         HashSet<Tuple> set=new HashSet<>();
@@ -117,12 +110,12 @@ public class Where {
             String tempLeft=transType(left.get(i));
             String tempRight=transType(right.get(i));
             //左边和右边相等则加入结果集合。
-            if(tempLeft.equals(tempRight)) set.add(selectResult.tpl.tuplelist.get(i));
+            if(tempLeft.equals(tempRight)) set.add(selectResult.getTpl().tuplelist.get(i));
         }
         return getSelectResultFromSet(selectResult,set);
     }
 
-    public SelectResult minorThan(MinorThan expression,SelectResult selectResult){
+    public SelectResult minorThan(MinorThan expression,SelectResult selectResult) throws TMDBException {
         ArrayList<Object> left=formula.formulaExecute(expression.getLeftExpression(),selectResult);
         ArrayList<Object> right=formula.formulaExecute(expression.getRightExpression(),selectResult);
         HashSet<Tuple> set=new HashSet<>();
@@ -130,12 +123,12 @@ public class Where {
             String tempLeft=transType(left.get(i));
             String tempRight=transType(right.get(i));
             //左边小于右边，则加入结果集合
-            if(tempLeft.compareTo(tempRight)<0) set.add(selectResult.tpl.tuplelist.get(i));
+            if(tempLeft.compareTo(tempRight)<0) set.add(selectResult.getTpl().tuplelist.get(i));
         }
         return getSelectResultFromSet(selectResult,set);
     }
 
-    public SelectResult greaterThan(GreaterThan expression,SelectResult selectResult){
+    public SelectResult greaterThan(GreaterThan expression,SelectResult selectResult) throws TMDBException {
         ArrayList<Object> left=formula.formulaExecute(expression.getLeftExpression(),selectResult);
         ArrayList<Object> right=formula.formulaExecute(expression.getRightExpression(),selectResult);
         HashSet<Tuple> set=new HashSet<>();
@@ -143,7 +136,7 @@ public class Where {
             String tempLeft=transType(left.get(i));
             String tempRight=transType(right.get(i));
             //左边大于右边，则加入结果集合
-            if(tempLeft.compareTo(tempRight)>0) set.add(selectResult.tpl.tuplelist.get(i));
+            if(tempLeft.compareTo(tempRight)>0) set.add(selectResult.getTpl().tuplelist.get(i));
         }
         return getSelectResultFromSet(selectResult,set);
     }
@@ -151,7 +144,7 @@ public class Where {
 
     public HashSet<Tuple> getTupleSet(SelectResult selectResult){
         HashSet<Tuple> set=new HashSet<>();
-        for(Tuple tuple:selectResult.tpl.tuplelist){
+        for(Tuple tuple:selectResult.getTpl().tuplelist){
             set.add(tuple);
         }
         return set;
@@ -162,7 +155,7 @@ public class Where {
         for(Tuple tuple:set){
             tupleList.addTuple(tuple);
         }
-        selectResult.tpl=tupleList;
+        selectResult.setTpl(tupleList);
         return selectResult;
     }
 

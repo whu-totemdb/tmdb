@@ -1,4 +1,4 @@
-package drz.tmdb.Transaction.Transactions;
+package drz.tmdb.Transaction.Transactions.utils;
 
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
@@ -14,10 +14,11 @@ import net.sf.jsqlparser.schema.Column;
 import java.util.ArrayList;
 
 import drz.tmdb.Memory.Tuple;
+import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public class Formula {
     //表达式后续遍历处理的核心
-    public ArrayList<Object> formulaExecute(Expression expression,SelectResult selectResult){
+    public ArrayList<Object> formulaExecute(Expression expression, SelectResult selectResult) throws TMDBException {
         ArrayList<Object> res=new ArrayList<>();
         switch ((expression.getClass().getSimpleName())){//根据表达式的类别，分别处理
             case "Addition": res=addition((Addition) expression,selectResult); break;
@@ -38,48 +39,40 @@ public class Formula {
         String temp=expression.getValue();
         ArrayList<Object> res=new ArrayList<>();
         //返回全是该数字元素的列
-        for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
+        for(int i=0;i<selectResult.getTpl().tuplelist.size();i++){
             res.add(temp);
         }
         return res;
     }
 
     //最底层的算子之一，column，表示一个参数的信息
-    public ArrayList<Object> column(Column column, SelectResult selectResult){
+    public ArrayList<Object> column(Column column, SelectResult selectResult) throws TMDBException {
         //获取columnName
         String columnName=column.getColumnName();
         int index=-1;
         //找到这个column在selectResult中的对应index，在原始名和别名中都要进行寻找。
-        for(int i=0;i<selectResult.className.length;i++){
-            if(selectResult.attrname[i].equals(columnName)){
+        for(int i=0;i<selectResult.getClassName().length;i++){
+            if(selectResult.getAttrname()[i].equals(columnName)){
                 if(column.getTable()==null
-                        || column.getTable().getName().equals(selectResult.className[i])
-                        || column.getTable().getName().equals(selectResult.alias[i])){
+                        || column.getTable().getName().equals(selectResult.getClassName()[i])
+                        || column.getTable().getName().equals(selectResult.getAlias()[i])){
                     index=i;
                     break;
                 }
             }
         }
+        if(index==-1) throw new TMDBException("找不到"+columnName);
         ArrayList<Object> res=new ArrayList<>();
-        //这是另一种情况的处理，"a"*3，左边只是一个string，不是列元素，也会被当作column处理，这时候，只需要返回一列全是该元素的列表即可
-        if(index>selectResult.className.length || index==-1){
-            if(column.getColumnName().charAt(0)=='"'){
-                for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
-                    res.add(columnName.replace("\"",""));
-                }
-            }
-        }
         //正常的情况，从selectresult中提取出该列的数据
-        else {
-            for (Tuple tuple : selectResult.tpl.tuplelist) {
-                res.add(tuple.tuple[index]);
-            }
+        for (Tuple tuple : selectResult.getTpl().tuplelist) {
+            res.add(tuple.tuple[index]);
         }
+
         return res;
     }
 
     //加法的处理
-    public ArrayList<Object> addition(Addition expression, SelectResult selectResult){
+    public ArrayList<Object> addition(Addition expression, SelectResult selectResult) throws TMDBException {
         //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
         //获取表达式右边元素
@@ -92,7 +85,7 @@ public class Formula {
     }
 
     //减法处理
-    public ArrayList<Object> subtraction(Subtraction expression, SelectResult selectResult){
+    public ArrayList<Object> subtraction(Subtraction expression, SelectResult selectResult) throws TMDBException {
         //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
         //获取表达式右边元素
@@ -105,7 +98,7 @@ public class Formula {
     }
 
     //乘法处理
-    public ArrayList<Object> multiplication(Multiplication expression,SelectResult selectResult){
+    public ArrayList<Object> multiplication(Multiplication expression,SelectResult selectResult) throws TMDBException {
         //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
         //获取表达式右边元素
@@ -118,7 +111,7 @@ public class Formula {
     }
 
     //除法处理
-    public ArrayList<Object> division(Division expression, SelectResult selectResult){
+    public ArrayList<Object> division(Division expression, SelectResult selectResult) throws TMDBException {
         //获取表达式左边元素
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
         //获取表达式右边元素
@@ -131,7 +124,7 @@ public class Formula {
     }
 
     //余数处理
-    public ArrayList<Object> modulo(Modulo expression, SelectResult selectResult){
+    public ArrayList<Object> modulo(Modulo expression, SelectResult selectResult) throws TMDBException {
         //获取表达式左边
         ArrayList<Object> left=formulaExecute(expression.getLeftExpression(),selectResult);
         //获取表达式右边
@@ -144,7 +137,7 @@ public class Formula {
     }
 
     //小括号（）处理，直接返回内部的表达式
-    public ArrayList<Object> parenthesis(Parenthesis expression, SelectResult selectResult){
+    public ArrayList<Object> parenthesis(Parenthesis expression, SelectResult selectResult) throws TMDBException {
         ArrayList<Object> res=formulaExecute(expression.getExpression(),selectResult);
         return res;
     }
@@ -154,7 +147,7 @@ public class Formula {
         double temp=(double)value.getValue();
         ArrayList<Object> res=new ArrayList<>();
         //返回全是该数字元素的列
-        for(int i=0;i<selectResult.tpl.tuplelist.size();i++){
+        for(int i=0;i<selectResult.getTpl().tuplelist.size();i++){
             res.add(temp);
         }
         return res;
