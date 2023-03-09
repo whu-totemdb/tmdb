@@ -14,7 +14,7 @@ public class StorageTest {
         // SSTable读写测试
         MemManager memManager = new MemManager();
         for(int i=1; i<50000; i++){
-            memManager.add(new ObjectTableItem(i, i, i, i));
+            memManager.add(new ObjectTableItem());
         }
         // 写
         long t1 = System.currentTimeMillis();

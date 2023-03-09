@@ -33,14 +33,17 @@ import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 
 public class MemManager {
 
-    public ObjectTable objectTable = new ObjectTable();
-    public ClassTable classTable = new ClassTable();
-    public DeputyTable deputyTable = new DeputyTable();
-    public BiPointerTable biPointerTable = new BiPointerTable();
-    public SwitchingTable switchingTable = new SwitchingTable();
+    // 系统表
+    private static ObjectTable objectTable;
+    private static ClassTable classTable;
+    private static DeputyTable deputyTable;
+    private static BiPointerTable biPointerTable;
+    private static SwitchingTable switchingTable;
 
+    // 数据表
+    public TupleList tupleList = new TupleList();
 
-    private int currentMemSize = 0; // 当前数据占用内存大小
+    private int currentMemSize = 0; // 当前数据表占用内存大小
 
     public LevelManager levelManager = new LevelManager();
 
@@ -58,6 +61,7 @@ public class MemManager {
         loadSwitchingTable();
         loadClassTable();
         loadBiPointerTable();
+        loadObjectTable();
     }
 
     // 持久化保存所有数据
@@ -66,6 +70,7 @@ public class MemManager {
         saveDeputyTable();
         saveClassTable();
         saveBiPointerTable();
+        saveObjectTable();
         //saveMemTableToFile();
     }
 
@@ -405,6 +410,66 @@ public class MemManager {
             cur += (Integer.BYTES + len);
 
             this.switchingTable.switchingTable.add(item);
+        }
+    }
+
+    // 先用int记录maxTupleId
+    // ObjectTableItem的属性：
+    // int classid
+    // int tupleid
+    // int sstSuffix
+    // boolean delete
+    public void saveObjectTable() throws IOException {
+        File f = new File(drz.tmdb.Memory.Constant.SYSTEM_TABLE_DIR + "ot");
+        if(!f.exists())
+            f.createNewFile();
+        RandomAccessFile raf = new RandomAccessFile(f, "rw");
+
+        // 用int记录maxTupleId
+        raf.writeInt(this.objectTable.maxTupleId);
+
+        // 依次存每个ObjectTableItem
+        for(ObjectTableItem item: this.objectTable.objectTable){
+            // 存classid
+            raf.writeInt(item.classid);
+            // 存tupleid
+            raf.writeInt(item.tupleid);
+            // 存sstSuffix
+            raf.writeInt(item.sstSuffix);
+            // 存delete
+            raf.writeBoolean(item.delete);
+        }
+        raf.close();
+    }
+
+    public void loadObjectTable() throws IOException {
+        File f = new File(drz.tmdb.Memory.Constant.SYSTEM_TABLE_DIR + "ot");
+        if(!f.exists())
+            return;
+        RandomAccessFile raf = new RandomAccessFile(f, "r");
+        long l = raf.length();
+        long cur = 0L;
+
+        // 读 maxTupleId
+        this.objectTable.maxTupleId = raf.readInt();
+        cur += Integer.BYTES;
+
+        while(cur < l){
+            ObjectTableItem item = new ObjectTableItem();
+            // 读classid
+            item.classid = raf.readInt();
+            cur += Integer.BYTES;
+            // 读tupleid
+            item.tupleid = raf.readInt();
+            cur += Integer.BYTES;
+            // 读sstSuffix
+            item.sstSuffix = raf.readInt();
+            cur += Integer.BYTES;
+            // 读delete
+            item.delete = raf.readBoolean();
+            cur += 1;
+
+            this.objectTable.objectTable.add(item);
         }
     }
 

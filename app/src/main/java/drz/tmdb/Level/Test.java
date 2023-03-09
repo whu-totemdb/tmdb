@@ -29,7 +29,7 @@ public class Test {
         Random random = new Random();
         long[] sizes = new long[100];
         for(int i=0; i<100; i++){
-            ObjectTableItem o = new ObjectTableItem(random.nextInt(100), i,random.nextInt(100),random.nextInt(100));
+            ObjectTableItem o = new ObjectTableItem();
             sizes[i] = RamUsageEstimator.sizeOf(o);
         }
         return;
@@ -41,7 +41,7 @@ public class Test {
         Random random = new Random();
         int i = 0;
         while(true){
-            ObjectTableItem o = new ObjectTableItem(random.nextInt(100), i,random.nextInt(100),random.nextInt(100));
+            ObjectTableItem o = new ObjectTableItem();
             memManager.add(o);
             ClassTableItem c = new ClassTableItem();
             memManager.add(c);
@@ -54,13 +54,13 @@ public class Test {
     // MemTable写入SSTable
     public static void test3() throws IOException {
         MemManager memManager = new MemManager();
-        ObjectTableItem o = new ObjectTableItem(10, 1, 10, 10);
+        ObjectTableItem o = new ObjectTableItem();
         memManager.add(o);
-        o = new ObjectTableItem(10, 2, 10, 10);
+        o = new ObjectTableItem();
         memManager.add(o);
-        o = new ObjectTableItem(10, 3, 10, 10);
+        o = new ObjectTableItem();
         memManager.add(o);
-        o = new ObjectTableItem(10, 4, 10, 10);
+        o = new ObjectTableItem();
         memManager.add(o);
         memManager.saveMemTableToFile();
         SSTable sst = new SSTable("SSTable1", 1);
@@ -443,6 +443,8 @@ public class Test {
         memManager1.add(new SwitchingTableItem("zzvc", "zsdsz", "dwww"));
         memManager1.add(new DeputyTableItem(0, 1, new String[]{"120", "arwar", "fafaf"}));
         memManager1.add(new DeputyTableItem(100, 555, new String[]{"122220", "arwagsr", "faf358af", "444fww"}));
+        memManager1.add(new ObjectTableItem(10,20,false));
+        memManager1.add(new ObjectTableItem(50,70,true));
         memManager1.saveAll();
         MemManager memManager2 = new MemManager();
         return;
