@@ -11,67 +11,162 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
-import drz.tmdb.Level.Constant;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import drz.tmdb.Memory.MemManager;
 
 public class LogManager {
-    final File logFile = new File("D:\\test_data\\" + "tmdbLog");//日志文件
+    public File logFile;//日志文件
 
-    final private int attrstringlen=8; //属性最大字符串长度为8Byte
+    public File fileTree;//存B树文件
+    BufferedOutputStream bTreeWriteAccess;
 
-    public static RandomAccessFile raf;
+
+    public static RandomAccessFile logIOAccess;
     public static int checkpoint;//日志检查点
     public static long check_off;//检查点在日志中偏移位置
-    static  long limitedSize=10*1024;//日志文件限制大小
-    static  long writeB_size=5*1024;//日志文件限制大小
+    static  long limitedSize=10*10*1024;//日志文件限制大小
+    static  long writeB_size=5*10*1024;//日志文件限制大小
     static long currentOffset;
     static int currentId;
     static int start;//目前日志的起始id
-    static long bTree_off;//bTree加载到内存中的偏移量
 
 
 //    public MemManager memManager=new MemManager();
 
     //初始化索引b树
-    BTree_Indexer<String , Long> bTree_indexer=new BTree_Indexer<>();
+    public BTree_Indexer<String , Long> bTree_indexer;
 
+    //建立hashmap将日志记录按对象分类
+    public static Map< String, List<Integer>> Map;
+    //遍历hashMap的keySet
+    public Iterator<Map.Entry<String, List<Integer>>> iterator;
 
     public LogManager() throws IOException {
-        //raf = new RandomAccessFile(logFile, "rw");
+        File dir = new File(Constants.LOG_BASE_DIR);
+        if(!dir.exists()){
+            dir.mkdirs();
+        }
+        logFile = new File(Constants.LOG_BASE_DIR + "tmdblog");
+        fileTree = new File(Constants.LOG_BASE_DIR + "log_btree");
+        if(!logFile.exists())
+            logFile.createNewFile();
+        if(!fileTree.exists())
+            fileTree.createNewFile();
+        bTreeWriteAccess = new BufferedOutputStream(new FileOutputStream(fileTree));
+        logIOAccess = new RandomAccessFile(logFile, "rw");
+        Map= new HashMap < String, List<Integer> > ();
         checkpoint=-1;
         check_off=-1;
         currentOffset = 0;
         currentId = 0;
         start = 0;
         //app启动时将b树从磁盘加载到内存
-        //bTree_indexer=new BTree_Indexer<>("tmdbLog",bTree_off);
+        if(fileTree.length()==0){
+            bTree_indexer = new BTree_Indexer<>();
+        }else{
+            bTree_indexer=new BTree_Indexer<>("log_btree",0);
+        }
     }
 
-    //初始化新日志文件
+    //初始化新日志文件与新索引b树文件
     public void init() throws IOException {
-        logFile.delete();
-        File logFile = new File("D:\\test_data\\" + "tmdbLog.txt");
-        logFile.createNewFile();
-        checkpoint=-1;
-        check_off=-1;
-        currentOffset = 0;
-        currentId = 0;
-        start = 0;
+        Map.clear();//删除Map中所有键值对
+        if(deleteDirectory(Constants.LOG_BASE_DIR)) {
+            File dir = new File(Constants.LOG_BASE_DIR);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            logFile = new File(Constants.LOG_BASE_DIR + "tmdblog");
+            fileTree = new File(Constants.LOG_BASE_DIR + "log_btree");
+            if (!logFile.exists())
+                logFile.createNewFile();
+            if (!fileTree.exists())
+                fileTree.createNewFile();
+            bTreeWriteAccess = new BufferedOutputStream(new FileOutputStream(fileTree));
+            logIOAccess = new RandomAccessFile(logFile, "rw");
+            checkpoint = -1;
+            check_off = -1;
+            currentOffset = 0;
+            currentId = 0;
+            start = 0;
+            //app启动时将b树从磁盘加载到内存
+            if (fileTree.length() == 0) {
+                bTree_indexer = new BTree_Indexer<>();
+            } else {
+                bTree_indexer = new BTree_Indexer<>("log_btree", 0);
+            }
+        }
     }
+
+    //删除dir目录及下面的两个文件
+    public static boolean deleteDirectory(String dir) {
+        // 如果dir不以文件分隔符结尾，自动添加文件分隔符
+        if (!dir.endsWith(File.separator))
+            dir = dir + File.separator;
+        File dirFile = new File(dir);
+        // 如果dir对应的文件不存在，或者不是一个目录，则退出
+        if ((!dirFile.exists()) || (!dirFile.isDirectory())) {
+            System.out.println("删除目录失败：" + dir + "不存在！");
+            return false;
+        }
+        boolean flag = true;
+        // 删除文件夹中的所有文件包括子目录
+        File[] files = dirFile.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            // 删除子文件
+            if (files[i].isFile()) {
+                flag = deleteFile(files[i].getAbsolutePath());
+                if (!flag)
+                    break;
+            }
+        }
+        if (!flag) {
+            System.out.println("删除目录失败！");
+            return false;
+        }
+        // 删除当前目录
+        if (dirFile.delete()) {
+            System.out.println("删除目录" + dir + "成功！");
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean deleteFile(String fileName) {
+        File file = new File(fileName);
+        // 如果文件路径所对应的文件存在，并且是一个文件，则直接删除
+        if (file.exists() && file.isFile()) {
+            if (file.delete()) {
+                System.out.println("删除单个文件" + fileName + "成功！");
+                return true;
+            } else {
+                System.out.println("删除单个文件" + fileName + "失败！");
+                return false;
+            }
+        } else {
+            System.out.println("删除单个文件失败：" + fileName + "不存在！");
+            return false;
+        }
+    }
+
 
 
     //给定参数LogTableItem对象将日志持久化到磁盘
     public void writeLogItemToSSTable(LogTableItem log){
         try{
-            raf.seek(currentOffset);
+            logIOAccess.seek(currentOffset);
 
-            raf.writeInt(log.logid);
-            raf.writeByte(log.op);
-            raf.writeUTF(log.key);
-            raf.writeUTF(log.value);
-            raf.writeLong(log.offset);
+            logIOAccess.writeInt(log.logid);
+            logIOAccess.writeByte(log.op);
+            logIOAccess.writeUTF(log.key);
+            logIOAccess.writeUTF(log.value);
+            logIOAccess.writeLong(log.offset);
              /**
             byte[] lid=int2Bytes(log.logid, 4);
             raf.write(lid);
@@ -81,7 +176,8 @@ public class LogManager {
             byte[] lof=long2Bytes(log.offset);
             raf.write(lof);
               **/
-            currentOffset = raf.getFilePointer();
+            currentOffset = logIOAccess.getFilePointer();
+
         }catch (FileNotFoundException e) {
             e.printStackTrace();
         }catch (IOException e) {
@@ -90,28 +186,56 @@ public class LogManager {
     }
     //给定参数key、op、value，将日志持久化到磁盘
     public void WriteLog(String k,Byte op,String v) throws IOException {
+        int flag=0;
         LogTableItem LogItem = new LogTableItem(currentId,op,k,v);     //把语句传入logItem，这个时候都是未完成
         LogItem.offset=currentOffset;
         currentId++;
         writeLogItemToSSTable(LogItem);
+
+        iterator = Map.entrySet().iterator();
+        //将该日志记录的logid按对象分类
+
+        while (iterator.hasNext()) {
+            Map.Entry<String, List<Integer>> entry = iterator.next();
+            if(LogItem.value==entry.getKey()){
+                entry.getValue().add(LogItem.logid);
+                flag=1;
+                break;
+            }
+        }
+        if(flag==0) {
+            List<Integer> list = new ArrayList<Integer>();//hashmap里没找到该对象则新建一个列表
+            list.add(LogItem.logid);
+            Map.put(LogItem.value, list);
+        }
+        /**
+        List<Integer> list = new ArrayList<Integer>();
+        list.add(1);
+        list.add(2);
+        Map.put("v3",list);
+        List<Integer> list1 = new ArrayList<Integer>();
+        list1.add(3);
+        list1.add(4);
+        Map.put("v4",list1);
+         **/
+
         bTree_indexer.insert(Integer.toString(LogItem.logid),LogItem.offset);//将记录offset的节点插入b树中
         int type=checkFileInSize();
-        if(type==1) {//超出日志所存限制，则删除没用的log
-            DeleteLog();
-        }
-        bTree_off= raf.getFilePointer();
-        if(type==2){//将索引B树加载到内存中
-            bTree_indexer.write("tmdbLog", bTree_off);
-        }
+        if(type==2){//将索引B树持久化到磁盘
+            bTree_indexer.write(bTreeWriteAccess, 0);
+       }
     }
 
 
-
-
     //设置检查点
-    public void setCheckpoint(){
-        checkpoint = currentId;
-        check_off = currentOffset;
+    public void setCheckpoint() throws IOException {
+        int type=checkFileInSize();
+        if(type==1){//新建日志文件与索引b树文件重新写
+             init();
+        }else {
+            checkpoint = currentId;
+            check_off = currentOffset;
+        }
     }
 
     //加载REDO log
@@ -127,80 +251,58 @@ public class LogManager {
             long readpos = 0;
             redo_num = currentId+1;
             while (redo_num!=0) {
-                raf.seek(readpos);
+                logIOAccess.seek(readpos);
 
-                redo_log[i].logid = raf.readInt();
-                redo_log[i].op = raf.readByte();
-                redo_log[i].key = raf.readUTF();
-                redo_log[i].value = raf.readUTF();
-                redo_log[i].offset = raf.readLong();
-                 /**
-                byte[] lid=new byte[4];
-                raf.read(lid);
-                redo_log[i].logid=bytes2Int(lid,0,4);
-                redo_log[i].op = raf.readByte();
-                redo_log[i].key = raf.readUTF();
-                redo_log[i].value = raf.readUTF();
-                byte[] lof=new byte[8];
-                raf.read(lof);
-                redo_log[i].offset=bytes2long(lof);
-                  **/
+                redo_log[i].logid = logIOAccess.readInt();
+                redo_log[i].op = logIOAccess.readByte();
+                redo_log[i].key = logIOAccess.readUTF();
+                redo_log[i].value = logIOAccess.readUTF();
+                redo_log[i].offset = logIOAccess.readLong();
                 redo_num--;
                 i++;
-                readpos = raf.getFilePointer();
+                readpos = logIOAccess.getFilePointer();
             }
         }else {
             redo_num=currentId-checkpoint;
             long readpos = check_off;
             while (redo_num!=0) {
-                raf.seek(readpos);
+                logIOAccess.seek(readpos);
 
-                redo_log[i].logid = raf.readInt();
-                redo_log[i].op = raf.readByte();
-                redo_log[i].key = raf.readUTF();
-                redo_log[i].value = raf.readUTF();
-                redo_log[i].offset = raf.readLong();
-                 /**
-                byte[] lid=new byte[4];
-                raf.read(lid);
-                redo_log[i].logid=bytes2Int(lid,0,4);
-                redo_log[i].op = raf.readByte();
-                redo_log[i].key = raf.readUTF();
-                redo_log[i].value = raf.readUTF();
-                byte[] lof=new byte[8];
-                raf.read(lof);
-                redo_log[i].offset=bytes2long(lof);
-                  **/
+                redo_log[i].logid = logIOAccess.readInt();
+                redo_log[i].op = logIOAccess.readByte();
+                redo_log[i].key = logIOAccess.readUTF();
+                redo_log[i].value = logIOAccess.readUTF();
+                redo_log[i].offset = logIOAccess.readLong();
                 redo_num--;
                 i++;
-                readpos = raf.getFilePointer();
+                readpos = logIOAccess.getFilePointer();
             }
         }
         return redo_log;
     }
-/**
-    //REDO
-    public void redo() throws IOException {
-        int redo_num=currentId-checkpoint;
-        LogTableItem[] redo_log = new LogTableItem[redo_num+1];
-        //数组初始化
-        for(int j=0;j<redo_num;j++){
-            redo_log[j]=new LogTableItem(0, (byte) 0,null,null);
-        }
-        redo_log = readRedo();
-        for(int i=0;i<redo_num;i++){
-            JSONObject object = JSONObject.parseObject(redo_log[i].value);
-            memManager.add(object);
-        }
-    }
-**/
+
+//    //REDO
+//    public void redo() throws IOException {
+//        int redo_num=currentId-checkpoint;
+//        LogTableItem[] redo_log = new LogTableItem[redo_num+1];
+//        //数组初始化
+//        for(int j=0;j<redo_num;j++){
+//            redo_log[j]=new LogTableItem(0, (byte) 0,null,null);
+//        }
+//        redo_log = readRedo();
+//        for(int i=0;i<redo_num;i++){
+//            JSONObject object = JSONObject.parseObject(redo_log[i].value);
+//            memManager.add(object);
+//        }
+//    }
+
 
     //检查日志文件大小是否超过限制
     private int checkFileInSize() {
         if(logFile.length()>limitedSize){
             return 1;
         }
-        else if(logFile.length()>writeB_size){
+        if(logFile.length()>writeB_size){
             return 2;
         }
         else{
@@ -209,97 +311,66 @@ public class LogManager {
     }
 
     //删除不必要日志记录（检查点之前的）
-    /**
-    public void DeleteLog() throws IOException {
-        if(check_off!=-1) {
-            int n = currentId - checkpoint;
-            LogTableItem[] reserve_log = new LogTableItem[n+1];
-            //数组初始化
-            for(int j=0;j<=n;j++){
-                reserve_log[j]=new LogTableItem(0, (byte) 0,null,null);
-            }
-            int i = 0;
-            long readpos = check_off;
-            while (n!=0) {
-                raf.seek(readpos);
-                reserve_log[i].logid = raf.readInt();
-                reserve_log[i].op = raf.readByte();
-                reserve_log[i].key = raf.readUTF();
-                reserve_log[i].value = raf.readUTF();
-                reserve_log[i].offset = raf.readLong();
-                i++;
-                n--;
-                readpos = raf.getFilePointer();
-            }
-            init();
-            raf.seek(0);
-            for(int j=0;j<=i;j++){//重新写入需保存的日志
-                WriteLog(reserve_log[j].key,reserve_log[j].op,reserve_log[j].value);
-            }
-        }
 
-    }
-     **/
-
-    public void DeleteLog() throws IOException {
-        try {
-            raf.seek(0);
-            // 写文件的位置标记,从文件开头开始,后续读取文件内容从该标记开始
-            long writePosition = raf.getFilePointer();
-            for (int i = 0; i < check_off; i++) {
-                Byte b = raf.readByte();
-                if (b==null) {
-                    break;
-                }
-            }
-            // Shift the next lines upwards.
-            // 读文件的位置标记,写完之后回到该标记继续读该行
-            long readPosition = raf.getFilePointer();
-
-            // 利用两个标记,
-            byte[] buff = new byte[10];
-            int n;
-            currentOffset=0;
-            while (-1 != (n = raf.read(buff))) {
-                currentOffset=writePosition;
-                long off=currentOffset;
-                raf.seek(writePosition);
-                raf.write(buff, 0, n);
-                readPosition += n;
-                writePosition += n;
-                raf.seek(readPosition);
-            }
-            raf.setLength(writePosition);
-            raf.seek(logFile.length());//指针还原到更新日志文件末尾
-            currentOffset=raf.getFilePointer();//设置现在的currentOffset
-            //清除检查点
-            check_off=-1;
-            checkpoint=-1;
-            //起始日志id为checkpoint
-            start=checkpoint;
-        } catch (IOException e) {
-            throw e;
-        }
-    }
+//    public void DeleteLog() throws IOException {
+//        try {
+//            logIOAccess.seek(0);
+//            // 写文件的位置标记,从文件开头开始,后续读取文件内容从该标记开始
+//            long writePosition = logIOAccess.getFilePointer();
+//            for (int i = 0; i < check_off; i++) {
+//                Byte b = logIOAccess.readByte();
+//                if (b==null) {
+//                    break;
+//                }
+//            }
+//            // Shift the next lines upwards.
+//            // 读文件的位置标记,写完之后回到该标记继续读该行
+//            long readPosition = logIOAccess.getFilePointer();
+//
+//            // 利用两个标记,
+//            byte[] buff = new byte[10];
+//            int n;
+//            currentOffset=0;
+//            while (-1 != (n = logIOAccess.read(buff))) {
+//                currentOffset=writePosition;
+//                long off=currentOffset;
+//                logIOAccess.seek(writePosition);
+//                logIOAccess.write(buff, 0, n);
+//                readPosition += n;
+//                writePosition += n;
+//                logIOAccess.seek(readPosition);
+//            }
+//            logIOAccess.setLength(writePosition);
+//            logIOAccess.seek(logFile.length());//指针还原到更新日志文件末尾
+//            currentOffset= logIOAccess.getFilePointer();//设置现在的currentOffset
+//            //清除检查点
+//            check_off=-1;
+//            checkpoint=-1;
+//            //起始日志id为checkpoint
+//            start=checkpoint;
+//        } catch (IOException e) {
+//            throw e;
+//        }
+//    }
 
     public void loadLog() throws IOException {
-        raf.seek(0);
+        logIOAccess.seek(0);
         for(int i=start;i<currentId;i++){
-            System.out.println("id为"+raf.readInt()+" op为"+raf.readByte()+" key为"
-                            +raf.readUTF()+" value为"+raf.readUTF()+" offset为"+raf.readLong());
+            System.out.println("id为"+ logIOAccess.readInt()+" op为"+ logIOAccess.readByte()+" key为"
+                            + logIOAccess.readUTF()+" value为"+ logIOAccess.readUTF()+" offset为"+ logIOAccess.readLong());
         }
     }
 
     //寻找指定logid的日志在文件中的位置并返回该日志对象
     public LogTableItem searchLog(int logID) throws IOException {
         long off= bTree_indexer.search(Integer.toString(logID));
-        raf.seek(off);
+        logIOAccess.seek(off);
         LogTableItem logItem = new LogTableItem();
-        logItem.logid = raf.readInt();
-        logItem.op = raf.readByte();
-        logItem.key = raf.readUTF();
-        logItem.value = raf.readUTF();
-        logItem.offset = raf.readLong();
+        logItem.logid = logIOAccess.readInt();
+        logItem.op = logIOAccess.readByte();
+        logItem.key = logIOAccess.readUTF();
+        logItem.value = logIOAccess.readUTF();
+        logItem.offset = logIOAccess.readLong();
         return logItem;
     }
 
