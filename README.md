@@ -17,11 +17,11 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 ### Task 2
 
-
+在WAL(Write Ahead Log)预写日志技术中，tmdb对对象的所有操作都会先写入日志，请根据传入的参数键（key）、值（value）、操作种类（op）补全写日志方法。
 
 ### Task 3
-阅读参考资料TMDB总体设计文档中的查询部分，实现Task3对应功能。
 
+阅读参考资料TMDB总体设计文档中的查询部分，实现Task3对应功能。
 
 ## 解决思路
 

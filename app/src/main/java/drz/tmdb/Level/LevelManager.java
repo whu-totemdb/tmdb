@@ -127,6 +127,8 @@ public class LevelManager {
         if(level < 0 || level >= Constant.MAX_LEVEL)
             return;
 
+        System.out.println("开始compaction");
+
         Set<Integer> filesToCompact = new HashSet<>(); // 记录需要进行compaction的文件名后缀
 
         // 若i=0，则将level-0所有SSTable进行compaction成新SSTable并加入level-1，并删除level-0中所有旧SSTable

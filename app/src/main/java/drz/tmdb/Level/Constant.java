@@ -138,29 +138,6 @@ public class Constant {
         return buffer.getLong();
     }
 
-    // 根据一定规则给Object计算key
-    public static String calculateKey(Object o){
-        String key = "";
-        if(o instanceof BiPointerTableItem){
-            // 选择deputyobjectid作为BiPointerTableItem的key
-            key = "b" + ((BiPointerTableItem) o).deputyobjectid;
-        }else if(o instanceof ClassTableItem){
-            // 选择classid作为ClassTableItem的key
-            key = "c" + ((ClassTableItem) o).classid;
-        }else if(o instanceof DeputyTableItem){
-            // 选择deputyid作为DeputyTableItem的key
-            key = "d" + ((DeputyTableItem) o).deputyid;
-        }else if(o instanceof ObjectTableItem){
-            // 选择tupleid作为ObjectTableItem的key
-            key = "o" + ((ObjectTableItem) o).tupleid;
-        }else if(o instanceof SwitchingTableItem){
-            // SwitchingTableItem没有适合的key，只能通过拼接字符串的方式
-            key = "s" + ((SwitchingTableItem) o).attr + "+" + ((SwitchingTableItem) o).deputy;
-        }
-        return key;
-
-    }
-
 
     // 判断区间[a, b]  [c, d]是否有重叠
     // 如果b<c或者d<a则没有重叠

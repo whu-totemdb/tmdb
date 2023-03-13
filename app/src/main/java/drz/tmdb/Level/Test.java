@@ -1,6 +1,7 @@
 package drz.tmdb.Level;
 
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
 import org.apache.commons.io.FileUtils;
@@ -14,6 +15,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import drz.tmdb.Memory.MemManager;
 import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
@@ -21,6 +24,7 @@ import drz.tmdb.Memory.SystemTable.ClassTableItem;
 import drz.tmdb.Memory.SystemTable.DeputyTableItem;
 import drz.tmdb.Memory.SystemTable.ObjectTableItem;
 import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.Tuple;
 
 public class Test {
 
@@ -412,22 +416,23 @@ public class Test {
 
     // 测试search
     public static void test17() throws IOException {
-        SSTable sst1 = new SSTable("SSTable1", 1);
+        MemManager memManager = new MemManager();
         for(int i=0; i<1000; i++){
-            sst1.data.put("k" + 2 * i, "v1");
+            Tuple t = new Tuple();
+            t.tupleId = i;
+            memManager.add(t);
         }
-        sst1.writeSSTable();
-        sst1 = new SSTable("SSTable1", 2);
+        memManager.saveMemTableToFile();
         System.out.println("开始search");
         long t1 = System.currentTimeMillis();
         int findCount = 0;
-        for(int i=0; i<1000; i++){
-            String result = sst1.search("k" + i);
-            if(result != null)
+        for(int i=0; i<2000; i++){
+            Tuple t = memManager.search("" + i);
+            if(t != null)
                 findCount++;
         }
         long t2 = System.currentTimeMillis();
-        System.out.println("执行1000次search耗时" + (t2 - t1) + "ms"); // 1.464s
+        System.out.println("执行1000次search耗时" + (t2 - t1) + "ms"); // 2.8s
         return;
 
     }
@@ -447,6 +452,58 @@ public class Test {
         memManager1.add(new ObjectTableItem(50,70));
         memManager1.saveAll();
         MemManager memManager2 = new MemManager();
+        return;
+    }
+
+    // 测试Tuple的序列化与反序列化
+    public static void test20(){
+        Tuple t1 = new Tuple();
+        t1.tupleHeader = 5;
+        t1.tuple = new Object[t1.tupleHeader];
+        t1.tuple[0] = "a";
+        t1.tuple[1] = 1;
+        t1.tuple[2] = "b";
+        t1.tuple[3] = 3;
+        t1.tuple[4] = "e";
+        Tuple t2 = new Tuple();
+        t2.tupleHeader = 5;
+        t2.tuple = new Object[t2.tupleHeader];
+        t2.tuple[0] = "d";
+        t2.tuple[1] = 2;
+        t2.tuple[2] = "e";
+        t2.tuple[3] = 2;
+        t2.tuple[4] = "v";
+
+        String str1 = JSONObject.toJSONString(t1);
+        System.out.println(str1);
+        String str2 = JSONObject.toJSONString(t1);
+        System.out.println(str2);
+
+        Tuple t3 = JSON.parseObject(str1, Tuple.class);
+        Tuple t4 = JSON.parseObject(str2, Tuple.class);
+
+        long time1 = System.currentTimeMillis();
+        for(int i=1; i<1000; i++){
+            String str = JSONObject.toJSONString(t1);
+        }
+        long time2 = System.currentTimeMillis();
+        System.out.println("序列化1k次" + (time2 - time1) + "ms");
+
+        time1 = System.currentTimeMillis();
+        for(int i=1; i<1000; i++){
+            Tuple t5 = JSON.parseObject(str1, Tuple.class);
+        }
+        time2 = System.currentTimeMillis();
+        System.out.println("反序列化1k次" + (time2 - time1) + "ms");
+
+        return ;
+
+    }
+
+    // 测试
+    public static void test21(){
+
+
         return;
     }
 

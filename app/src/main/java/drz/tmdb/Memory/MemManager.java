@@ -4,6 +4,8 @@ import static drz.tmdb.Level.Test.*;
 
 
 import org.apache.lucene.util.RamUsageEstimator;
+
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
 import java.io.BufferedOutputStream;
@@ -73,6 +75,7 @@ public class MemManager {
         saveBiPointerTable();
         saveObjectTable();
         //saveMemTableToFile();
+        //this.levelManager.saveMetaToFile();
     }
 
 
@@ -101,15 +104,15 @@ public class MemManager {
 
         // 如果内存数据大小超过限制则开始compaction
         if(this.currentMemSize > drz.tmdb.Memory.Constant.MAX_MEM_SIZE){
-            System.out.println("内存已满，开始写入外存--------");
-            long t1 = System.currentTimeMillis();
-            saveMemTableToFile();
-            long t2 = System.currentTimeMillis();
-            System.out.println("将写满的MemTable写到SSTable耗时" + (t2 - t1) + "ms");
-            clearMem();
-
-            // 同时触发levelManager的autoCompaction
             try{
+                System.out.println("内存已满，开始写入外存--------");
+                long t1 = System.currentTimeMillis();
+                saveMemTableToFile();
+                long t2 = System.currentTimeMillis();
+                System.out.println("将写满的MemTable写到SSTable耗时" + (t2 - t1) + "ms");
+                clearMem();
+
+                // 同时触发levelManager的autoCompaction
                 this.levelManager.autoCompaction();
             }catch (Exception e){
                 e.printStackTrace();
@@ -122,16 +125,12 @@ public class MemManager {
     // 清空内存中的数据
     private void clearMem(){
         this.currentMemSize = 0;
-        this.biPointerTable.biPointerTable.clear();
-        this.classTable.classTable.clear();
-        this.deputyTable.deputyTable.clear();
-        this.objectTable.objectTable.clear();
-        this.switchingTable.switchingTable.clear();
+        this.tupleList.tuplelist.clear();
     }
 
 
     // 将内存中的数据持久化保存
-    public void saveMemTableToFile(){
+    public void saveMemTableToFile() throws IOException {
         // 获取最新dataFileSuffix并+1
         int dataFileSuffix = Integer.parseInt(levelManager.levelInfo.get("maxDataFileSuffix")) + 1;
         levelManager.levelInfo.put("maxDataFileSuffix", "" + dataFileSuffix);
@@ -139,9 +138,9 @@ public class MemManager {
         // 生成SSTable对象，将内存中的对象以k-v的形式转移到FileData中
         SSTable sst= new SSTable("SSTable" + dataFileSuffix, 1);
 
-        for(Object o : this.objectTable.objectTable){
-            String k = Constant.calculateKey(o);
-            sst.data.put(k, JSONObject.toJSONString(o));
+        for(Tuple t : this.tupleList.tuplelist){
+            String k = "" + t.tupleId;
+            sst.data.put(k, JSONObject.toJSONString(t));
         }
 
         // 写SSTable
@@ -161,7 +160,7 @@ public class MemManager {
 
     // 查询key对应的value
     // todo: write your code here
-    public String search(String key){
+    public Tuple search(String key){
         return null;
     }
 
@@ -232,8 +231,8 @@ public class MemManager {
             writeAccess.write(Constant.INT_TO_BYTES(item.attrid));
             // 存classname，String类型需要先存一个4字节int作为长度
             writeAccess.write(Constant.INT_TO_BYTES(item.classname.length()));
-            writeAccess.flush();
-            System.out.println(f.length());
+//            writeAccess.flush();
+//            System.out.println(f.length());
             writeAccess.write(item.classname.getBytes());
             // 存attrname，String类型需要先存一个4字节int作为长度
             writeAccess.write(Constant.INT_TO_BYTES(item.attrname.length()));

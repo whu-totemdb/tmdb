@@ -66,8 +66,7 @@ public class MemConnect {
 
     //获取tuple
     public Tuple GetTuple(int id) {
-        String str = this.mem.search("" + id);
-        Tuple tuple = JSON.parseObject(str, Tuple.class);
+        Tuple tuple = this.mem.search("" + id);
         return tuple;
     }
 

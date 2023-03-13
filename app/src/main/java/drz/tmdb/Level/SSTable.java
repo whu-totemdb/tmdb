@@ -55,8 +55,9 @@ public class SSTable {
 
     // constructor
     // 将文件读到内存中
-    // mode = 1 构造空的SSTable对象（用于写文件）
-    // mode = 2 从SSTable读meta数据（用于查询的示范）
+    // mode = 1 构造空的SSTable对象，并初始化写通道
+    // mode = 2 构造空的SSTable对象，并初始化读通道
+    // mode = 3 从SSTable读整个元数据库（示范）
     public SSTable(String fileName, int mode){
         if(mode == 1){
             this.fileName = fileName;
@@ -70,7 +71,16 @@ public class SSTable {
                 e.printStackTrace();
             }
         }
-        if(mode == 2){
+        else if(mode == 2){
+            this.fileName = fileName;
+            // 初始化读通道
+            try{
+                File f = new File(Constant.DATABASE_DIR + this.fileName);
+                this.raf = new RandomAccessFile(f, "r");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }else if(mode == 3){
             this.fileName = fileName;
             // 初始化读通道
             try{
@@ -254,6 +264,7 @@ public class SSTable {
     }
 
 
+    // 在单个SSTable中查
     // todo: write your code here
     public String search(String key) throws IOException {
         return null;
