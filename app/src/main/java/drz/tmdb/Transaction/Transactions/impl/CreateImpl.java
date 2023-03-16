@@ -6,12 +6,18 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 
 import java.util.ArrayList;
 
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Create;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 
 public class CreateImpl implements Create {
+    private MemConnect memConnect=new MemConnect();
     public CreateImpl(){}
+
+    public CreateImpl(MemConnect memConnect) {
+        this.memConnect = memConnect;
+    }
 
     public boolean create(Statement stmt) throws TMDBException {
         return execute((CreateTable) stmt);
@@ -31,6 +37,23 @@ public class CreateImpl implements Create {
             p[3+2*i]=columnDefinitionArrayList.get(i).getColumnName();
             p[3+2*i+1]=columnDefinitionArrayList.get(i).toStringDataTypeAndSpec();
         }
-        return new MemConnect().CreateOriginClass(p);
+        return this.CreateOriginClass(p);
+    }
+
+    public boolean CreateOriginClass(String[] p) throws TMDBException {
+        String classname = p[2];
+        int count = Integer.parseInt(p[1]);
+        memConnect.getClasst().maxid++;
+        int classid = memConnect.getClasst().maxid;
+        for(ClassTableItem item : memConnect.getClasst().classTable){
+            if(item.classname.equals(classname)){
+                throw new TMDBException(classname+"已经存在！");
+            }
+        }
+        for (int i = 0; i < count; i++) {
+            memConnect.getClasst().classTable.add(new ClassTableItem(classname, classid, count,i,p[2 * i + 3], p[2 * i + 4],"ori",""));
+        }
+//        this.SaveAll();
+        return true;
     }
 }

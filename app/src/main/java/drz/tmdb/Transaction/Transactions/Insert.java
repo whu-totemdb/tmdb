@@ -7,5 +7,5 @@ import java.util.ArrayList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public interface Insert {
-    public ArrayList<Integer> insert(Statement stmt) throws TMDBException;
+    ArrayList<Integer> insert(Statement stmt) throws TMDBException;
 }

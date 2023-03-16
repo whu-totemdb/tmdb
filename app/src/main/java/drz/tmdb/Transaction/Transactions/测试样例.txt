@@ -7,7 +7,7 @@ INSERT INTO company VALUES ("ee",20,1000);
 INSERT INTO company VALUES ("ff",30,1000);
 
 SELECT name from company UNION SELECT name from company;
-createImpl CLASS test (name char,age int, salary int);
+create CLASS test (name char,age int, salary int);
 INSERT INTO test VALUES ("aa",20,1000);
 INSERT INTO test VALUES ("bb",30,8000);
 INSERT INTO test VALUES ("cc",30,8000);
@@ -20,6 +20,7 @@ select * from company where name = 'aa';
 select * from company;
 UPDATE company SET name = 'jazz' WHERE name = 'aa';
 DELETE FROM company WHERE name='aa';
+
 
 
 

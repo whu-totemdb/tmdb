@@ -14,13 +14,29 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.Tuple;
+import drz.tmdb.Memory.TupleList;
 import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 
 
 public class CreateDeputyClassImpl implements CreateDeputyClass {
+    private MemConnect memConnect;
+    public CreateDeputyClassImpl(MemConnect memConnect){
+        this.memConnect=memConnect;
+    }
+
+    public CreateDeputyClassImpl() {
+    }
+
     public boolean createDeputyClass(Statement stmt){
         return execute((net.sf.jsqlparser.statement.create.deputyclass.CreateDeputyClass) stmt);
     }
@@ -73,7 +89,7 @@ public class CreateDeputyClassImpl implements CreateDeputyClass {
                 p[5+4*selectExpressionItemList.size()]=">";
                 p[6+4*selectExpressionItemList.size()]=minorThan.getRightExpression().toString();
         }
-        return new MemConnect().CreateSelectDeputy(p);
+        return CreateSelectDeputy(p);
     }
 
     public String[] help(SelectExpressionItem selectExpressionItem){
@@ -95,5 +111,103 @@ public class CreateDeputyClassImpl implements CreateDeputyClass {
         }
         res[3]=selectExpressionItem.getAlias().getName();
         return res;
+    }
+
+    public boolean CreateSelectDeputy(String[] p) {
+        int count = Integer.parseInt(p[1]);
+        String classname = p[2];//代理类的名字
+        String bedeputyname = p[4*count+3];//代理的类的名字
+        memConnect.getClasst().maxid++;
+        int classid = memConnect.getClasst().maxid;//代理类的id
+        int bedeputyid = -1;//代理的类的id
+        String[] attrname=new String[count];
+        String[] bedeputyattrname=new String[count];
+        int[] bedeputyattrid = new int[count];
+        String[] attrtype=new String[count];
+        int[] attrid=new int[count];
+        for(int j = 0;j<count;j++){
+            attrname[j] = p[4*j+6];
+            attrid[j] = j;
+            bedeputyattrname[j] = p[4*j+3];
+        }
+
+        String attrtype1;
+        for (int i = 0; i < count; i++) {
+
+            for (ClassTableItem item:memConnect.getClasst().classTable) {
+                if (item.classname.equals(bedeputyname)&&item.attrname.equals(p[3+4*i])) {
+                    bedeputyid = item.classid;
+                    bedeputyattrid[i] = item.attrid;
+
+                    memConnect.getClasst().classTable.add(new ClassTableItem(classname, classid, count,attrid[i],attrname[i], item.attrtype,"de",""));
+                    //swi
+                    if(Integer.parseInt(p[4+4*i]) == 1){
+                        memConnect.getSwitchingT().switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],p[5+4*i]));
+                    }
+                    if(Integer.parseInt(p[4+4*i])==0){
+                        memConnect.getSwitchingT().switchingTable.add(new SwitchingTableItem(item.attrname,attrname[i],"0"));
+                    }
+                    break;
+                }
+            };
+        }
+
+        String[] con =new String[3];
+        con[0] = p[4+4*count];
+        con[1] = p[5+4*count];
+        con[2] = p[6+4*count];
+        memConnect.getDeputyt().deputyTable.add(new DeputyTableItem(bedeputyid,classid,con));
+
+        TupleList tpl= new TupleList();
+
+        int conid = 0;
+        String contype  = null;
+        for(ClassTableItem item3:memConnect.getClasst().classTable){
+            if(item3.attrname.equals(con[0])){
+                conid = item3.attrid;
+                contype = item3.attrtype;
+                break;
+            }
+        }
+        List<ObjectTableItem> obj = new ArrayList<>();
+        for(ObjectTableItem item2: memConnect.getTopt().objectTable){
+            if(item2.classid ==bedeputyid){
+                Tuple tuple = memConnect.GetTuple(item2.tupleid);
+                if(memConnect.Condition(contype,tuple,conid,con[2])){
+                    //插入
+                    //swi
+                    Tuple ituple = new Tuple();
+                    ituple.tupleHeader = count;
+                    ituple.tuple = new Object[count];
+
+                    for(int o =0;o<count;o++){
+                        if(Integer.parseInt(p[4+4*o]) == 1){
+                            int value = Integer.parseInt(p[5+4*o]);
+                            int orivalue =Integer.parseInt((String)tuple.tuple[bedeputyattrid[o]]);
+                            Object ob = value+orivalue;
+                            ituple.tuple[o] = ob;
+                        }
+                        if(Integer.parseInt(p[4+4*o]) == 0){
+                            ituple.tuple[o] = tuple.tuple[bedeputyattrid[o]];
+                        }
+                    }
+
+                    memConnect.getTopt().maxTupleId++;
+                    int tupid = memConnect.getTopt().maxTupleId;
+
+                    memConnect.InsertTuple(ituple);
+                    //topt.objectTable.add(new ObjectTableItem(classid,tupid,aa[0],aa[1]));
+                    obj.add(new ObjectTableItem(classid,tupid));
+
+                    //bi
+                    memConnect.getBiPointerT().biPointerTable.add(new BiPointerTableItem(bedeputyid,item2.tupleid,classid,tupid));
+
+                }
+            }
+        }
+        for(ObjectTableItem item6:obj) {
+            memConnect.getTopt().objectTable.add(item6);
+        }
+        return true;
     }
 }

@@ -14,7 +14,7 @@ public class DeputyTableItem implements Serializable {
 
     public int originid = 0;            //类id
     public int deputyid = 0;           //代理类id
-    public String[] deputyrule = null;    //代理guizedui
+    public String[] deputyrule = new String[0];    //代理guizedui
 
 
 }

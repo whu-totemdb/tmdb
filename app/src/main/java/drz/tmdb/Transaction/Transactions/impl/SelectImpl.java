@@ -6,6 +6,7 @@ import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.parser.SimpleNode;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.*;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
 
@@ -17,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
 import drz.tmdb.Memory.SystemTable.ClassTableItem;
@@ -35,7 +37,14 @@ import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 //8、使用order by对结果集进行排序。
 public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
 
-    private static MemConnect memConnect=new MemConnect();
+    private MemConnect memConnect;
+
+    public SelectImpl(MemConnect memConnect) {
+        this.memConnect = memConnect;
+    }
+
+    public SelectImpl() {
+    }
 
     public SelectResult select(Object stmt) throws TMDBException {
         SelectBody selectBody = null;
@@ -214,17 +223,17 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
         //获取plainselect的fromItem（多表查询的话，会取第一个table名）
         FromItem fromItem=plainSelect.getFromItem();
         //获取这个table对应的tuple
-        TupleList tupleList=memConnect.getTable(fromItem);
+        TupleList tupleList=getTable(fromItem);
         //这是这个table对应的table Item
-        ArrayList<ClassTableItem> classTableItemList=memConnect.getSelectItem(fromItem);
+        ArrayList<ClassTableItem> classTableItemList=this.getSelectItem(fromItem);
         //通过classTableItemList和tuplelist获取selectResult（基本所有操作都针对selectresult进行）
         SelectResult selectResult=getSelectResult(classTableItemList,tupleList);
         //进行join操作
         if(!(plainSelect.getJoins() ==null)){
             for(Join join:plainSelect.getJoins()){
                 //获取当前join表的的一些元祖
-                ArrayList<ClassTableItem> tempClassTableItem=memConnect.getSelectItem(join.getRightItem());
-                TupleList tempTupleList=memConnect.getTable(join.getRightItem());
+                ArrayList<ClassTableItem> tempClassTableItem=this.getSelectItem(join.getRightItem());
+                TupleList tempTupleList=getTable(join.getRightItem());
                 SelectResult tempSelectResult=getSelectResult(tempClassTableItem,tempTupleList);
 
                 //将本来的TupleList和当前操作的join的tuplelist根据join的形式进行组合
@@ -242,10 +251,10 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
     public SelectResult deputySelect(PlainSelect plainSelect) throws TMDBException {
         ArrayList<SelectItem> selectItemList=(ArrayList<SelectItem>)plainSelect.getSelectItems();
         FromItem fromItem=plainSelect.getFromItem();
-        TupleList tupleList=memConnect.getTable(fromItem);
+        TupleList tupleList=getTable(fromItem);
         HashMap<SelectItem,ArrayList<Column>> selectItemToColumn=getSelectItemColumn(selectItemList);
         List<Column> selectColumnList=getSelectColumnList(selectItemToColumn);
-        ArrayList<ClassTableItem> classTableItemList=memConnect.getSelectItem(fromItem,selectColumnList);
+        ArrayList<ClassTableItem> classTableItemList=this.getSelectItem(fromItem,selectColumnList);
         return getSelectResult(classTableItemList,tupleList);
     }
 
@@ -727,6 +736,71 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
         ArrayList<Column> res=new ArrayList<>();
         for(ArrayList<Column> columns:map.values()){
             res.addAll(columns);
+        }
+        return res;
+    }
+
+    public ArrayList<ClassTableItem> getSelectItem(FromItem fromItem){
+        ArrayList<ClassTableItem> elicitAttrItemList=new ArrayList<>();
+        for(ClassTableItem item : memConnect.getClasst().classTable){
+            //如果classTableItem中的className对上了fromItem就加入结果中
+            if(item.classname.equals(((Table)fromItem).getName())){
+                //硬拷贝，不然后续操作会影响原始信息。
+                ClassTableItem temp=item.getCopy();
+                //因为后续有许多针对alias的比对操作，所以，如果fromItem中使用了alias，则在classTableItem中的alias属性中存入该值
+                if(fromItem.getAlias()!=null) temp.alias=fromItem.getAlias().getName();
+                elicitAttrItemList.add(temp);
+            }
+        }
+        return elicitAttrItemList;
+    }
+
+    public ArrayList<ClassTableItem> getSelectItem(FromItem fromItem, List<Column> columnList){
+        // 从class表中提取将要获取的元素。
+        ArrayList<ClassTableItem> elicitAttrItemList=new ArrayList<>();
+        for(ClassTableItem item : memConnect.getClasst().classTable){
+            if(item.classname.equals(fromItem.toString())){
+                String attrName=item.attrname;
+                boolean flag=false;
+                for(Column column:columnList){
+                    Column c=(Column) column;
+                    if(c.getTable()!=null && !(c.getTable().equals(fromItem.toString())&& c.getTable().equals(fromItem.getAlias().getName()))) continue;
+                    if(attrName.equals(c.getColumnName())) {
+                        flag=true;
+                        break;
+                    }
+                }
+                if(flag) elicitAttrItemList.add(item);
+            }
+        }
+        return elicitAttrItemList;
+    }
+
+    public int getClassId(String fromItem) throws TMDBException {
+        for(ClassTableItem item : memConnect.getClasst().classTable) {
+            if (item.classname.equals(fromItem)) {
+                return item.classid;
+            }
+        }
+        throw new TMDBException(fromItem+"表不存在");
+//        return -1;
+    }
+
+    //输入需要获取的表名，得到对应的元祖值
+    public TupleList getTable(FromItem fromItem) throws TMDBException {
+        int classid=this.getClassId(((Table) fromItem).getName());
+        TupleList res=new TupleList();
+        for(ObjectTableItem item : memConnect.getTopt().objectTable) {
+            if (item.classid == classid) {
+                Tuple tuple = memConnect.GetTuple(item.tupleid);
+//                Tuple newTuple=new Tuple();
+//                newTuple.tuple=new Object[elicitAttrItemList.size()];
+//                for(int i=0;i<elicitAttrItemList.size();i++){
+//                    newTuple.tuple[i]=tuple.tuple[elicitAttrItemList.get(i).attrid];
+//                }
+                tuple.setTupleId(item.tupleid);
+                res.addTuple(tuple);
+            }
         }
         return res;
     }
