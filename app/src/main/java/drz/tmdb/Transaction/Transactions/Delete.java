@@ -8,5 +8,5 @@ import java.util.ArrayList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public interface Delete {
-    public ArrayList<Integer> delete(Statement statement) throws JSQLParserException, TMDBException;
+    ArrayList<Integer> delete(Statement statement) throws JSQLParserException, TMDBException;
 }

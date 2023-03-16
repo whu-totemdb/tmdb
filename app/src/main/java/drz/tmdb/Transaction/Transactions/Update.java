@@ -8,5 +8,5 @@ import java.util.ArrayList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public interface Update {
-    public ArrayList<Integer> update(Statement stmt) throws JSQLParserException, TMDBException;
+    ArrayList<Integer> update(Statement stmt) throws JSQLParserException, TMDBException;
 }

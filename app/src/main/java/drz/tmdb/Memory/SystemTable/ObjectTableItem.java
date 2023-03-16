@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import drz.tmdb.Memory.Tuple;
 
-public class ObjectTableItem{
+public class ObjectTableItem implements Serializable{
 
 
     public int classid = 0;    //类id

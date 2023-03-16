@@ -51,32 +51,22 @@ public class TransAction {
     public LevelManager levelManager;
     public LogManager log;
 
-    static MemConnect memConnect;
-
-
-    public static ObjectTable topt;
-    public static ClassTable classt;
-    public static DeputyTable deputyt;
-    public static BiPointerTable biPointerT;
-    public static SwitchingTable switchingT;
+    private MemConnect memConnect;
 
     public TransAction() throws IOException {}
 
     public TransAction(Context context) throws IOException {
 //        test19();
         this.context = context;
-//        this.mem = new MemManager();
-        this.levelManager = new LevelManager();
-        this.memConnect=new MemConnect();
+        this.mem = new MemManager();
+        this.levelManager = mem.levelManager;
+        this.memConnect=new MemConnect(mem);
 
 //        topt = mem.objectTable;
 //        classt = mem.classTable;
 //        deputyt = mem.deputyTable;
 //        biPointerT = mem.biPointerTable;
 //        switchingT = mem.switchingTable;
-
-
-
     }
 
 
@@ -221,14 +211,14 @@ public class TransAction {
             switch (sqlType) {
                 case "CreateTable":
 //                    log.WrteLog(s);
-                    Create create =new CreateImpl();
+                    Create create =new CreateImpl(memConnect);
                     if(create.create(stmt)) new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     else new AlertDialog.Builder(context).setTitle("提示").setMessage("创建失败").setPositiveButton("确定",null).show();
                     break;
                 case "CreateDeputyClass":
 //                    switch
  //                   log.WriteLog(id,k,op,s);
-                    CreateDeputyClass createDeputyClass=new CreateDeputyClassImpl();
+                    CreateDeputyClass createDeputyClass=new CreateDeputyClassImpl(memConnect);
                     if(createDeputyClass.createDeputyClass(stmt)) {
                         new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     }
@@ -240,24 +230,24 @@ public class TransAction {
 //                    break;
                 case "Drop":
 //                    log.WriteLog(id,k,op,s);
-                    Drop drop=new DropImpl();
+                    Drop drop=new DropImpl(memConnect);
                     drop.drop(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Insert":
 //                    log.WriteLog(id,k,op,s);
-                    Insert insert=new InsertImpl();
+                    Insert insert=new InsertImpl(memConnect);
                     tuples=insert.insert(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("插入成功").setPositiveButton("确定",null).show();
                     break;
                 case "Delete":
  //                   log.WriteLog(id,k,op,s);
-                    Delete delete=new DeleteImpl();
+                    Delete delete=new DeleteImpl(memConnect);
                     tuples= delete.delete(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("删除成功").setPositiveButton("确定",null).show();
                     break;
                 case "Select":
-                    Select select=new SelectImpl();
+                    Select select=new SelectImpl(memConnect);
                     SelectResult selectResult=select.select((net.sf.jsqlparser.statement.select.Select) stmt);
                     for (Tuple t:
                          selectResult.getTpl().tuplelist) {
@@ -271,7 +261,7 @@ public class TransAction {
 //                    break;
                 case "Update":
  //                   log.WriteLog(id,k,op,s);
-                    Update update=new UpdateImpl();
+                    Update update=new UpdateImpl(memConnect);
                     tuples=update.update(stmt);
                     new AlertDialog.Builder(context).setTitle("提示").setMessage("更新成功").setPositiveButton("确定",null).show();
                     break;
@@ -1005,7 +995,6 @@ public class TransAction {
 
     private void PrintTab(ObjectTable topt,SwitchingTable switchingT,DeputyTable deputyt,BiPointerTable biPointerT,ClassTable classTable) {
         Intent intent = new Intent(context, ShowTable.class);
-
         Bundle bundle0 = new Bundle();
         bundle0.putSerializable("ObjectTable",topt);
         bundle0.putSerializable("SwitchingTable",switchingT);

@@ -12,6 +12,10 @@ import net.sf.jsqlparser.statement.update.UpdateSet;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Select;
@@ -20,6 +24,15 @@ import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 
 public class UpdateImpl implements Update {
+    private MemConnect memConnect;
+
+    public UpdateImpl(MemConnect memConnect) {
+        this.memConnect = memConnect;
+    }
+
+    public UpdateImpl() {
+    }
+
     public ArrayList<Integer> update(Statement stmt) throws JSQLParserException, TMDBException {
         return execute((net.sf.jsqlparser.statement.update.Update) stmt);
     }
@@ -95,5 +108,94 @@ public class UpdateImpl implements Update {
 //                break;
 //        }
 //        return new MemConnect().update(p);
+    }
+
+    public ArrayList<Integer> update(String[] p){
+        String classname = p[1];
+        String attrname = p[2];
+        String cattrname = p[4];
+
+        int classid = 0;
+        int attrid = 0;
+        String attrtype = null;
+        int cattrid = 0;
+        String cattrtype = null;
+        for(ClassTableItem item : memConnect.getClasst().classTable){
+            if (item.classname.equals(classname)){
+                classid = item.classid;
+                break;
+            }
+        }
+        for(ClassTableItem item1 : memConnect.getClasst().classTable){
+            if (item1.classid==classid&&item1.attrname.equals(attrname)){
+                attrtype = item1.attrtype;
+                attrid = item1.attrid;
+            }
+        }
+        for(ClassTableItem item2 : memConnect.getClasst().classTable){
+            if (item2.classid==classid&&item2.attrname.equals(cattrname)){
+                cattrtype = item2.attrtype;
+                cattrid = item2.attrid;
+            }
+        }
+
+
+        ArrayList<Integer> integers = new ArrayList<>();
+        for(ObjectTableItem item3: MemConnect.getTopt().objectTable){
+            if(item3.classid == classid){
+                Tuple tuple = memConnect.GetTuple(item3.tupleid);
+                if(memConnect.Condition(cattrtype,tuple,cattrid,p[6])){
+                    integers.add(item3.tupleid);
+                    UpdatebyID(item3.tupleid,attrid,p[3].replace("\"",""));
+
+                }
+            }
+        }
+        return integers;
+    }
+    private void UpdatebyID(int tupleid,int attrid,String value){
+        for(ObjectTableItem item: memConnect.getTopt().objectTable){
+            if(item.tupleid ==tupleid){
+                Tuple tuple = memConnect.GetTuple(item.tupleid);
+                tuple.tuple[attrid] = value;
+                memConnect.UpateTuple(tuple,item.tupleid);
+                Tuple tuple1 = memConnect.GetTuple(item.tupleid);
+                memConnect.UpateTuple(tuple1,item.tupleid);
+            }
+        }
+
+        String attrname = null;
+        for(ClassTableItem item2: memConnect.getClasst().classTable){
+            if (item2.attrid == attrid){
+                attrname = item2.attrname;
+                break;
+            }
+        }
+        for(BiPointerTableItem item1: memConnect.getBiPointerT().biPointerTable) {
+            if (item1.objectid == tupleid) {
+
+
+                for(ClassTableItem item4: memConnect.getClasst().classTable){
+                    if(item4.classid==item1.deputyid){
+                        String dattrname = item4.attrname;
+                        int dattrid = item4.attrid;
+                        for (SwitchingTableItem item5 : memConnect.getSwitchingT().switchingTable) {
+                            String dswitchrule = null;
+                            String dvalue = null;
+                            if (item5.attr.equals(attrname) && item5.deputy.equals(dattrname)) {
+                                dvalue = value;
+                                if (Integer.parseInt(item5.rule) != 0) {
+                                    dswitchrule = item5.rule;
+                                    dvalue = Integer.toString(Integer.parseInt(dvalue) + Integer.parseInt(dswitchrule));
+                                }
+                                UpdatebyID(item1.deputyobjectid, dattrid, dvalue);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }

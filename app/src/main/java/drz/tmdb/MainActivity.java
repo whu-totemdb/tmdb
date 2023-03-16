@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 
 import drz.tmdb.Transaction.TransAction;
+import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.sync.Sync;
 import drz.tmdb.sync.node.database.Action;
 import drz.tmdb.sync.node.database.OperationType;
@@ -38,7 +39,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
 
 //        new Thread(()->{
 //
