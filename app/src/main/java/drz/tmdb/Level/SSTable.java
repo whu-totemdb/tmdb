@@ -265,8 +265,59 @@ public class SSTable {
 
 
     // 在单个SSTable中查
-    // todo: write your code here
     public String search(String key) throws IOException {
+        // 读Footer
+        long[] info = readFooter();
+        long zoneMapOffset = info[0];
+        long zoneMapLength = info[1];
+        long bloomFilterOffset = info[2];
+        long bloomFilterLength = info[3];
+        long bTreeRootOffset = info[4];
+        long indexBlockLength = info[5];
+
+        // 1. 检查zone map
+        // 读zone map
+        readZoneMap(zoneMapOffset, zoneMapLength);
+        if(key.compareTo(this.minKey) < 0 && key.compareTo(this.maxKey) > 0)
+            return null;
+
+        // 2. 检查bloom filter
+        // 初始化BloomFilter
+        readBloomFilter(bloomFilterOffset, bloomFilterLength);
+        if(!this.bloomFilter.check(key))
+            return null;
+
+        // 如果1 2 均通过，说明key极有可能存在该SSTable中
+        // 3. 定位到该key可能存在的data block
+        // 初始化index block
+        readIndexBlock(bTreeRootOffset, indexBlockLength);
+        Long offset = this.bTree.rightSearch(key);
+        if(offset == null)
+            offset = 0l;
+
+        // 4. 遍历data block
+        byte[] targetKeyBuffer = Constant.KEY_TO_BYTES(key);
+        int currentOffset = 0; // 记录当前指针位置，指示何时遍历data block结束
+        long maxOffset = readFooter()[0] - offset; // 允许遍历的范围
+        // 允许遍历的范围不超过一个data block的大小
+        if(maxOffset > Constant.MAX_DATA_BLOCK_SIZE)
+            maxOffset = Constant.MAX_DATA_BLOCK_SIZE;
+        int length;
+        byte[] keyBuffer = new byte[Constant.MAX_KEY_LENGTH];
+        byte[] valueBuffer;
+        this.raf.seek(offset);
+        while(currentOffset <= maxOffset){
+            length = this.raf.readInt();
+            currentOffset += (Integer.BYTES + length);
+            valueBuffer = new byte[length - Constant.MAX_KEY_LENGTH];
+            this.raf.read(keyBuffer);
+            this.raf.read(valueBuffer);
+//            String k = new String(keyBuffer);
+//            System.out.println(k);
+            if(Arrays.equals(targetKeyBuffer, keyBuffer))
+                return new String(valueBuffer);
+        }
+
         return null;
     }
 

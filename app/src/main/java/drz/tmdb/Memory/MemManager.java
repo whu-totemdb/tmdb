@@ -74,8 +74,8 @@ public class MemManager {
         saveClassTable();
         saveBiPointerTable();
         saveObjectTable();
-        //saveMemTableToFile();
-        //this.levelManager.saveMetaToFile();
+        saveMemTableToFile();
+        this.levelManager.saveMetaToFile();
     }
 
 
@@ -159,8 +159,38 @@ public class MemManager {
 
 
     // 查询key对应的value
-    // todo: write your code here
     public Tuple search(String key){
+        // 首先查MEMTable
+        for(Tuple t : this.tupleList.tuplelist){
+            if(("" + t.tupleId).equals(key)){
+                return t;
+            }
+        }
+
+        // 从level-0 依次往底层查找直到找到
+        try{
+            for(int i = 0; i<=Constant.MAX_LEVEL; i++){
+                ArrayList<Integer> arrayList = new ArrayList<>(levelManager.levels[i]);
+                for(int j=arrayList.size()-1; j>=0; j--){
+                    Integer suffix = arrayList.get(j);
+                    SSTable sst = new SSTable("SSTable" + suffix, 2);
+                    // 查询一个SSTable
+                    String str = sst.search(key);
+                    if(str == null)
+                        continue;
+                    Tuple t = JSON.parseObject(str, Tuple.class);
+                    // 如果删除位被置为ture则继续查
+                    if(t.delete)
+                        continue;
+                    else
+                        return t;
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        // 如果所有SSTable中都没有，则返回空串
         return null;
     }
 

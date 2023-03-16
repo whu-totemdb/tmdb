@@ -31,8 +31,6 @@ public class LevelManager {
     // 格式为：
     // "dataFileSuffix" : "level-size-minKey-maxKey"
     // "maxDataFileSuffix" : "131"  // 自增的文件下标
-    // 此外，ClassTable中的maxid和ObjectTable中的maxTupleId也需要记录在此处，每次跟随其他属性一起进行保存或初始化
-    // "maxTupleId" : "522"
     public Map<String, String> levelInfo = new HashMap<String, String>();
 
     // 记录各level包含哪些data文件(使用sortedset因为，suffix大的一定是最新版本的数据)
@@ -55,10 +53,8 @@ public class LevelManager {
             }
             File metaFile = new File(DATABASE_DIR + "meta");
             if(!metaFile.exists()){
-                // 如果初始化时没有历史数据，则给maxDataFileSuffix, maxClassId, maxTupleId一个初始值0
+                // 如果初始化时没有历史数据，则给maxDataFileSuffix一个初始值0
                 this.levelInfo.put("maxDataFileSuffix","0");
-                this.levelInfo.put("maxClassId","0");
-                this.levelInfo.put("maxTupleId","0");
             } else{
                 FileInputStream input = new FileInputStream(metaFile);
 
