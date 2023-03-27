@@ -2,27 +2,23 @@ package drz.tmdb.Level;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
-import drz.tmdb.Transaction.SystemTable.BiPointerTableItem;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.DeputyTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 
 // 定义一些常量和静态方法
 public class Constant {
 
-    // 数据库文件目录
+    // LSM-Tree文件目录
     public static final String DATABASE_DIR = "/data/data/drz.tmdb/level/";
-
-    // memTable最大大小为4MB=4*1024*1024B，超过就会触发compact到外存
-    public static final long MAX_MEM_SIZE = 4L * 1024 * 1024;
 
     // 最大level数
     public static final int MAX_LEVEL = 6;
@@ -142,29 +138,6 @@ public class Constant {
         return buffer.getLong();
     }
 
-    // 根据一定规则给Object计算key
-    public static String calculateKey(Object o){
-        String key = "";
-        if(o instanceof BiPointerTableItem){
-            // 选择deputyobjectid作为BiPointerTableItem的key
-            key = "b" + ((BiPointerTableItem) o).deputyobjectid;
-        }else if(o instanceof ClassTableItem){
-            // 选择classid作为ClassTableItem的key
-            key = "c" + ((ClassTableItem) o).classid;
-        }else if(o instanceof DeputyTableItem){
-            // 选择deputyid作为DeputyTableItem的key
-            key = "d" + ((DeputyTableItem) o).deputyid;
-        }else if(o instanceof ObjectTableItem){
-            // 选择tupleid作为ObjectTableItem的key
-            key = "o" + ((ObjectTableItem) o).tupleid;
-        }else if(o instanceof SwitchingTableItem){
-            // SwitchingTableItem没有适合的key，只能通过拼接字符串的方式
-            key = "s" + ((SwitchingTableItem) o).attr + "+" + ((SwitchingTableItem) o).deputy;
-        }
-        return key;
-
-    }
-
 
     // 判断区间[a, b]  [c, d]是否有重叠
     // 如果b<c或者d<a则没有重叠
@@ -176,21 +149,21 @@ public class Constant {
     }
 
 
-//    // 将字节流data，以追加的形式，写到文件fileName中
-//    public static void writeBytesToFile(byte[] data, String fileName){
-//        try{
-//            File file = new File(DATABASE_DIR + fileName);
-//            // 写data
-//            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
-//            output.write(data,0,data.length);
-//            output.flush();
-//            output.close();
-//        }catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    // 将字节流data，以追加的形式，写到文件fileName中
+    public static void writeBytesToFile(byte[] data, String fileName){
+        try{
+            File file = new File(DATABASE_DIR + fileName);
+            // 写data
+            BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
+            output.write(data,0,data.length);
+            output.flush();
+            output.close();
+        }catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     // 从文件fileName的offset偏移处读取长度为length的字节流
     public static byte[] readBytesFromFile(String fileName, long offset, int length) {

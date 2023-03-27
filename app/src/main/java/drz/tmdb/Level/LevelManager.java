@@ -31,9 +31,6 @@ public class LevelManager {
     // 格式为：
     // "dataFileSuffix" : "level-size-minKey-maxKey"
     // "maxDataFileSuffix" : "131"  // 自增的文件下标
-    // 此外，ClassTable中的maxid和ObjectTable中的maxTupleId也需要记录在此处，每次跟随其他属性一起进行保存或初始化
-    // "maxClassId" : "45"
-    // "maxTupleId" : "522"
     public Map<String, String> levelInfo = new HashMap<String, String>();
 
     // 记录各level包含哪些data文件(使用sortedset因为，suffix大的一定是最新版本的数据)
@@ -56,10 +53,8 @@ public class LevelManager {
             }
             File metaFile = new File(DATABASE_DIR + "meta");
             if(!metaFile.exists()){
-                // 如果初始化时没有历史数据，则给maxDataFileSuffix, maxClassId, maxTupleId一个初始值0
+                // 如果初始化时没有历史数据，则给maxDataFileSuffix一个初始值0
                 this.levelInfo.put("maxDataFileSuffix","0");
-                this.levelInfo.put("maxClassId","0");
-                this.levelInfo.put("maxTupleId","0");
             } else{
                 FileInputStream input = new FileInputStream(metaFile);
 
@@ -123,11 +118,12 @@ public class LevelManager {
         }
     }
 
-
     // 手动调用的compaction，指定需要进行compaction的level
     public void manualCompaction(int level) throws IOException {
         if(level < 0 || level >= Constant.MAX_LEVEL)
             return;
+
+        System.out.println("开始compaction");
 
         Set<Integer> filesToCompact = new HashSet<>(); // 记录需要进行compaction的文件名后缀
 
@@ -189,6 +185,8 @@ public class LevelManager {
     //     更新currentKeys
     // 3.新SSTable的meta data写入，并flush写通道
     private void compact(Set<Integer> set, int level) throws IOException {
+        if(level <= 0)
+            return;
 
         // 获取最新dataFileSuffix并+1
         int dataFileSuffix = Integer.parseInt(this.levelInfo.get("maxDataFileSuffix")) + 1;
@@ -350,6 +348,13 @@ public class LevelManager {
         this.levels[level].add(dataFileSuffix);
         // levelInfo 的结构  dataFileSuffix : level-length-minKey-maxKey
         this.levelInfo.put("" + dataFileSuffix, level + "-" + (footerLength + footerStartOffset) + "-" + minKey + "-" + maxKey);
+
+        // 旧SSTable从level中删除
+        for(Integer i : set){
+            this.levels[level - 1].remove(i);
+            this.levels[level].remove(i);
+            this.levelInfo.remove("" + i);
+        }
     }
 
     // 在currentKeys中找到最小的key，返回对应的下标（可能不止一个）

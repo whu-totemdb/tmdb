@@ -222,6 +222,24 @@ public class BTree<K, V> {
 
         }
 
+        private V rightSearch(K key, V right){
+            int size = this.entrys.size();
+            int i;
+            V currentV = null;
+            for(i=0; i<size; i++){
+                currentV = this.entrys.get(i).getValue();
+                if (compare(this.entrys.get(i).getKey(), key) == 0) // 找到相等的则return
+                    return this.entrys.get(i).getValue();
+                if (compare(this.entrys.get(i).getKey(), key) > 0) // entry.key > key
+                    break;
+            }
+            if(i == size && this.children.size() == 0)
+                return right;
+            if(this.children.size() == 0)
+                return currentV;
+            return this.children.get(i).rightSearch(key, currentV);
+        }
+
         public boolean isLeaf() {
             return leaf;
         }
@@ -961,4 +979,22 @@ public class BTree<K, V> {
         return ret;
     }
 
+    // 如果有key，则返回对应的value，否则返回比key大的最小key对应的value
+    public V rightSearch(K key){
+        // 如果key比最大key还大，直接返回null
+        if(compare(key, getMaxKey()) > 0)
+            return null;
+        return root.rightSearch(key, null);
+    }
+
+    // 返回B树的最大key
+    public K getMaxKey() {
+        if(this.root == null || this.root.entrys.size() == 0)
+            return null;
+        BTreeNode cur = this.root;
+        while(cur.children != null && cur.children.size() > 0){
+            cur = (BTreeNode) cur.children.get(cur.children.size() - 1);
+        }
+        return (K) ((Entry)cur.entrys.get(cur.entrys.size() - 1)).getKey();
+    }
 }

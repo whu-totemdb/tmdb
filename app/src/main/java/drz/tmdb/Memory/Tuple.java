@@ -6,8 +6,9 @@ import java.util.Objects;
 
 public class Tuple implements Serializable {
     public int tupleHeader;
-    private int tupleId;
+    public int tupleId;
     public Object[] tuple;
+    public boolean delete; // 删除位
 
     public Tuple(Object[] values) {
         tuple = values.clone();

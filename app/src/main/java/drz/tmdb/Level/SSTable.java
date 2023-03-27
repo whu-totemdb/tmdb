@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -21,7 +22,7 @@ public class SSTable {
 
     // k-v
     // 使用SortedMap，自动按照key升序排序
-    public TreeMap<String, Object> data = new TreeMap<>();
+    public TreeMap<String, String> data = new TreeMap<>();
 
     // SSTable的文件名
     private String fileName;
@@ -31,10 +32,10 @@ public class SSTable {
     private String minKey = "";
 
     // BloomFilter
-    private BloomFilter bloomFilter;
+    public BloomFilter bloomFilter;
 
     // B树，记录每个data block的最大key的offset
-    private BTree<String, Long> bTree = new BTree<>();
+    private BTree<String, Long> bTree = new BTree<>(3);
 
     // SSTable的写通道
     // 为避免频繁new flush close outputStream而浪费大量时间，将其设置成类属性一次打开一次关闭
@@ -54,8 +55,9 @@ public class SSTable {
 
     // constructor
     // 将文件读到内存中
-    // mode = 1 构造空的SSTable对象（用于写文件）
-    // mode = 2 从SSTable读meta数据（用于查询的示范）
+    // mode = 1 构造空的SSTable对象，并初始化写通道
+    // mode = 2 构造空的SSTable对象，并初始化读通道
+    // mode = 3 从SSTable读整个元数据库（示范）
     public SSTable(String fileName, int mode){
         if(mode == 1){
             this.fileName = fileName;
@@ -69,7 +71,16 @@ public class SSTable {
                 e.printStackTrace();
             }
         }
-        if(mode == 2){
+        else if(mode == 2){
+            this.fileName = fileName;
+            // 初始化读通道
+            try{
+                File f = new File(Constant.DATABASE_DIR + this.fileName);
+                this.raf = new RandomAccessFile(f, "r");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }else if(mode == 3){
             this.fileName = fileName;
             // 初始化读通道
             try{
@@ -187,10 +198,10 @@ public class SSTable {
         long dataBlockStartOffset = 0; // 此data block的开始偏移（记录B树结点时有用）
         long totalOffset = 0; // 总偏移
         // 遍历所有k-v
-        for(Entry<String, Object> entry : this.data.entrySet()){
+        for(Entry<String, String> entry : this.data.entrySet()){
             String key = entry.getKey();
             byte[] key_b = Constant.KEY_TO_BYTES(key);
-            String value = JSONObject.toJSONString(entry.getValue());
+            String value = entry.getValue();
             byte[] value_b = value.getBytes();
             // 写入 length + key + value;
             appendToFile(Constant.INT_TO_BYTES(key_b.length + value_b.length));
@@ -250,6 +261,64 @@ public class SSTable {
         }
 
         return footerStartOffset + footerLength;
+    }
+
+
+    // 在单个SSTable中查
+    public String search(String key) throws IOException {
+        // 读Footer
+        long[] info = readFooter();
+        long zoneMapOffset = info[0];
+        long zoneMapLength = info[1];
+        long bloomFilterOffset = info[2];
+        long bloomFilterLength = info[3];
+        long bTreeRootOffset = info[4];
+        long indexBlockLength = info[5];
+
+        // 1. 检查zone map
+        // 读zone map
+        readZoneMap(zoneMapOffset, zoneMapLength);
+        if(key.compareTo(this.minKey) < 0 && key.compareTo(this.maxKey) > 0)
+            return null;
+
+        // 2. 检查bloom filter
+        // 初始化BloomFilter
+        readBloomFilter(bloomFilterOffset, bloomFilterLength);
+        if(!this.bloomFilter.check(key))
+            return null;
+
+        // 如果1 2 均通过，说明key极有可能存在该SSTable中
+        // 3. 定位到该key可能存在的data block
+        // 初始化index block
+        readIndexBlock(bTreeRootOffset, indexBlockLength);
+        Long offset = this.bTree.rightSearch(key);
+        if(offset == null)
+            offset = 0l;
+
+        // 4. 遍历data block
+        byte[] targetKeyBuffer = Constant.KEY_TO_BYTES(key);
+        int currentOffset = 0; // 记录当前指针位置，指示何时遍历data block结束
+        long maxOffset = readFooter()[0] - offset; // 允许遍历的范围
+        // 允许遍历的范围不超过一个data block的大小
+        if(maxOffset > Constant.MAX_DATA_BLOCK_SIZE)
+            maxOffset = Constant.MAX_DATA_BLOCK_SIZE;
+        int length;
+        byte[] keyBuffer = new byte[Constant.MAX_KEY_LENGTH];
+        byte[] valueBuffer;
+        this.raf.seek(offset);
+        while(currentOffset <= maxOffset){
+            length = this.raf.readInt();
+            currentOffset += (Integer.BYTES + length);
+            valueBuffer = new byte[length - Constant.MAX_KEY_LENGTH];
+            this.raf.read(keyBuffer);
+            this.raf.read(valueBuffer);
+//            String k = new String(keyBuffer);
+//            System.out.println(k);
+            if(Arrays.equals(targetKeyBuffer, keyBuffer))
+                return new String(valueBuffer);
+        }
+
+        return null;
     }
 
 }

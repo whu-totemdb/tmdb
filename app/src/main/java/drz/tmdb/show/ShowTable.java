@@ -12,11 +12,11 @@ import android.widget.ListView;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Transaction.SystemTable.BiPointerTable;
-import drz.tmdb.Transaction.SystemTable.ClassTable;
-import drz.tmdb.Transaction.SystemTable.DeputyTable;
-import drz.tmdb.Transaction.SystemTable.ObjectTable;
-import drz.tmdb.Transaction.SystemTable.SwitchingTable;
+import drz.tmdb.Memory.SystemTable.BiPointerTable;
+import drz.tmdb.Memory.SystemTable.ClassTable;
+import drz.tmdb.Memory.SystemTable.DeputyTable;
+import drz.tmdb.Memory.SystemTable.ObjectTable;
+import drz.tmdb.Memory.SystemTable.SwitchingTable;
 
 public class ShowTable extends AppCompatActivity implements Serializable {
     private String[] tables = new String[5];

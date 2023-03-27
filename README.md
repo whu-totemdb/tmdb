@@ -1,4 +1,5 @@
 # tmdb
+## This is a project for teaching purpose.
 
 ## 介绍
 
@@ -6,28 +7,26 @@
 
 Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
-[武汉大学移动端Totem数据库系统](https://github.com/whu-totemdb/tmdb)
-
-## 任务要求
+[武汉大学移动端Totem数据库系统](
 
 ### Task 1
 
-阅读参考资料TMDB总体设计文档中的存储部分，实现点查询。
-
+设计系统表，并实现系统表的读取和保存。
 
 ### Task 2
 
-
+实现对象Join操作。
 
 ### Task 3
-阅读参考资料TMDB总体设计文档中的查询部分，实现Task3对应功能。
 
+实现更新迁移、跨类查询等功能
+实现手机端各app产生的轨迹（百度地图、跑步软件、共享单车、打车等），并进行Union操作以完整的存储个人出行轨迹。
 
-## 解决思路
+所有功能将可用SQL实现，可利用javacc进行编译，。
 
-- [TASK1-解决思路](file/task1-solution.md)
-- [TASK2-解决思路](file/task2-solution.md)
-- [TASK3-解决思路](https://grm0cnze7e.feishu.cn/docx/CqU5dknQDoPKRwxVkgwc4xrfnSe) 
+https://github.com/whu-totemdb/tmdb)
+
+## 任务要求
 
 ## 参考资料
 

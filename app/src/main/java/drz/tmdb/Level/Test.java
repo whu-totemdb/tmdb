@@ -1,6 +1,7 @@
 package drz.tmdb.Level;
 
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
 import org.apache.commons.io.FileUtils;
@@ -14,11 +15,16 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Transaction.SystemTable.ClassTableItem;
-import drz.tmdb.Transaction.SystemTable.ObjectTableItem;
-import drz.tmdb.Transaction.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.Memory.SystemTable.DeputyTableItem;
+import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.Memory.Tuple;
 
 public class Test {
 
@@ -27,7 +33,7 @@ public class Test {
         Random random = new Random();
         long[] sizes = new long[100];
         for(int i=0; i<100; i++){
-            ObjectTableItem o = new ObjectTableItem(random.nextInt(100), i,random.nextInt(100),random.nextInt(100));
+            ObjectTableItem o = new ObjectTableItem();
             sizes[i] = RamUsageEstimator.sizeOf(o);
         }
         return;
@@ -39,7 +45,7 @@ public class Test {
         Random random = new Random();
         int i = 0;
         while(true){
-            ObjectTableItem o = new ObjectTableItem(random.nextInt(100), i,random.nextInt(100),random.nextInt(100));
+            ObjectTableItem o = new ObjectTableItem();
             memManager.add(o);
             ClassTableItem c = new ClassTableItem();
             memManager.add(c);
@@ -52,13 +58,13 @@ public class Test {
     // MemTable写入SSTable
     public static void test3() throws IOException {
         MemManager memManager = new MemManager();
-        ObjectTableItem o = new ObjectTableItem(10, 1, 10, 10);
+        ObjectTableItem o = new ObjectTableItem();
         memManager.add(o);
-        o = new ObjectTableItem(10, 2, 10, 10);
+        o = new ObjectTableItem();
         memManager.add(o);
-        o = new ObjectTableItem(10, 3, 10, 10);
+        o = new ObjectTableItem();
         memManager.add(o);
-        o = new ObjectTableItem(10, 4, 10, 10);
+        o = new ObjectTableItem();
         memManager.add(o);
         memManager.saveMemTableToFile();
         SSTable sst = new SSTable("SSTable1", 1);
@@ -332,7 +338,10 @@ public class Test {
         for(int i=0; i<1000; i++){
             sst1.data.put("k" + 2 * i, "v1");
         }
+        long t1 = System.currentTimeMillis();
         sst1.writeSSTable();
+        long t2 = System.currentTimeMillis();
+        System.out.println("写一个SSTable耗时" + (t2 - t1) + "ms");
         SSTable sst2 = new SSTable("SSTable2", 1);
         for(int i=0; i<1000; i++){
             sst2.data.put("k" + 3 * i, "v2");
@@ -347,15 +356,154 @@ public class Test {
         levelManager.level_1.add(1);
         levelManager.level_1.add(2);
         levelManager.level_2.add(3);
-        levelManager.levelInfo.put("1", "1-200-k0-k99");
-        levelManager.levelInfo.put("2", "1-200-k0-k99");
-        levelManager.levelInfo.put("3", "2-200-k0-k99");
+        levelManager.levelInfo.put("1", "1-200-k0-k999");
+        levelManager.levelInfo.put("2", "1-200-k0-k999");
+        levelManager.levelInfo.put("3", "2-200-k0-k999");
         levelManager.levelInfo.put("maxDataFileSuffix", "3");
-        long t1 = System.currentTimeMillis();
+        System.out.println("开始compaction");
+        t1 = System.currentTimeMillis();
         levelManager.manualCompaction(1);
-        long t2 = System.currentTimeMillis();
+        t2 = System.currentTimeMillis();
         System.out.println("执行compaction耗时" + (t2 - t1) + "ms");
         SSTable sst4 = new SSTable("SSTable4", 2);
+        return;
+    }
+
+    // bloom filter 命中率检测 -> 假阳性概率约为0.5%
+    public static void test16(){
+        int hit = 0;
+        int in = 0;
+        int falsePositive = 0;
+        SSTable sst1 = new SSTable("test_3", 1);
+        for(int i=0; i<100000; i++){
+            sst1.data.put("k" + i, "v1");
+        }
+        sst1.writeSSTable();
+        Random random = new Random();
+        for(int i=0; i<100000; i++){
+            int randomInt = random.nextInt(200000);
+            String searchKey = "k" + randomInt;
+            if(randomInt < 100000){
+                in++;
+                if(sst1.bloomFilter.check(searchKey))
+                    hit++;
+            }else if(sst1.bloomFilter.check(searchKey)){
+                falsePositive++;
+            }
+        }
+        System.out.println("执行1w次，其中应在SSTable中" + in + "次，检测到" + hit + "次，假阳性" + falsePositive + "次");
+        return;
+
+    }
+
+    // 测试B树 right search
+    public static void test18(){
+        BTree bTree = new BTree<>(3);
+        for(int i=0; i<10; i++){
+            bTree.insert("k" + i, (long)i);
+        }
+        System.out.println(bTree.getMaxKey());
+        System.out.println(bTree.rightSearch("k"+10));
+        System.out.println(bTree.rightSearch("k"+0));
+        System.out.println(bTree.rightSearch("k"+22));
+        System.out.println(bTree.rightSearch("k"+55));
+        System.out.println(bTree.rightSearch("k"+35));
+        System.out.println(bTree.rightSearch("k"+99));
+        System.out.println(bTree.rightSearch("k"+49));
+        System.out.println(bTree.rightSearch("k"+69));
+        return;
+    }
+
+    // 测试search
+    public static void test17() throws IOException {
+        MemManager memManager = new MemManager();
+        for(int i=0; i<1000; i++){
+            Tuple t = new Tuple();
+            t.tupleId = i;
+            memManager.add(t);
+        }
+        memManager.saveMemTableToFile();
+        System.out.println("开始search");
+        long t1 = System.currentTimeMillis();
+        int findCount = 0;
+        for(int i=0; i<2000; i++){
+            Tuple t = memManager.search("" + i);
+            if(t != null)
+                findCount++;
+        }
+        long t2 = System.currentTimeMillis();
+        System.out.println("执行1000次search耗时" + (t2 - t1) + "ms"); // 2.8s
+        return;
+
+    }
+
+    // 测试系统表的读写
+    public static void test19() throws IOException {
+        MemManager memManager1 = new MemManager();
+        memManager1.add(new BiPointerTableItem(1,2,3,4));
+        memManager1.add(new BiPointerTableItem(100,200,300,400));
+        memManager1.add(new ClassTableItem("1", 1, 2, 3, "4", "5", "6", "7"));
+        memManager1.add(new ClassTableItem("zvfz", 1, 2, 3, "zfwzf", "zfwsz", "zfws", "fdzg"));
+        memManager1.add(new SwitchingTableItem("zdfa", "dawd", "dasd"));
+        memManager1.add(new SwitchingTableItem("zzvc", "zsdsz", "dwww"));
+        memManager1.add(new DeputyTableItem(0, 1, new String[]{"120", "arwar", "fafaf"}));
+        memManager1.add(new DeputyTableItem(100, 555, new String[]{"122220", "arwagsr", "faf358af", "444fww"}));
+        memManager1.add(new ObjectTableItem(10,20));
+        memManager1.add(new ObjectTableItem(50,70));
+        memManager1.saveAll();
+        MemManager memManager2 = new MemManager();
+        return;
+    }
+
+    // 测试Tuple的序列化与反序列化
+    public static void test20(){
+        Tuple t1 = new Tuple();
+        t1.tupleHeader = 5;
+        t1.tuple = new Object[t1.tupleHeader];
+        t1.tuple[0] = "a";
+        t1.tuple[1] = 1;
+        t1.tuple[2] = "b";
+        t1.tuple[3] = 3;
+        t1.tuple[4] = "e";
+        Tuple t2 = new Tuple();
+        t2.tupleHeader = 5;
+        t2.tuple = new Object[t2.tupleHeader];
+        t2.tuple[0] = "d";
+        t2.tuple[1] = 2;
+        t2.tuple[2] = "e";
+        t2.tuple[3] = 2;
+        t2.tuple[4] = "v";
+
+        String str1 = JSONObject.toJSONString(t1);
+        System.out.println(str1);
+        String str2 = JSONObject.toJSONString(t1);
+        System.out.println(str2);
+
+        Tuple t3 = JSON.parseObject(str1, Tuple.class);
+        Tuple t4 = JSON.parseObject(str2, Tuple.class);
+
+        long time1 = System.currentTimeMillis();
+        for(int i=1; i<1000; i++){
+            String str = JSONObject.toJSONString(t1);
+        }
+        long time2 = System.currentTimeMillis();
+        System.out.println("序列化1k次" + (time2 - time1) + "ms");
+
+        time1 = System.currentTimeMillis();
+        for(int i=1; i<1000; i++){
+            Tuple t5 = JSON.parseObject(str1, Tuple.class);
+        }
+        time2 = System.currentTimeMillis();
+        System.out.println("反序列化1k次" + (time2 - time1) + "ms");
+
+        return ;
+
+    }
+
+    // 测试
+    public static void test21(){
+
+
         return;
     }
 

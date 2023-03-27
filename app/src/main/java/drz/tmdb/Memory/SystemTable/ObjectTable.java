@@ -1,4 +1,4 @@
-package drz.tmdb.Transaction.SystemTable;
+package drz.tmdb.Memory.SystemTable;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -10,6 +10,14 @@ public class ObjectTable implements Serializable {
     public void clear(){
        objectTable.clear();
         maxTupleId = 0;
+    }
+
+    public int getClassIdByTupleId(int tupleId){
+        for(ObjectTableItem item : this.objectTable){
+            if(item.tupleid == tupleId)
+                return item.classid;
+        }
+        return -1;
     }
 }
 
