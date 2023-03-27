@@ -12,7 +12,7 @@ Totem Mobile Database at WHU (This is a prototype system for teaching purpose)
 
 ## 参考资料
 
-[TMDB总体设计文档]([TMDB总体设计文档2.0.docx](https://1drv.ms/w/s!AkJmIoQ-NhnAmRBfSvLtwBKlohkF?e=m2WCW2))
+[TMDB总体设计文档]([TMDB总体设计文档3.0.docx](https://1drv.ms/w/s!AkJmIoQ-NhnAmRBfSvLtwBKlohkF)
 
 [TotemDB资料1](http://totemdb.whu.edu.cn/upload/202102/02/202102022020113648.pdf)
 

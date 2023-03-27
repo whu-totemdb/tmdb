@@ -501,7 +501,14 @@ public class Test {
     }
 
     // 测试
-    public static void test21(){
+    public static void test21() throws IOException {
+
+        SSTable s = new SSTable("test",1);
+        s.data.put("0", "e");
+        s.data.put("1", "e");
+        s.writeSSTable();
+        SSTable ss = new SSTable("test", 2);
+        String str = ss.search("1");
 
 
         return;

@@ -111,9 +111,6 @@ public class MemManager {
                 long t2 = System.currentTimeMillis();
                 System.out.println("将写满的MemTable写到SSTable耗时" + (t2 - t1) + "ms");
                 clearMem();
-
-                // 同时触发levelManager的autoCompaction
-                this.levelManager.autoCompaction();
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -150,6 +147,7 @@ public class MemManager {
         levelManager.level_0.add(dataFileSuffix);
         // levelInfo 的结构  dataFileSuffix : level-length-minKey-maxKey
         levelManager.levelInfo.put("" + dataFileSuffix, "0" + "-" + SSTableTotalSize + "-" + sst.getMinKey() + "-" + sst.getMaxKey());
+        levelManager.autoCompaction();
 
         // 内存清空
         clearMem();
