@@ -28,13 +28,13 @@ public class VectorClock implements Serializable {
         this.timestamp = timestamp;
     }
 
-    public VectorClock(List<ClockEntry> versions, long timestamp) {
+    /*public VectorClock(List<ClockEntry> versions, long timestamp) {
         this.vectorClock = new TreeMap<>();
         this.timestamp = timestamp;
         for(ClockEntry clockEntry: versions) {
             this.vectorClock.put(clockEntry.getNodeID(), clockEntry.getVersion());
         }
-    }
+    }*/
 
     public VectorClock(TreeMap<String, Long> vectorClock, long timestamp) {
         if(vectorClock == null){
@@ -248,7 +248,7 @@ public class VectorClock implements Serializable {
         return newClock;
     }
 
-    public List<ClockEntry> getClockEntries(){
+    /*public List<ClockEntry> getClockEntries(){
         List<ClockEntry> clockEntries = new ArrayList<ClockEntry>();
 
         for (Map.Entry<String,Long> entry : vectorClock.entrySet()){
@@ -256,7 +256,7 @@ public class VectorClock implements Serializable {
         }
 
         return clockEntries;
-    }
+    }*/
 
 
     public String showVectorClock(){

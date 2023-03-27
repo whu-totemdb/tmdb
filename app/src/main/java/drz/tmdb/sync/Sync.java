@@ -10,6 +10,7 @@ import java.net.InetAddress;
 
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 import drz.tmdb.sync.config.GossipConfig;
@@ -35,6 +36,8 @@ public class Sync {
 
     private static Persist persist /*= new Persist(pathName,fileName)*/;
 
+    private static Context context;
+
 
 
     public static Node getNode() {
@@ -45,9 +48,18 @@ public class Sync {
         Sync.pathName = pathName;
     }
 
+    public static void setContext(Context context) {
+        Sync.context = context;
+    }
+
+    public static Context getContext() {
+        return context;
+    }
+
+
 
     public static void initialNode(int receivePort, Context context) throws Exception{
-
+        Sync.context = context;
 
         GossipConfig gossipConfig = new GossipConfig(
                 Duration.ofSeconds(3),
@@ -90,7 +102,7 @@ public class Sync {
             byte[] data = persist.read(Persist.length);
             try {
                 try {
-                    PersistData persistData = (PersistData) Serialization.disSerialization(data);
+                    PersistData persistData = (PersistData) Serialization.deSerialization(data);
 
                     node = new Node(
                             ip,
@@ -156,7 +168,7 @@ public class Sync {
             byte[] data = persist.read(Persist.length);
             try {
                 try {
-                    PersistData persistData = (PersistData) Serialization.disSerialization(data);
+                    PersistData persistData = (PersistData) Serialization.deSerialization(data);
 
                     node = new Node(
                             ip,
@@ -231,4 +243,5 @@ public class Sync {
             persist.write(data);
         }).start();
     }
+
 }

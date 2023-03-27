@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(()->{
 
             try {
-                System.out.println(FilePathUtil.getFileDir(this));
+                //System.out.println(FilePathUtil.getFileDir(this));
                 //Sync.setPathName(FilePathUtil.getFileDir(this));
                 Sync.initialNode(9090,this);
                 //node.start();
@@ -146,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //同步按钮
-        /*Button sync_button = findViewById(R.id.sync_button);
+        Button sync_button = findViewById(R.id.sync_button);
         sync_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                 Sync.syncStart(action);
 
             }
-        });*/
+        });
 
 
 

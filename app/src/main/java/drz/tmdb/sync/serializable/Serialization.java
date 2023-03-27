@@ -76,7 +76,7 @@ public class Serialization {
     }
 
 
-    public static Object disSerialization(byte[] data) throws
+    public static Object deSerialization(byte[] data) throws
             IOException,
             ClassNotFoundException{
 

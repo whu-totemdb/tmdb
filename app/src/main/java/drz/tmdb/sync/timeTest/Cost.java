@@ -24,8 +24,10 @@ public class Cost implements Serializable {
     }
 
     public void showCosts(){
+
         for (String name : costs.keySet()){
             System.out.println(name + ":" + costs.get(name) + "ms");
         }
+
     }
 }

@@ -4,19 +4,23 @@ import drz.tmdb.sync.config.GossipConfig;
 import drz.tmdb.sync.node.Node;
 import drz.tmdb.sync.share.ReceiveDataArea;
 import drz.tmdb.sync.share.SendInfo;
-import drz.tmdb.sync.timeTest.SendTimeTest;
-import drz.tmdb.sync.timeTest.TimeTest;
+import drz.tmdb.sync.timer.MyTimer;
+import drz.tmdb.sync.timer.SendData;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class GossipController implements Serializable {
+    private final Node node;
+
     private final InetSocketAddress socketAddress;
 
     public SocketService socketService;
@@ -38,7 +42,12 @@ public class GossipController implements Serializable {
 
     private GossipConfig gossipConfig = null;
 
-    public GossipController(int sendInfoSize, int receiveDataAreaSize, InetSocketAddress socketAddress, GossipConfig gossipConfig) {
+    public ConcurrentHashMap<String, SendData> sendDataConcurrentHashMap = new ConcurrentHashMap<>();
+
+
+
+    public GossipController(Node node, int sendInfoSize, int receiveDataAreaSize, InetSocketAddress socketAddress, GossipConfig gossipConfig) {
+        this.node = node;
         this.socketAddress = socketAddress;
         this.gossipConfig = gossipConfig;
 
@@ -53,11 +62,13 @@ public class GossipController implements Serializable {
     }
 
     public GossipController(
+            Node node,
             InetSocketAddress socketAddress,
             GossipConfig gossipConfig,
             SendInfo sendInfo,
             ReceiveDataArea receiveDataArea
             ) {
+        this.node = node;
         this.socketAddress = socketAddress;
         this.gossipConfig = gossipConfig;
 
@@ -198,11 +209,17 @@ public class GossipController implements Serializable {
         return i;
     }
 
+    private boolean detectResponse(String requestID, InetSocketAddress target){
+        SendData data = sendDataConcurrentHashMap.get(requestID);
+
+        return data.responseReceived.get(target);
+    }
+
+
     private void sendGossipRequestToOtherNodes(){
 
         GossipRequest gossipRequest;
         Object[] currentNodes;
-
 
         synchronized (sendInfo) {
             if (sendInfo.structureIsEmpty()) {
@@ -220,34 +237,28 @@ public class GossipController implements Serializable {
         }
 
         List<InetSocketAddress> otherNodes = new ArrayList<>();
-        //Object[] keys = nodes.keySet().toArray();
 
-        //如果活跃的节点数超过设置的上限，那么随机选择最大数量个节点进行发送
-        if (currentNodes.length < gossipConfig.maxTransmitNode) {
-            for (int i = 0; i < currentNodes.length; i++) {
-                //String key = (String) currentNodes[i];
-                InetSocketAddress key = (InetSocketAddress) currentNodes[i];
+        for (int i = 0; i < currentNodes.length; i++) {
+            //String key = (String) currentNodes[i];
+            InetSocketAddress key = (InetSocketAddress) currentNodes[i];
 
-                if (!key/*.getAddress()*/.equals(gossipRequest.getSourceIPAddress()/*currentNode.getNodeID()*/)) {
-                    otherNodes.add(key);
-                }
+            if (!key.equals(gossipRequest.getSourceIPAddress())) {
+                otherNodes.add(key);
             }
-        } else {
-            for (int i = 0; i < gossipConfig.maxTransmitNode; i++) {
+        }
+
+            /*for (int i = 0; i < gossipConfig.maxTransmitNode; i++) {
                 //boolean flag = false;
-                while (true/*!flag*/) {
+                while (true*//*!flag*//*) {
 
                     InetSocketAddress key = (InetSocketAddress) currentNodes[getRandomIndex(currentNodes.length)];
-                    if (!key.equals(gossipRequest.getSourceIPAddress()) && !otherNodes.contains(key)/*currentNode.getNodeID()*/) {
+                    if (!key.equals(gossipRequest.getSourceIPAddress()) && !otherNodes.contains(key)) {
                         otherNodes.add(key);
                         //flag = true;
                         break;
                     }
                 }
-            }
-        }
-
-
+            }*/
 
         /*
          * 对每个需要发送的节点都会开启一个线程进行异步传输
@@ -255,10 +266,46 @@ public class GossipController implements Serializable {
         try {
             int count = 0;//发送线程计数
 
-            int batch_id = gossipRequest.batch_id;
+            SendData data = new SendData(gossipRequest,otherNodes);
 
             for (InetSocketAddress target : otherNodes) {
                 gossipRequest.setTargetIPAddress(target);
+
+                MyTimer myTimer = new MyTimer(1000,2000, 2);
+                myTimer.start(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (detectResponse(gossipRequest.getRequestID(),target)){
+                            data.responseReceived.remove(target);
+                            myTimer.stop();
+                            data.timers.remove(target);
+                        }
+                        else {
+                            myTimer.count++;
+                            if (myTimer.count > myTimer.maxCount){
+                                myTimer.count = 0;
+                                if (myTimer.maxCount <= 32) {
+                                    myTimer.maxCount *= 2;
+                                }
+
+                                //重发
+                                Thread reSendThread = new Thread(() -> {
+                                    GossipRequest request = data.gossipRequest;
+                                    request.setTargetIPAddress(target);
+
+                                    try {
+                                        socketService.sendGossipRequest(request);
+                                    }catch (IOException e){
+                                        e.printStackTrace();
+                                    }
+                                });
+
+                                reSendThread.start();
+                            }
+                        }
+                    }
+                });
+                data.timers.put(target,myTimer);
 
                 Thread thread = new Thread(() -> {
                         try {
@@ -269,7 +316,7 @@ public class GossipController implements Serializable {
                                 System.out.println(Thread.currentThread().getName()+"完成发送的耗时为："+(l2-l1)+"ms");
                             }
                         } catch (IOException e) {
-                        e.printStackTrace();
+                            e.printStackTrace();
                         }
                     }, "sendThread" + count);
 
@@ -279,14 +326,35 @@ public class GossipController implements Serializable {
                 thread.start();
                 thread.join();
 
-
-                //Node.sendTimeTest.get(batch_id).setSendRequestTimeOnce(SendTimeTest.calculate(l,l1));
             }
 
-            /*Node.sendTimeTest.setSendRequestAverageTime(timeSum / otherNodes.size());
-            Node.sendTimeTest.setWriteObjectAverageTime(
-                    Node.sendTimeTest.getWriteObjectTotalTime() / otherNodes.size());*/
+            data.timer = new MyTimer(2000,1000, 2);
+            data.timer.start(new TimerTask() {
+                @Override
+                public void run() {
+                    if (data.responseReceived.size() == 0){
+                        data.timer.stop();
+                        sendDataConcurrentHashMap.remove(gossipRequest.getRequestID());
 
+                        //int index = sendInfo.getIndexMap().get(gossipRequest.getRequestID());
+                        int index = sendInfo.getIndexMap().remove(gossipRequest.getRequestID());
+
+                        synchronized (node.getSendWindow()){
+                            HashMap<String,Integer> hashMap = node.getSendWindow().remove(index);//窗口移出一个请求
+                            node.getSendWindow().notifyAll();
+
+                            int t;
+                            for (String str : hashMap.keySet()){
+                                t = hashMap.get(str);
+                                sendInfo.getIndexMap().put(str,t);
+                            }
+                        }
+
+                    }
+                }
+            });
+
+            sendDataConcurrentHashMap.put(gossipRequest.getRequestID(),data);
 
         } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -324,6 +392,7 @@ public class GossipController implements Serializable {
             else if(newData instanceof Response){
                 Response response = (Response) newData;
                 System.out.println("成功收到来自"+response.getSource()+"的响应");
+
 
                 synchronized (receiveDataArea.getReceivedResponseQueue()){
                     if (receiveDataArea.responseQueueFull()){

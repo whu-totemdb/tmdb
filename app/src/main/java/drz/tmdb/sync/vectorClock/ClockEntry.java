@@ -2,38 +2,36 @@ package drz.tmdb.sync.vectorClock;
 
 import java.io.Serializable;
 
-public class ClockEntry implements Cloneable,Serializable {
+public class ClockEntry implements Cloneable,Serializable ,Comparable<ClockEntry>{
 
     private final static long ride = 1;
-    private String nodeID;
 
-    private long version;
+    public String nodeID;
+
+    //private long version;
+
+    public long lastUpdateTime;
 
 
     public ClockEntry(){
         this.nodeID = null;
-        this.version = -1;
+        //this.version = -1;
+        this.lastUpdateTime = System.currentTimeMillis();
     }
 
-    public ClockEntry(String nodeID, long version) {
+    public ClockEntry(String nodeID/*, long version*/) {
 
-        if(version < 1){
+        /*if(version < 1){
             throw new IllegalArgumentException("版本号小于1，为非法输入");
-        }
+        }*/
 
         this.nodeID = nodeID;
-        this.version = version;
+        //this.version = version;
+        this.lastUpdateTime = System.currentTimeMillis();
     }
 
-    public String getNodeID() {
-        return nodeID;
-    }
 
-    public void setNodeID(String nodeID) {
-        this.nodeID = nodeID;
-    }
-
-    public long getVersion() {
+    /*public long getVersion() {
         return version;
     }
 
@@ -42,7 +40,7 @@ public class ClockEntry implements Cloneable,Serializable {
             throw new IllegalArgumentException("版本号小于1，为非法输入");
         }
         this.version = version;
-    }
+    }*/
 
     public ClockEntry clone(){
         try{
@@ -52,9 +50,9 @@ public class ClockEntry implements Cloneable,Serializable {
         }
     }
 
-    public void increment(){
+    /*public void increment(){
         setVersion(version + ride);
-    }
+    }*/
 
     //判断两个ClockEntry对象是否相同
     public boolean equals(Object o){
@@ -70,7 +68,7 @@ public class ClockEntry implements Cloneable,Serializable {
         //不同地址的ClockEntry对象
         if(o.getClass().equals(ClockEntry.class)){
             ClockEntry clockEntry = (ClockEntry) o;
-            if(clockEntry.getNodeID().equals(getNodeID()) && clockEntry.getVersion() == getVersion()){
+            if(clockEntry.nodeID.equals(this.nodeID) /*&& clockEntry.getVersion() == getVersion()*/){
                 return true;
             }else {
                 return false;
@@ -82,14 +80,12 @@ public class ClockEntry implements Cloneable,Serializable {
     }
 
     public String toString(){
-        String str = nodeID + "---" + version;
+        String str = nodeID + "---" /*+ version*/;
         return str;
     }
 
-    //验证向量时钟是否合法
-    public void validate(){
-        if(version < 1){
-            throw new RuntimeException("当前时钟实体的版本号非法");
-        }
+    @Override
+    public int compareTo(ClockEntry entry) {
+        return Integer.getInteger(String.valueOf(this.lastUpdateTime - entry.lastUpdateTime));
     }
 }
