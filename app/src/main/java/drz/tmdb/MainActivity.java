@@ -40,20 +40,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        new Thread(()->{
-//
-//            try {
-//                System.out.println(FilePathUtil.getFileDir(this));
-//                //Sync.setPathName(FilePathUtil.getFileDir(this));
-//                Sync.initialNode(9090,this);
-//                //node.start();
-//            }catch (Exception e){
-//                e.printStackTrace();
-//            }
-//
-//        },"initialNodeThread").start();
 
-        new Thread(()->{
+        /*new Thread(()->{
 
             try {
                 //System.out.println(FilePathUtil.getFileDir(this));
@@ -64,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
-        },"initialNodeThread").start();
+        },"initialNodeThread").start();*/
 
         //查询按钮
         Button button = findViewById(R.id.button);
@@ -159,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //同步按钮
-        Button sync_button = findViewById(R.id.sync_button);
+        /*Button sync_button = findViewById(R.id.sync_button);
         sync_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -178,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
                 Sync.syncStart(action);
 
             }
-        });
+        });*/
 
 
 
