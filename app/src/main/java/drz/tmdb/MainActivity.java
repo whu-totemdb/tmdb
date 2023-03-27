@@ -48,18 +48,19 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        new Thread(()->{
-//
-//            try {
-//                System.out.println(FilePathUtil.getFileDir(this));
-//                //Sync.setPathName(FilePathUtil.getFileDir(this));
-//                Sync.initialNode(9090,this);
-//                //node.start();
-//            }catch (Exception e){
-//                e.printStackTrace();
-//            }
-//
-//        },"initialNodeThread").start();
+
+        /*new Thread(()->{
+
+            try {
+                //System.out.println(FilePathUtil.getFileDir(this));
+                //Sync.setPathName(FilePathUtil.getFileDir(this));
+                Sync.initialNode(9090,this);
+                //node.start();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+        },"initialNodeThread").start();*/
 
         //查询按钮
         Button button = findViewById(R.id.button);

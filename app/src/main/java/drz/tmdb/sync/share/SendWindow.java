@@ -2,7 +2,9 @@ package drz.tmdb.sync.share;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 
+import drz.tmdb.sync.network.GossipRequest;
 import drz.tmdb.sync.node.database.Action;
 
 public class SendWindow implements Serializable {
@@ -12,13 +14,13 @@ public class SendWindow implements Serializable {
 
     private WindowEntry[] syncQueue;
 
-    private int left = 0;//窗口左端索引
+    private int left = 0;//窗口左端索引，初始为0
 
     private int windowSize;//窗口大小，即能够发送的区域的大小
 
     private int right;//窗口右端索引
 
-    private int currentIndex;//当前窗口内正在被处理的元素的索引
+    private int currentIndex;//当前窗口内下一个要被处理的元素的索引
 
     // 整个数据区可以被发送的区间为[left,right]
     // 数据区最后一个元素的索引为nextIndex - 1
@@ -52,7 +54,17 @@ public class SendWindow implements Serializable {
         return right;
     }
 
+    public int getCurrentIndex() {
+        return currentIndex;
+    }
 
+    public boolean noNewElement(){
+        return (nextIndex == currentIndex);
+    }
+
+    public boolean noNewElementInWindow(){
+        return (currentIndex == ((right+1)%maxNum));
+    }
 
     public boolean isEmpty(){
         return (nextIndex == left);
@@ -72,13 +84,30 @@ public class SendWindow implements Serializable {
 
         nextIndex = (nextIndex + 1) % maxNum;
 
-
     }
 
-    //移除窗口首部元素
-    public void remove(){
+
+    public void put(RequestType requestType, GossipRequest gossipRequest){
+        WindowEntry entry = new WindowEntry(requestType,gossipRequest);
+        syncQueue[nextIndex] = entry;
+
+        nextIndex = (nextIndex + 1) % maxNum;
+    }
+
+    //移除窗口指定元素
+    public HashMap<String,Integer> remove(int index){
+        HashMap<String,Integer> result = new HashMap<>();
+
+        for (int i = index; i > left;i--){
+            syncQueue[i] = syncQueue[i-1];
+            result.put(syncQueue[i-1].getGossipRequest().getRequestID(),i);
+        }
+
+        //窗口后移一位
         left = (left + 1) % maxNum;
         right = (right + 1) % maxNum;
+
+        return result;
     }
 
     //获取整个队列首部的元素，但不移出首部元素
@@ -90,7 +119,7 @@ public class SendWindow implements Serializable {
     public WindowEntry getNextEntry(){
         int i = currentIndex;
 
-        if(i != right)
+        if(i != ((right+1)%maxNum))
             currentIndex= (currentIndex+1)%maxNum;
         return syncQueue[i];
     }

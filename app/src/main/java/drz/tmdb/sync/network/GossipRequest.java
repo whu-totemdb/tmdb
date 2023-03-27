@@ -10,7 +10,6 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 
 public class GossipRequest implements Serializable {
-    public int batch_id;//供统计使用，后可删除
 
     private RequestType requestType;
 
@@ -20,7 +19,6 @@ public class GossipRequest implements Serializable {
 
     private Long key;//数据主键
 
-    /*还需要添加一个属性为value，表示数据更新后的值*/
     private Action action;
 
     private VectorClock vectorClock;

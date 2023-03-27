@@ -39,6 +39,7 @@ public class SocketService{
             this.receivePort = receivePort;
             receiveDatagramSocket = new DatagramSocket(receivePort);
             broadcastDatagramSocket = new DatagramSocket(Node.broadcastPort);
+            //broadcastDatagramSocket.setBroadcast(true);
 
         }catch (SocketException exception){
             System.out.println("建立连接失败！");
@@ -51,7 +52,6 @@ public class SocketService{
 
     public void sendGossipRequest(/*Node source,Node target,*/GossipRequest request) throws IOException{
 
-        int batch_id = request.batch_id;
 
         //request.setSendTime(System.currentTimeMillis());
 

@@ -1,5 +1,10 @@
 package drz.tmdb.sync.node;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.os.Looper;
+
+import drz.tmdb.sync.Sync;
 import drz.tmdb.sync.arbitration.Arbitration;
 import drz.tmdb.sync.arbitration.ArbitrationController;
 import drz.tmdb.sync.config.GossipConfig;
@@ -22,7 +27,9 @@ import drz.tmdb.sync.timeTest.ReceiveTimeTest;
 import drz.tmdb.sync.timeTest.SendTimeTest;
 import drz.tmdb.sync.timeTest.TimeStore;
 import drz.tmdb.sync.timeTest.TimeTest;
+import drz.tmdb.sync.timer.MyTimer;
 import drz.tmdb.sync.util.NetworkUtil;
+import drz.tmdb.sync.vectorClock.ClockEntry;
 import drz.tmdb.sync.vectorClock.VectorClock;
 
 import java.io.IOException;
@@ -34,8 +41,11 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.PriorityQueue;
+import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.LockSupport;
 
 public class Node implements Serializable {
     //private final InetSocketAddress socketAddress;//节点的IP套接字（IP地址+端口号）
@@ -62,6 +72,9 @@ public class Node implements Serializable {
     private GossipConfig gossipConfig;
 
     private ConcurrentHashMap<Long, VectorClock> vectorClockMap;
+
+
+    //private ConcurrentHashMap<Long, ClockEntry> clockEntries;
 
     private DataManager dataManager;
 
@@ -107,6 +120,7 @@ public class Node implements Serializable {
         this.gossipConfig = gossipConfig;
 
         vectorClockMap = new ConcurrentHashMap<>();
+        //clockEntries = new ConcurrentHashMap<>();
         dataManager = new DataManager();
         arbitrationController = new ArbitrationController();
 
@@ -129,14 +143,13 @@ public class Node implements Serializable {
         }
         cluster.put(nodeID,info);
         //nodes.put(nodeID,socketAddress);
-        gossipController = new GossipController(maxRequestNum,receiveAreaSize,socketAddress,gossipConfig);
 
         sendWindow = new SendWindow(gossipConfig.maxSendNum,gossipConfig.windowSize);
 
         //setLastUpdateTime();
         System.out.println(Thread.currentThread().getName() + "：新生成了一个节点" + this.IPAddress.toString());
         showCluster();
-
+        gossipController = new GossipController(this,maxRequestNum,receiveAreaSize,socketAddress,gossipConfig);
         //this.start();
     }
 
@@ -168,10 +181,10 @@ public class Node implements Serializable {
         this.cluster = cluster;
         this.arbitrationController = arbitrationController;
 
-        this.gossipController = new GossipController(getSocketAddress(),gossipConfig,sendInfo,receiveDataArea);
-
         //初始化仲裁模块的配置参数
         Arbitration.initialConfig(gossipConfig.copyNum,gossipConfig.minWriteNum,gossipConfig.minReadNum);
+
+        this.gossipController = new GossipController(this,getSocketAddress(),gossipConfig,sendInfo,receiveDataArea);
     }
 
 
@@ -353,6 +366,7 @@ public class Node implements Serializable {
 
     private void initialVectorClockMap(){
         vectorClockMap.putIfAbsent(1L,new VectorClock());
+
     }
 
     public void setLastUpdateTime(){
@@ -444,6 +458,24 @@ public class Node implements Serializable {
                 Action action = dataManager.getAction();
                 System.out.println(Thread.currentThread().getName()+"：成功将一个同步操作压入发送窗口");
 
+
+                startTime = System.currentTimeMillis();
+                long start = startTime;
+
+                long key = action.getKey();
+
+                if (requestNum < maxRequestNum){
+                    requestNum++;
+                }
+                else {
+                    requestNum = 1;
+                }
+
+                String requestID = getNodeID() + requestNum;
+
+                System.out.println(Thread.currentThread().getName() + "：本次处理的请求的id为" + requestID );
+
+
                 if(action.getOp() == OperationType.select){
                     //读请求
                     synchronized (sendWindow) {
@@ -455,7 +487,27 @@ public class Node implements Serializable {
                             }
                         }
 
-                        sendWindow.put(RequestType.readRequest, action);
+                        //生成一个仲裁判定器
+                        Arbitration arbitration =new Arbitration(RequestType.readRequest);
+                        arbitrationController.putArbitration(requestID,arbitration);
+                        System.out.println(getNodeID()+"生成一个仲裁器");
+
+
+                        GossipRequest request = new GossipRequest(RequestType.readRequest,getNodeID(),requestID,key,action,getVectorClock(key),getSocketAddress());
+                        //request.batch_id = batch_num;
+                        long end =System.currentTimeMillis();
+
+                        if (Node.isTest()) {
+                            System.out.println("生成一次请求耗费："+(end - start)+"ms");
+                            TimeTest.putInCostTreeMap(requestID,"生成请求耗时",(end-start));
+
+                            timeMap.put(requestID,new TimeStore());
+                            timeMap.get(requestID).requestStartTime = start;
+                        }
+
+
+                        //sendWindow.put(RequestType.readRequest, action);
+                        sendWindow.put(RequestType.readRequest,request);
                         sendWindow.notifyAll();
                     }
                 }
@@ -470,8 +522,28 @@ public class Node implements Serializable {
                             }
                         }
 
+                        //生成一个仲裁判定器
+                        Arbitration arbitration =new Arbitration(RequestType.writeRequest);
+                        arbitrationController.putArbitration(requestID,arbitration);
+                        System.out.println(getNodeID()+"生成一个仲裁器");
+
+
+                        GossipRequest request = new GossipRequest(RequestType.writeRequest,getNodeID(),requestID,key,action,getVectorClock(key),getSocketAddress());
+                        //request.batch_id = batch_num;
+                        long end =System.currentTimeMillis();
+
+                        if (Node.isTest()) {
+                            System.out.println("生成一次请求耗费："+(end - start)+"ms");
+                            TimeTest.putInCostTreeMap(requestID,"生成请求耗时",(end-start));
+
+                            timeMap.put(requestID,new TimeStore());
+                            timeMap.get(requestID).requestStartTime = start;
+                        }
+
+
                         updateVectorClock(action.getKey());
-                        sendWindow.put(RequestType.writeRequest, action);
+                        //sendWindow.put(RequestType.writeRequest, action);
+                        sendWindow.put(RequestType.writeRequest, request);
                         sendWindow.notifyAll();
                     }
 
@@ -486,7 +558,7 @@ public class Node implements Serializable {
         //获取一个数据区内待处理请求
         WindowEntry entry;
         synchronized (sendWindow) {
-            if(sendWindow.isEmpty()){
+            if(sendWindow.noNewElement()){
                 try {
                     sendWindow.wait();
                 }catch (InterruptedException e){
@@ -537,9 +609,11 @@ public class Node implements Serializable {
     }
 
     //处理一个请求
-    private void process(GossipRequest request){
+    private void process(GossipRequest request,int index){
 
         ArrayList<InetSocketAddress> aliveNodes = getAliveNodes();
+
+        //ArrayList<InetSocketAddress> aliveNodes = getAllMembers();
 
 
         SendInfo info = gossipController.getSendInfo();
@@ -554,20 +628,16 @@ public class Node implements Serializable {
 
             info.getRequestToSend().add(request);
             info.getTargets().add(aliveNodes.toArray());
+            info.getIndexMap().put(request.getRequestID(),index);
             info.notifyAll();//如果发送线程因为临界区为空而等待，唤醒发送线程
         }
 
 
-
-        //仍然待改进，只有每个节点的请求发送都成功后才能判断这个request是成功的
-        synchronized (sendWindow){
+        /*synchronized (sendWindow){
             sendWindow.remove();//窗口移出一个请求
             sendWindow.notifyAll();
-        }
-        //需要根据状态表来加速队列的处理，代码在此处添加
-        //1. 请求在什么条件下从syncQueue中移出
-        //2. 如何判断这个条件 --- 读写仲裁判定通过
-        //3. 需要哪些数据结构
+        }*/
+
 
 
     }
@@ -603,12 +673,14 @@ public class Node implements Serializable {
             if (cluster.get(sourceNodeID)==null){
                 //如果不存在该nodeID
                 NodeInfo info = new NodeInfo(target,NodeState.active);
+                info.startTimer(cluster,sourceNodeID);
                 cluster.put(sourceNodeID,info);
             }
             else {
                 NodeInfo info = cluster.get(sourceNodeID);
                 info.state = NodeState.active;
                 info.socketAddress = target;
+                info.lastUpdateTime = System.currentTimeMillis();
             }
             /*nodeStateTable.putIfAbsent(target,true);
             nodes.put(sourceNodeID,target);*/
@@ -643,6 +715,7 @@ public class Node implements Serializable {
                 NodeInfo info = cluster.get(sourceNodeID);
                 info.state = NodeState.active;
                 info.socketAddress = sourceAddress;
+                info.lastUpdateTime = System.currentTimeMillis();
             }
             long l2 =System.currentTimeMillis();
             if (Node.isTest()){
@@ -769,7 +842,20 @@ public class Node implements Serializable {
                 if (Node.isTest()){
                     endTime = System.currentTimeMillis();
                     TimeTest.putInCostTreeMap(id,"请求"+id+"同步全过程耗时",(endTime-startTime));
-                    TimeTest.showCost(id);
+                    //TimeTest.showCost(id);
+                    Looper.prepare();
+                    AlertDialog.Builder builder=new AlertDialog.Builder(Sync.getContext());
+                    builder.setMessage(/*TimeTest.showCost(id)*/"")
+                            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    System.out.println("确认");
+                                }
+                            })
+                            .create()
+                            .show();
+                    Looper.loop();
+
                 }
 
             }
@@ -794,7 +880,20 @@ public class Node implements Serializable {
                     timeMap.get(id).endTime = endTime;
                     TimeTest.putInCostTreeMap(id,"请求"+id+"同步全过程耗时",(endTime-startTime));
                     TimeTest.showCost(id);
-                    timeMap.get(id).show();
+                    //timeMap.get(id).show();
+
+                    Looper.prepare();
+                    AlertDialog.Builder builder=new AlertDialog.Builder(Sync.getContext());
+                    builder.setMessage(timeMap.get(id).show())
+                            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    System.out.println("确认");
+                                }
+                            })
+                            .create()
+                            .show();
+                    Looper.loop();
                 }
             }
             else {
@@ -838,6 +937,7 @@ public class Node implements Serializable {
             if (cluster.get(otherNodeID)==null){
                 //如果不存在该nodeID
                 NodeInfo info = new NodeInfo(inetSocketAddress,error,NodeState.active);
+                info.startTimer(cluster,otherNodeID);
                 cluster.put(otherNodeID,info);
             }
             else {
@@ -845,6 +945,7 @@ public class Node implements Serializable {
                 info.state = NodeState.active;
                 info.socketAddress = inetSocketAddress;
                 info.error = error;
+                info.lastUpdateTime = System.currentTimeMillis();
             }
             /*nodes.put(otherNodeID,inetSocketAddress);
             nodeStateTable.putIfAbsent(inetSocketAddress,true);//更新节点状态表*/
@@ -853,6 +954,8 @@ public class Node implements Serializable {
         }
         else {
             String id = response.getRequestID();
+            gossipController.sendDataConcurrentHashMap.get(id).responseReceived.put(response.getSource(),true);
+
             if (Node.isTest()){
                 TimeTest.addCosts(id,response.getCost());
                 TimeTest.putInCostTreeMap(id,"响应传播时延",response.getReceiveTime()+cluster.get(response.getNodeID()).error - response.getSendTime());
@@ -900,7 +1003,27 @@ public class Node implements Serializable {
         new Thread(()->{
             while(!failed){
 
-                GossipRequest request = generateGossipRequest();
+                //获取一个数据区内待处理请求
+                WindowEntry entry;
+                int index;
+                synchronized (sendWindow) {
+                    if(sendWindow.noNewElement() || sendWindow.noNewElementInWindow()){
+                        try {
+                            sendWindow.wait();
+                        }catch (InterruptedException e){
+                            e.printStackTrace();
+                        }
+                    }
+                    if (sendWindow.noNewElement() || sendWindow.noNewElementInWindow())
+                        continue;
+
+                    index = sendWindow.getCurrentIndex();//当前请求处于发送窗口内的索引值
+                    entry = sendWindow.getNextEntry();//取下一个待发送的请求，但不移出数据区
+                }
+
+
+                //GossipRequest request = generateGossipRequest();
+                GossipRequest request = entry.getGossipRequest();
 
                 /*if (!sendTimeTest.containsKey(request.batch_id)) {
                     SendTimeTest s = new SendTimeTest();
@@ -908,7 +1031,7 @@ public class Node implements Serializable {
                     batch_id_map.put(request.batch_id,new ArrayList<>());
                 }*/
 
-                process(request);
+                process(request,index);
 
                 //sendTimeTest.get(request.batch_id).setProcessQueueTimeOnce(SendTimeTest.calculate(start,end));
 
