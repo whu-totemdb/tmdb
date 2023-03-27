@@ -1,35 +1,62 @@
-package drz.tmdb;
+package drz.tmdb.map;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.Window;
+import android.widget.TextView;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
 import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
 import com.amap.api.maps2d.AMap;
+import com.amap.api.maps2d.CameraUpdateFactory;
 import com.amap.api.maps2d.LocationSource;
 import com.amap.api.maps2d.MapView;
+import com.amap.api.maps2d.model.BitmapDescriptor;
 import com.amap.api.maps2d.model.BitmapDescriptorFactory;
+import com.amap.api.maps2d.model.Circle;
+import com.amap.api.maps2d.model.CircleOptions;
+import com.amap.api.maps2d.model.LatLng;
+import com.amap.api.maps2d.model.Marker;
+import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.model.MyLocationStyle;
+
+import drz.tmdb.R;
 
 
 public class MapActivity extends Activity implements LocationSource,
         AMapLocationListener {
-
     private AMap aMap;
     private MapView mapView;
     private OnLocationChangedListener mListener;
     private AMapLocationClient mlocationClient;
     private AMapLocationClientOption mLocationOption;
 
+    private TextView mLocationErrText;
+    private static final int STROKE_COLOR = Color.argb(180, 3, 145, 255);
+    private static final int FILL_COLOR = Color.argb(10, 0, 0, 180);
+    private boolean mFirstFix = false;
+    private Marker mLocMarker;
+    private SensorEventHelper mSensorHelper;
+    private Circle mCircle;
+    public static final String LOCATION_MARKER_FLAG = "mylocation";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 询问隐私政策
+        AMapLocationClient.updatePrivacyShow(this, true, true);
+        AMapLocationClient.updatePrivacyAgree(this,true);
+
+        requestWindowFeature(Window.FEATURE_NO_TITLE);// 不显示程序的标题栏
         setContentView(R.layout.activity_map);
         mapView = (MapView) findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);// 此方法必须重写
@@ -37,32 +64,28 @@ public class MapActivity extends Activity implements LocationSource,
     }
 
     /**
-     * 初始化AMap对象
+     * 初始化
      */
     private void init() {
         if (aMap == null) {
             aMap = mapView.getMap();
             setUpMap();
         }
+        mSensorHelper = new SensorEventHelper(this);
+        if (mSensorHelper != null) {
+            mSensorHelper.registerSensorListener();
+        }
+        mLocationErrText = (TextView)findViewById(R.id.location_errInfo_text);
+        mLocationErrText.setVisibility(View.GONE);
     }
 
     /**
      * 设置一些amap的属性
      */
     private void setUpMap() {
-        // 自定义系统定位小蓝点
-        MyLocationStyle myLocationStyle = new MyLocationStyle();
-        myLocationStyle.myLocationIcon(BitmapDescriptorFactory
-                .fromResource(R.drawable.location_marker));// 设置小蓝点的图标
-        myLocationStyle.strokeColor(Color.BLACK);// 设置圆形的边框颜色
-        myLocationStyle.radiusFillColor(Color.argb(100, 0, 0, 180));// 设置圆形的填充颜色
-        // myLocationStyle.anchor(int,int)//设置小蓝点的锚点
-        myLocationStyle.strokeWidth(1.0f);// 设置圆形的边框粗细
-        aMap.setMyLocationStyle(myLocationStyle);
         aMap.setLocationSource(this);// 设置定位监听
         aMap.getUiSettings().setMyLocationButtonEnabled(true);// 设置默认定位按钮是否显示
         aMap.setMyLocationEnabled(true);// 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
-        // aMap.setMyLocationType()
     }
 
     /**
@@ -72,6 +95,9 @@ public class MapActivity extends Activity implements LocationSource,
     protected void onResume() {
         super.onResume();
         mapView.onResume();
+        if (mSensorHelper != null) {
+            mSensorHelper.registerSensorListener();
+        }
     }
 
     /**
@@ -80,8 +106,14 @@ public class MapActivity extends Activity implements LocationSource,
     @Override
     protected void onPause() {
         super.onPause();
+        if (mSensorHelper != null) {
+            mSensorHelper.unRegisterSensorListener();
+            mSensorHelper.setCurrentMarker(null);
+            mSensorHelper = null;
+        }
         mapView.onPause();
         deactivate();
+        mFirstFix = false;
     }
 
     /**
@@ -100,6 +132,9 @@ public class MapActivity extends Activity implements LocationSource,
     protected void onDestroy() {
         super.onDestroy();
         mapView.onDestroy();
+        if(null != mlocationClient){
+            mlocationClient.onDestroy();
+        }
     }
 
     /**
@@ -110,10 +145,24 @@ public class MapActivity extends Activity implements LocationSource,
         if (mListener != null && amapLocation != null) {
             if (amapLocation != null
                     && amapLocation.getErrorCode() == 0) {
-                mListener.onLocationChanged(amapLocation);// 显示系统小蓝点
+                mLocationErrText.setVisibility(View.GONE);
+                LatLng location = new LatLng(amapLocation.getLatitude(), amapLocation.getLongitude());
+                if (!mFirstFix) {
+                    mFirstFix = true;
+                    addCircle(location, amapLocation.getAccuracy());//添加定位精度圆
+                    addMarker(location);//添加定位图标
+                    mSensorHelper.setCurrentMarker(mLocMarker);//定位图标旋转
+                } else {
+                    mCircle.setCenter(location);
+                    mCircle.setRadius(amapLocation.getAccuracy());
+                    mLocMarker.setPosition(location);
+                }
+                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 18));
             } else {
                 String errText = "定位失败," + amapLocation.getErrorCode()+ ": " + amapLocation.getErrorInfo();
                 Log.e("AmapErr",errText);
+                mLocationErrText.setVisibility(View.VISIBLE);
+                mLocationErrText.setText(errText);
             }
         }
     }
@@ -156,6 +205,32 @@ public class MapActivity extends Activity implements LocationSource,
             mlocationClient.onDestroy();
         }
         mlocationClient = null;
+    }
+    private void addCircle(LatLng latlng, double radius) {
+        CircleOptions options = new CircleOptions();
+        options.strokeWidth(1f);
+        options.fillColor(FILL_COLOR);
+        options.strokeColor(STROKE_COLOR);
+        options.center(latlng);
+        options.radius(radius);
+        mCircle = aMap.addCircle(options);
+    }
+
+    private void addMarker(LatLng latlng) {
+        if (mLocMarker != null) {
+            return;
+        }
+        Bitmap bMap = BitmapFactory.decodeResource(this.getResources(),
+                R.drawable.navi_map_gps_locked);
+        BitmapDescriptor des = BitmapDescriptorFactory.fromBitmap(bMap);
+
+//		BitmapDescriptor des = BitmapDescriptorFactory.fromResource(R.drawable.navi_map_gps_locked);
+        MarkerOptions options = new MarkerOptions();
+        options.icon(des);
+        options.anchor(0.5f, 0.5f);
+        options.position(latlng);
+        mLocMarker = aMap.addMarker(options);
+        mLocMarker.setTitle(LOCATION_MARKER_FLAG);
     }
 
 }

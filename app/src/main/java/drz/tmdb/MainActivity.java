@@ -2,11 +2,7 @@ package drz.tmdb;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -19,11 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.IOException;
 
 import drz.tmdb.Transaction.TransAction;
-import drz.tmdb.Transaction.Transactions.utils.MemConnect;
-import drz.tmdb.sync.Sync;
-import drz.tmdb.sync.node.database.Action;
-import drz.tmdb.sync.node.database.OperationType;
-import drz.tmdb.sync.util.FilePathUtil;
+import drz.tmdb.map.MapActivity;
 
 public class MainActivity extends AppCompatActivity {
 

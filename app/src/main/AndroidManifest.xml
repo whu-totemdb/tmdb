@@ -32,7 +32,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MapActivity"
+            android:name=".map.MapActivity"
             android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
