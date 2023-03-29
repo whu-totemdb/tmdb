@@ -24,7 +24,7 @@ This is a prototype system for teaching purpose.
 
 ## 参考资料
 
-[TMDB总体设计文档](https://1drv.ms/w/s!AkJmIoQ-NhnAmRBfSvLtwBKlohkF)
+[TMDB总体设计文档](file/TMDB总体设计文档3.0.pdf)
 
 [对象代理介绍](http://totemdb.whu.edu.cn/upload/202102/02/202102022020113648.pdf)
 
