@@ -36,23 +36,27 @@ public class ShowSwi extends AppCompatActivity implements Serializable {
     }
 
     private void showSwiTab(SwitchingTable switchingT) {
-        int tabCol = 3;
+        int tabCol = 4;
         int tabH = switchingT.switchingTable.size();
-        String stemp1, stemp2, stemp3;
+        String stemp1, stemp2, stemp3, stemp4,stemp5;
 
         show_tab = findViewById(R.id.rst_tab);
 
         for (int i = 0; i <= tabH; i++) {
             TableRow tableRow = new TableRow(this);
             if (i == 0) {
-                stemp1 = "    attr    ";
-                stemp2 = "    deputy    ";
-                stemp3 = "    rule    ";
+                stemp1 = "    oriId    ";
+                stemp2 = "    attr    ";
+                stemp3 = "    deputyId    ";
+                stemp4 = "    deputy    ";
+                stemp5 = "    rule    ";
 
             } else {
-                stemp1 = switchingT.switchingTable.get(i - 1).attr;
-                stemp2 = switchingT.switchingTable.get(i - 1).deputy;
-                stemp3 = switchingT.switchingTable.get(i - 1).rule;
+                stemp1 = String.valueOf(switchingT.switchingTable.get(i - 1).oriId);
+                stemp2 = String.valueOf(switchingT.switchingTable.get(i - 1).oriAttrid);
+                stemp3 = String.valueOf(switchingT.switchingTable.get(i - 1).deputyId);
+                stemp4 = String.valueOf(switchingT.switchingTable.get(i - 1).deputyAttrId);
+                stemp5 = switchingT.switchingTable.get(i - 1).rule;
             }
             for (int j = 0; j < tabCol; j++) {
                 TextView tv = new TextView(this);
@@ -65,6 +69,12 @@ public class ShowSwi extends AppCompatActivity implements Serializable {
                         break;
                     case 2:
                         tv.setText(stemp3);
+                        break;
+                    case 3:
+                        tv.setText(stemp4);
+                        break;
+                    case 4:
+                        tv.setText(stemp5);
                         break;
 
                 }

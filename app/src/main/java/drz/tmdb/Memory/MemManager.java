@@ -1,6 +1,6 @@
 package drz.tmdb.Memory;
 
-import static drz.tmdb.Level.Test.*;
+//import static drz.tmdb.Level.Test.*;
 
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -157,6 +157,7 @@ public class MemManager {
 
 
     // 查询key对应的value
+    // todo: write your code here
     public Tuple search(String key){
         // 首先查MEMTable
         for(Tuple t : this.tupleList.tuplelist){
@@ -403,12 +404,18 @@ public class MemManager {
             f.createNewFile();
         BufferedOutputStream writeAccess = new BufferedOutputStream(new FileOutputStream(f));
         for(SwitchingTableItem item: this.switchingTable.switchingTable){
-            // 存attr
-            writeAccess.write(Constant.INT_TO_BYTES(item.attr.length()));
-            writeAccess.write(item.attr.getBytes());
-            // 存deputy
-            writeAccess.write(Constant.INT_TO_BYTES(item.deputy.length()));
-            writeAccess.write(item.deputy.getBytes());
+            // 存oriclassid
+            writeAccess.write(Constant.INT_TO_BYTES(item.oriId));
+//            writeAccess.write(item.oriId);
+            // 存oriattrid
+            writeAccess.write(Constant.INT_TO_BYTES(item.oriAttrid));
+//            writeAccess.write(item.deputy.getBytes());
+            // 存deputyclassid
+            writeAccess.write(Constant.INT_TO_BYTES(item.deputyId));
+//            writeAccess.write(item.attr.getBytes());
+            // 存deputyattrid
+            writeAccess.write(Constant.INT_TO_BYTES(item.deputyAttrId));
+//            writeAccess.write(item.deputy.getBytes());
             // 存rule
             writeAccess.write(Constant.INT_TO_BYTES(item.rule.length()));
             writeAccess.write(item.rule.getBytes());
@@ -427,18 +434,28 @@ public class MemManager {
         while(cur < l){
             SwitchingTableItem item = new SwitchingTableItem();
             // 读attr
+
+
+//            raf.read(buffer);
+//            item.attr = new String(buffer);
+//            cur += (Integer.BYTES + len);
+//            // 读deputy
+//            len = raf.readInt();
+//            buffer = new byte[len];
+//            raf.read(buffer);
+//            item.deputy = new String(buffer);
+//            cur += (Integer.BYTES + len);
+            item.oriId=raf.readInt();
+            cur+=Integer.BYTES;
+            item.oriAttrid=raf.readInt();
+            cur+=Integer.BYTES;
+            item.deputyId=raf.readInt();
+            cur+=Integer.BYTES;
+            item.deputyAttrId=raf.readInt();
+            cur+=Integer.BYTES;
+            // 读rule
             int len = raf.readInt();
             byte[] buffer = new byte[len];
-            raf.read(buffer);
-            item.attr = new String(buffer);
-            cur += (Integer.BYTES + len);
-            // 读deputy
-            len = raf.readInt();
-            buffer = new byte[len];
-            raf.read(buffer);
-            item.deputy = new String(buffer);
-            cur += (Integer.BYTES + len);
-            // 读rule
             len = raf.readInt();
             buffer = new byte[len];
             raf.read(buffer);

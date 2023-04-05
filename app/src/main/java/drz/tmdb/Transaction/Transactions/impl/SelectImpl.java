@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import drz.tmdb.Memory.SystemTable.ObjectTableItem;
@@ -46,6 +48,7 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
     public SelectImpl() {
     }
 
+    @Override
     public SelectResult select(Object stmt) throws TMDBException {
         SelectBody selectBody = null;
         //如果语法树的形式是Select，将查询主题赋值给selectBody
@@ -83,7 +86,7 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
         SelectResult selectResult=from(plainSelect);
         //通过where进行筛选
         if(plainSelect.getWhere()!=null){
-            Where where=new Where();
+            Where where=new Where(memConnect);
             selectResult=where.where(plainSelect,selectResult);
         }
         //然后通过selectItem提取想要的列
@@ -95,10 +98,13 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
     //提取
     public SelectResult elicit(PlainSelect plainSelect,SelectResult selectResult) throws TMDBException {
         ArrayList<SelectItem> selectItemList= (ArrayList<SelectItem>) plainSelect.getSelectItems();
+        HashMap<SelectItem, ArrayList<Column>> map = getSelectItemColumn(selectItemList);
+
         int length=selectItemList.size();
         for(int i=0;i<selectItemList.size();i++) {
             //如果当前情况是select * from，则显示作为选择allcolumns，直接返回全部
             if (selectItemList.get(i).getClass().getSimpleName().equals("AllColumns")) {
+                selectResult.setAlias(selectResult.getAttrname());
                 //要对attrid重拍以下，不然最终printresult的时候会有问题
                 for(int j=0;j<selectResult.getAttrid().length;j++){
                     selectResult.getAttrid()[j]=j;
@@ -112,7 +118,7 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                 for(int y=0;y<selectResult.getClassName().length;y++){
                     String s=selectResult.getClassName()[y];
                     String alias=selectResult.getAlias()[y];
-                    if (s.equals(selectItem.getTable().getName()) || selectItem.getTable().getAlias().getName().equals(alias)) {
+                    if (s.equals(selectItem.getTable().getName()) || selectItem.getTable().getAlias()!=null && selectItem.getTable().getAlias().getName().equals(alias)) {
                         length++;
                     }
                 }
@@ -121,11 +127,17 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
         }
         TupleList resTupleList=new TupleList();
         SelectResult result=new SelectResult();
+        result.setAlias(new String[length]);
         result.setAttrname(new String[length]);
+        result.setClassName(new String[length]);
         result.setAttrid(new int[length]);
         result.setType(new String[length]);
         for(int i=0;i<selectResult.getTpl().tuplelist.size();i++){
             Tuple tuple=new Tuple();
+            int[] temp=new int[length];
+            Arrays.fill(temp,-1);
+            tuple.tupleIds=temp;
+
             tuple.tuple=new Object[length];
             resTupleList.addTuple(tuple);
         }
@@ -137,18 +149,40 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
             if(selectItemList.get(index).getClass().getSimpleName().equals("SelectExpressionItem")){
                 SelectExpressionItem selectItem=(SelectExpressionItem) selectItemList.get(index);
                 //如果有alias 例如a*b as c则需要将输出的getAttrname()改成别名
+                result.getAlias()[i]=selectResult.getAttrname()[index];
                 if(selectItem.getAlias()!=null){
                     result.getAttrname()[i]=selectItem.getAlias().getName();
                 }
                 else result.getAttrname()[i]=selectItem.toString();
                 //调用formula对表达式进行解析，返回运算后的结果，存入res的tuplelist中
                 ArrayList<Object> thisColumn=(new Formula()).formulaExecute(selectItem.getExpression(),selectResult);
+                int tempI=-1;
+                Column column = map.get(selectItem).get(0);
+                for (int j = 0; j < selectResult.getClassName().length; j++) {
+                    if(column.getTable()!=null){
+                        if((selectResult.getClassName()[j].equals(column.getTable().getName())
+                        || selectResult.getAlias()[j].equals(column.getTable().getName()))
+                        && selectResult.getAttrname()[j].equals(column.getColumnName())){
+                            tempI=j;
+                            break;
+                        }
+                    }
+                    else{
+                        if(selectResult.getAttrname()[j].equals(column.getColumnName())){
+                            tempI=j;
+                            break;
+                        }
+                    }
+                }
+
                 for(int j=0;j<resTupleList.tuplelist.size();j++){
                     resTupleList.tuplelist.get(j).tuple[i]=thisColumn.get(j);
+                    resTupleList.tuplelist.get(j).tupleIds[i]=selectResult.getTpl().tuplelist.get(j).tupleIds[tempI];
                 }
-                //这里将所有的result的类型都定位char，后续可能需要优化。
-                result.getType()[i]="char";
+
+                result.getType()[i]=selectResult.getType()[tempI];
                 result.getAttrid()[i]=i;
+                result.getClassName()[i]=selectResult.getClassName()[tempI];
                 i++;
                 index++;
             }
@@ -161,10 +195,12 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                     //将选取表的所有列加入结果集合中
                     if (s.equals(selectItem.getTable().getName()) || selectItem.getTable().getName().equals(alias)) {
                         result.getAttrname()[i]=selectResult.getAttrname()[j];
+                        result.getAlias()[i]=selectResult.getAttrname()[j];
                         for(int x=0;x<resTupleList.tuplelist.size();x++){
                             resTupleList.tuplelist.get(x).tuple[i]=selectResult.getTpl().tuplelist.get(x).tuple[j];
+                            resTupleList.tuplelist.get(x).tupleIds[i]=selectResult.getTpl().tuplelist.get(x).tupleIds[j];
                         }
-                        result.getType()[i]="char";
+                        result.getType()[i]=selectResult.getType()[index];
                         result.getAttrid()[i]=i;
                         i++;
                     }
@@ -444,6 +480,7 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
             for(Tuple tuple:rightTupleList.tuplelist){
                 for (Tuple t : leftTupleList.tuplelist) {
                     Tuple newTuple=new Tuple(Stream.concat(Arrays.stream(t.tuple),Arrays.stream(tuple.tuple)).toArray());
+                    newTuple.tupleIds= IntStream.concat(Arrays.stream(t.tupleIds),Arrays.stream(tuple.tupleIds)).toArray();
                     newTuple.setTupleId(t.getTupleId());
                     tupleList.addTuple(newTuple);
                 }
@@ -462,14 +499,18 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                     Tuple tempTuple=new Tuple();
                     int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids=new int[newLength];
                     for (int i = 0; i < leftTuple.tuple.length; i++) {
                         tuple[i] = leftTuple.tuple[i];
+                        ids[i]=leftTuple.tupleIds[i];
                     }
                     for (int i = leftTuple.tuple.length; i < newLength; i++) {
                         tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
+                        ids[i]=rightTuple.tupleIds[i-leftTuple.tuple.length];
                     }
                     tempTuple.setTupleId(leftTuple.getTupleId());
                     tempTuple.tuple=tuple;
+                    tempTuple.tupleIds=ids;
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -510,13 +551,18 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                     tempTuple.setTupleId(leftTuple.getTupleId());
                     int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids = new int[newLength];
+
                     for (int i = 0; i < leftTuple.tuple.length; i++) {
                         tuple[i] = leftTuple.tuple[i];
+                        ids[i] = leftTuple.tupleIds[i];
                     }
                     for (int i = leftTuple.tuple.length; i < newLength; i++) {
                         tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
+                        ids[i] = rightTuple.tupleIds[i-leftTuple.tuple.length];
                     }
                     tempTuple.tuple = tuple;
+                    tempTuple.tupleIds=ids;
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -527,12 +573,16 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                 for(int index:map.get(obj)){
                     int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids = new int[newLength];
+                    Arrays.fill(ids,-1);
                     Tuple tempLeft=left.tuplelist.get(index);
                     for(int i=0;i<left.tuplelist.get(0).tuple.length;i++){
                         tuple[i]=tempLeft.tuple[i];
+                        ids[i]=tempLeft.tupleIds[i];
                     }
                     Tuple tempTuple = new Tuple();
                     tempTuple.tuple=tuple;
+                    tempTuple.tupleIds=ids;
                     tempTuple.setTupleId(tempLeft.getTupleId());
                     tupleList.addTuple(tempTuple);
                 }
@@ -569,13 +619,17 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                     tempTuple.setTupleId(rightTuple.getTupleId());
                     int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids = new int[newLength];
                     for (int i = 0; i < leftTuple.tuple.length; i++) {
                         tuple[i] = leftTuple.tuple[i];
+                        ids[i] = leftTuple.tupleIds[i];
                     }
                     for (int i = leftTuple.tuple.length; i < newLength; i++) {
                         tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
+                        ids[i] = rightTuple.tupleIds[i-leftTuple.tuple.length];
                     }
                     tempTuple.tuple = tuple;
+                    tempTuple.tupleIds=ids;
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -585,13 +639,17 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                 for(int index:map.get(obj)){
                     int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids = new int[newLength];
+                    Arrays.fill(ids,-1);
                     Tuple tempRight=right.tuplelist.get(index);
                     for(int i=left.tuplelist.get(0).tuple.length;i<newLength;i++){
                         tuple[i]=tempRight.tuple[i-left.tuplelist.get(0).tuple.length];
+                        ids[i]=tempRight.tupleIds[i-left.tuplelist.get(0).tuple.length];
                     }
                     Tuple tempTuple = new Tuple();
                     tempTuple.setTupleId(tempRight.getTupleId());
                     tempTuple.tuple=tuple;
+                    tempTuple.tupleIds=ids;
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -643,13 +701,17 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                     Tuple tempTuple = new Tuple();
                     int newLength = leftTuple.tuple.length + rightTuple.tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids = new int[newLength];
                     for (int i = 0; i < leftTuple.tuple.length; i++) {
                         tuple[i] = leftTuple.tuple[i];
+                        ids[i] = leftTuple.tupleIds[i];
                     }
                     for (int i = leftTuple.tuple.length; i < newLength; i++) {
                         tuple[i] = rightTuple.tuple[i-leftTuple.tuple.length];
+                        ids[i] = rightTuple.tupleIds[i-leftTuple.tuple.length];
                     }
                     tempTuple.tuple = tuple;
+                    tempTuple.tupleIds = ids;
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -659,12 +721,16 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                 for(int index:mapLeft.get(obj)){
                     int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids = new int[newLength];
+                    Arrays.fill(ids,-1);
                     Tuple tempLeft=left.tuplelist.get(index);
                     for(int i=0;i<left.tuplelist.get(0).tuple.length;i++){
                         tuple[i]=tempLeft.tuple[i];
+                        ids[i]=tempLeft.tupleIds[i];
                     }
                     Tuple tempTuple = new Tuple();
                     tempTuple.tuple=tuple;
+                    tempTuple.tupleIds=ids;
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -674,12 +740,16 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                 for(int index:mapRight.get(obj)){
                     int newLength = left.tuplelist.get(0).tuple.length + right.tuplelist.get(0).tuple.length;
                     Object[] tuple = new Object[newLength];
+                    int[] ids = new int[newLength];
+                    Arrays.fill(ids,-1);
                     Tuple tempRight=right.tuplelist.get(index);
                     for(int i=left.tuplelist.get(0).tuple.length;i<newLength;i++){
                         tuple[i]=tempRight.tuple[i-left.tuplelist.get(0).tuple.length];
+                        ids[i]=tempRight.tupleIds[i-left.tuplelist.get(0).tuple.length];
                     }
                     Tuple tempTuple = new Tuple();
                     tempTuple.tuple=tuple;
+                    tempTuple.tupleIds=ids;
                     tupleList.addTuple(tempTuple);
                 }
             }
@@ -793,13 +863,16 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
         for(ObjectTableItem item : memConnect.getTopt().objectTable) {
             if (item.classid == classid) {
                 Tuple tuple = memConnect.GetTuple(item.tupleid);
+                if(tuple!= null && tuple.delete==false){
+                    tuple.setTupleId(item.tupleid);
+                    res.addTuple(tuple);
+                }
 //                Tuple newTuple=new Tuple();
 //                newTuple.tuple=new Object[elicitAttrItemList.size()];
 //                for(int i=0;i<elicitAttrItemList.size();i++){
 //                    newTuple.tuple[i]=tuple.tuple[elicitAttrItemList.get(i).attrid];
 //                }
-                tuple.setTupleId(item.tupleid);
-                res.addTuple(tuple);
+
             }
         }
         return res;

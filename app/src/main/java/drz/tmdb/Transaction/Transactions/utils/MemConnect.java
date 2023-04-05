@@ -30,7 +30,7 @@ public class MemConnect {
     //进行内存操作的一些一些方法和数据
     private MemManager mem;
 
-    private static ObjectTable topt;
+    public static ObjectTable topt;
     private static ClassTable classt;
     private static DeputyTable deputyt;
     private static BiPointerTable biPointerT;
@@ -71,15 +71,18 @@ public class MemConnect {
 
     //插入tuple
     public void InsertTuple(Tuple tuple){
-        mem.add(tuple);
+        this.mem.add(tuple);
     }
 
     //删除tuple
     public void DeleteTuple(int id){
-        Tuple tuple = new Tuple();
-        tuple.tupleId = id;
-        tuple.delete = true;
-        this.mem.add(tuple);
+        if(id>=0){
+            Tuple tuple = new Tuple();
+            tuple.tupleId = id;
+            tuple.delete = true;
+            mem.add(tuple);
+        }
+
     }
 
     //更新tuple
@@ -132,8 +135,7 @@ public class MemConnect {
                 return item.classid;
             }
         }
-        throw new TMDBException(fromItem+"表不存在");
-//        return -1;
+        return -1;
     }
 //
 //    //输入需要获取的表名，得到对应的元祖值

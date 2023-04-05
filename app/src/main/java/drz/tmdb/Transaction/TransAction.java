@@ -1,6 +1,6 @@
 package drz.tmdb.Transaction;
 
-import static drz.tmdb.Level.Test.*;
+//import static drz.tmdb.Level.Test.*;
 
 import android.app.AlertDialog;
 import android.content.Context;

@@ -7,6 +7,8 @@ import java.util.Objects;
 public class Tuple implements Serializable {
     public int tupleHeader;
     public int tupleId;
+    public int classId;
+    public int[] tupleIds;
     public Object[] tuple;
     public boolean delete; // 删除位
 

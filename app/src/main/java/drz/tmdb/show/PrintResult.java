@@ -32,7 +32,7 @@ public class PrintResult extends AppCompatActivity {
      public void Print(TupleList tpl,String[] attrname,int[] attrid,String[] type,String removeDuplicate){
 
         int tabCol  = attrid.length;
-        int tabH = tpl.tuplenum;
+        int tabH = tpl.tuplelist.size();
         int r;
         int c;
         String stemp;

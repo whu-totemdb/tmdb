@@ -19,9 +19,19 @@ import drz.tmdb.Memory.TupleList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.utils.Formula;
+import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 
 public class Where {
+    private MemConnect memConnect;
+
+    public Where(MemConnect memConnect) {
+        this.memConnect = memConnect;
+    }
+
+    public Where() {
+    }
+
     Formula formula=new Formula();
     public SelectResult where(PlainSelect plainSelect, SelectResult selectResult) throws TMDBException {
         execute(plainSelect.getWhere(),selectResult);
@@ -87,7 +97,7 @@ public class Where {
         }
         //in表达式的右边可能是一个SubSelect
         else if(expression.getRightExpression().getClass().getSimpleName().equals("SubSelect")){
-            Select select=new SelectImpl();
+            Select select=new SelectImpl(memConnect);
             SelectResult temp=select.select(expression.getRightExpression());
             for(int i=0;i<temp.getTpl().tuplelist.size();i++){
                 right.add(transType(temp.getTpl().tuplelist.get(i).tuple[0]));
