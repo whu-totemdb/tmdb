@@ -40,6 +40,7 @@ import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.impl.SelectImpl;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 import drz.tmdb.Transaction.Transactions.impl.UpdateImpl;
+import drz.tmdb.map.TrajectoryUtils;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
 import drz.tmdb.sync.node.database.Action;
@@ -61,6 +62,7 @@ public class TransAction {
         this.mem = new MemManager();
         this.levelManager = mem.levelManager;
         this.memConnect=new MemConnect(mem);
+        new TrajectoryUtils(memConnect);
 
 //        topt = mem.objectTable;
 //        classt = mem.classTable;
