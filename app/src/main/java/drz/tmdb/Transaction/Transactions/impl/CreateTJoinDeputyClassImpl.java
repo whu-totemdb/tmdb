@@ -62,4 +62,8 @@ public class CreateTJoinDeputyClassImpl extends CreateDeputyClassImpl{
         int classId = memConnect.getClassId(deputyClass);
         super.insertDeputyTable(strings,i,classId);
     }
+
+    public boolean createTJoinDeputyClass(Statement stmt) throws TMDBException {
+        return execute((CreateTJoinDeputyClass) stmt);
+    }
 }
