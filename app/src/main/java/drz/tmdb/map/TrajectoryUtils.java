@@ -3,8 +3,14 @@ package drz.tmdb.map;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import drz.tmdb.Memory.Tuple;
@@ -132,8 +138,15 @@ public class TrajectoryUtils {
             ret.append(point.latitude);
             ret.append("-");
         }
-
         return ret.toString().substring(0, ret.length()-1);
+//        if(trajectory == null || trajectory.size() == 0)
+//            return "";
+//        StringBuilder ret = new StringBuilder();
+//        for(TrajectoryPoint point : trajectory){
+//            ret.append(new String(double2Bytes(point.longitude)));
+//            ret.append(new String(double2Bytes(point.latitude)));
+//        }
+//        return ret.toString();
     }
 
     // 将String反序列化成轨迹
@@ -145,7 +158,41 @@ public class TrajectoryUtils {
             ret.add(new TrajectoryPoint(Double.parseDouble(info[i]), Double.parseDouble(info[i+1])));
         }
         return ret;
+//        ArrayList<TrajectoryPoint> ret = new ArrayList<>();
+//        int pointCount = str.length() / 16;
+//        for(int i=0; i<pointCount; i++){
+//            byte[] lo = str.substring(8 * i, 8 * i + 8).getBytes();
+//            byte[] la = str.substring(8 * i + 8, 8 * i + 16).getBytes();
+//            ret.add(new TrajectoryPoint(bytes2Double(lo), bytes2Double(la)));
+//        }
+//        return ret;
     }
 
+    private static byte[] double2Bytes(double d) {
+        byte[] data = null;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos);
+        try{
+            dos.writeDouble(d);
+            dos.flush();
+            data = bos.toByteArray();
+            dos.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return data;
+    }
+
+    public static double bytes2Double(byte[] arr){
+        double num = 0;
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(arr));
+        try{
+            num = dis.readDouble();
+            dis.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return num;
+    }
 
 }

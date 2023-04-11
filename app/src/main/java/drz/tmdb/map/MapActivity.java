@@ -202,12 +202,13 @@ public class MapActivity extends Activity implements LocationSource,
                     addCircle(location, amapLocation.getAccuracy());//添加定位精度圆
                     addMarker(location);//添加定位图标
                     mSensorHelper.setCurrentMarker(mLocMarker);//定位图标旋转
+                    aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 18));
                 } else {
                     mCircle.setCenter(location);
                     mCircle.setRadius(amapLocation.getAccuracy());
                     mLocMarker.setPosition(location);
                 }
-                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 18));
+
 
 
                 double latitude = amapLocation.getLatitude(); // 获取纬度
