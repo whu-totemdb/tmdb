@@ -1,6 +1,8 @@
 package drz.tmdb.Transaction.Transactions.impl;
 
 
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -20,8 +22,10 @@ import drz.tmdb.Memory.SystemTable.ClassTableItem;
 import drz.tmdb.Memory.SystemTable.DeputyTableItem;
 import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
 import drz.tmdb.Memory.Tuple;
+import drz.tmdb.Transaction.Transactions.Create;
 import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
+import drz.tmdb.Transaction.Transactions.Insert;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 
@@ -51,9 +55,7 @@ public class CreateDeputyClassImpl implements CreateDeputyClass {
         if(memConnect.getClassId(deputyClass)!=-1){
             throw new TMDBException(deputyClass+" already exists");
         }
-        int deputyId = createDeputyClass(deputyClass, selectResult, deputyType);
-        insertDeputyTable(selectResult.getClassName(),deputyType,deputyId);
-        insertTuple(selectResult,deputyId);
+        return help(selectResult,deputyType,deputyClass);
 
 //        int deputyClass1 = createDeputyClass(deputyClass, selectResult);
 
@@ -118,8 +120,15 @@ public class CreateDeputyClassImpl implements CreateDeputyClass {
 //                break;
 //        }
 //        return CreateSelectDeputy(p);
+    }
+
+    public boolean help(SelectResult selectResult, int deputyType, String deputyClass) throws TMDBException {
+        int deputyId = createDeputyClass(deputyClass, selectResult, deputyType);
+        insertDeputyTable(selectResult.getClassName(),deputyType,deputyId);
+        insertTuple(selectResult,deputyId);
         return true;
     }
+
 
     private List<String> getColumns(Select select) {
         SelectImpl select1=new SelectImpl(memConnect);
@@ -144,8 +153,8 @@ public class CreateDeputyClassImpl implements CreateDeputyClass {
     }
 
     //将创建deputyclass后面的selectResult拿到，用于后面的处理
-     private SelectResult getSelectResult(Select select) throws TMDBException {
-        SelectImpl select1 = new SelectImpl(this.memConnect);
+     private SelectResult getSelectResult(Select select) throws TMDBException{
+         SelectImpl select1 = new SelectImpl(this.memConnect);
         SelectResult selectResult=select1.select(select);
         return selectResult;
     }
@@ -170,7 +179,7 @@ public class CreateDeputyClassImpl implements CreateDeputyClass {
             int oriId=memConnect.getClassId(className);
             int oriAttrId=getOriAttrId(oriId,selectResult.getAlias()[i]);
             memConnect.getSwitchingT().switchingTable.add(
-                    new SwitchingTableItem(oriId,oriAttrId,classid,i,deputyRule+"")
+                    new SwitchingTableItem(oriId,oriAttrId,selectResult.getAlias()[i],classid,i,selectResult.getAttrname()[i],deputyRule+"")
             );
         }
         return classid;
@@ -187,7 +196,7 @@ public class CreateDeputyClassImpl implements CreateDeputyClass {
     }
 
     //第二步，在deputytable中插入
-    private void insertDeputyTable(String[] className,int deputyType, int deputyId) throws TMDBException {
+    public void insertDeputyTable(String[] className,int deputyType, int deputyId) throws TMDBException {
         HashSet<String> collect = Arrays.stream(className).collect(Collectors.toCollection(HashSet::new));
         for (String s :
                 collect) {

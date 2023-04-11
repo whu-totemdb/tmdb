@@ -1,6 +1,7 @@
 package drz.tmdb.Memory.SystemTable;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Objects;
 
 public class DeputyTableItem implements Serializable {
@@ -40,7 +41,7 @@ public class DeputyTableItem implements Serializable {
     @Override
     public int hashCode() {
         int result = 17;
-        result = 31 * result + Objects.hash(this.originid)+Objects.hash(this.deputyrule)+Objects.hash(this.deputyid);
+        result = 31 * result + Objects.hash(this.originid)+Objects.hash(Arrays.stream(this.deputyrule).toArray())+Objects.hash(this.deputyid);
         return result;
     }
 }

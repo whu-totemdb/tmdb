@@ -42,7 +42,6 @@ import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 import drz.tmdb.Transaction.Transactions.impl.UpdateImpl;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
-import drz.tmdb.sync.node.database.Action;
 
 public class TransAction {
 
@@ -196,6 +195,7 @@ public class TransAction {
 //    }
 
     public String query2(String k, int op, String s) {
+
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         //Action action = new Action();
@@ -223,6 +223,9 @@ public class TransAction {
                         new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     }
                     break;
+                //TODO TMDB
+                //加入针对CreateTJoinDeputyClass这种statement的处理逻辑
+
 //                case "Create":
 //                    log.WriteLog(s);
 //                    CreateUnionDeputy(aa);

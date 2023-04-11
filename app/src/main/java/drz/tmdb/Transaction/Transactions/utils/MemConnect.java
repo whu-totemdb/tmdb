@@ -82,7 +82,6 @@ public class MemConnect {
             tuple.delete = true;
             mem.add(tuple);
         }
-
     }
 
     //更新tuple

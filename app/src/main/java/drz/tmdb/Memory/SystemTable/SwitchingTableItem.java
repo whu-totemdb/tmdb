@@ -7,15 +7,19 @@ import java.util.Objects;
 public class SwitchingTableItem implements Serializable {
     public int oriId;
     public int oriAttrid;
+    public String oriAttr;
     public int deputyId;
     public int deputyAttrId;
+    public String deputyAttr;
     public String rule = "";
 
-    public SwitchingTableItem(int oriId, int oriAttrid, int deputyId, int deputyAttrId, String rule) {
+    public SwitchingTableItem(int oriId, int oriAttrid, String oriAttr, int deputyId, int deputyAttrId, String deputyAttr, String rule) {
         this.oriId = oriId;
         this.oriAttrid = oriAttrid;
+        this.oriAttr = oriAttr;
         this.deputyId = deputyId;
         this.deputyAttrId = deputyAttrId;
+        this.deputyAttr = deputyAttr;
         this.rule = rule;
     }
 
@@ -43,7 +47,12 @@ public class SwitchingTableItem implements Serializable {
         if(this.rule!=oi.rule){
             return false;
         }
-
+        if(this.oriAttr!=oi.oriAttr){
+            return false;
+        }
+        if(this.deputyAttr!=oi.deputyAttr){
+            return false;
+        }
         return true;
     }
 
@@ -52,8 +61,10 @@ public class SwitchingTableItem implements Serializable {
         int result = 17;
         result = 31 * result + Objects.hash(this.oriId)
                 +Objects.hash(this.oriAttrid)
+                +Objects.hash(this.oriAttr)
                 +Objects.hash(this.deputyId)
                 +Objects.hash(this.deputyAttrId)
+                +Objects.hash(this.deputyAttr)
                 +Objects.hash(this.rule)
         ;
         return result;

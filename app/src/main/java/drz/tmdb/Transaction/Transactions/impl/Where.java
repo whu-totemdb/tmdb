@@ -8,6 +8,8 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ public class Where {
         this.memConnect = memConnect;
     }
 
-    public Where() {
+    public Where() throws TMDBException {
     }
 
     Formula formula=new Formula();

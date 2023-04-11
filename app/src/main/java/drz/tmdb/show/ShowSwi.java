@@ -36,9 +36,9 @@ public class ShowSwi extends AppCompatActivity implements Serializable {
     }
 
     private void showSwiTab(SwitchingTable switchingT) {
-        int tabCol = 4;
+        int tabCol = 7;
         int tabH = switchingT.switchingTable.size();
-        String stemp1, stemp2, stemp3, stemp4,stemp5;
+        String stemp1, stemp2, stemp3, stemp4,stemp5, stemp6, stemp7;
 
         show_tab = findViewById(R.id.rst_tab);
 
@@ -46,17 +46,21 @@ public class ShowSwi extends AppCompatActivity implements Serializable {
             TableRow tableRow = new TableRow(this);
             if (i == 0) {
                 stemp1 = "    oriId    ";
-                stemp2 = "    attr    ";
-                stemp3 = "    deputyId    ";
-                stemp4 = "    deputy    ";
-                stemp5 = "    rule    ";
+                stemp2 = "    attrId    ";
+                stemp3 = "    attr   ";
+                stemp4 = "    deputyId    ";
+                stemp5 = "    deputyattrId    ";
+                stemp6 = "    deputyattr    ";
+                stemp7 = "    rule    ";
 
             } else {
                 stemp1 = String.valueOf(switchingT.switchingTable.get(i - 1).oriId);
                 stemp2 = String.valueOf(switchingT.switchingTable.get(i - 1).oriAttrid);
-                stemp3 = String.valueOf(switchingT.switchingTable.get(i - 1).deputyId);
-                stemp4 = String.valueOf(switchingT.switchingTable.get(i - 1).deputyAttrId);
-                stemp5 = switchingT.switchingTable.get(i - 1).rule;
+                stemp3 = String.valueOf(switchingT.switchingTable.get(i - 1).oriAttr);
+                stemp4 = String.valueOf(switchingT.switchingTable.get(i - 1).deputyId);
+                stemp5 = String.valueOf(switchingT.switchingTable.get(i - 1).deputyAttrId);
+                stemp6 = String.valueOf(switchingT.switchingTable.get(i - 1).deputyAttr);
+                stemp7 = switchingT.switchingTable.get(i - 1).rule;
             }
             for (int j = 0; j < tabCol; j++) {
                 TextView tv = new TextView(this);
@@ -75,6 +79,12 @@ public class ShowSwi extends AppCompatActivity implements Serializable {
                         break;
                     case 4:
                         tv.setText(stemp5);
+                        break;
+                    case 5:
+                        tv.setText(stemp6);
+                        break;
+                    case 6:
+                        tv.setText(stemp7);
                         break;
 
                 }

@@ -867,6 +867,20 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
                     tuple.setTupleId(item.tupleid);
                     res.addTuple(tuple);
                 }
+            }
+        }
+        return res;
+    }
+
+    public TupleList getTable(int classid) throws TMDBException {
+        TupleList res=new TupleList();
+        for(ObjectTableItem item : memConnect.getTopt().objectTable) {
+            if (item.classid == classid) {
+                Tuple tuple = memConnect.GetTuple(item.tupleid);
+                if(tuple!= null && tuple.delete==false){
+                    tuple.setTupleId(item.tupleid);
+                    res.addTuple(tuple);
+                }
 //                Tuple newTuple=new Tuple();
 //                newTuple.tuple=new Object[elicitAttrItemList.size()];
 //                for(int i=0;i<elicitAttrItemList.size();i++){

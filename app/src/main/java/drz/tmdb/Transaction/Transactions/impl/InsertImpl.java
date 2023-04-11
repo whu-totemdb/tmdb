@@ -17,6 +17,7 @@ import drz.tmdb.Memory.Tuple;
 import drz.tmdb.Memory.TupleList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Insert;
+import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 
@@ -92,6 +93,7 @@ public class InsertImpl implements Insert {
      * @throws TMDBException
      */
     private Integer insert(int classId, List<String> columns, Tuple tuple, int l, int[] index) throws TMDBException {
+        SelectImpl select=new SelectImpl(memConnect);
         int tupleid = memConnect.getTopt().maxTupleId++;
         Object[] temp=new Object[l];
         if(tuple.tuple.length!=columns.size()){
@@ -121,8 +123,68 @@ public class InsertImpl implements Insert {
                     new BiPointerTableItem(classId,tupleid,tempClassId,i1)
             );
         }
+
+        //TODO TMDB
+        LongestCommonSubSequence longestCommonSubSequence=new LongestCommonSubSequence();
+        //现在由于多了基于轨迹相似度的代理类，因此，需要进行额外的逻辑处理
+
+        //首先调用tJoinDeputySize方法得到是否当前类是否存在基于轨迹相似度的代理类，并得到代理类的id list
+
+        //如果list非空就需要进一步判断
+
+            //调用TrajTrans.getTraj方法将当前元祖的轨迹部分转化为List<Coordinate> traj1进行后续操作
+
+            //对代理类idlist进行遍历
+
+                //得到当前代理类的id
+
+                //由于基于轨迹相似度的代理类需要两个源类，需要拿到另一个源类，这里使用getAnotherDeputy方法拿到
+
+                //通过select的getTable（classid）方法拿到另一个源类的所有tuple
+
+                //遍历另一个源类的所有tuple
+
+                    //拿到另一个源类的当前tuple
+
+                    //通过TrajTrans.getTraj方法将当前元祖的轨迹部分转化为List<Coordinate> traj2进行后续操作
+
+                    //通过longestCommonSubSequence.getCommonSubsequence获取当前两个traj的公共子序列
+
+                    //如果子序列长度大于阈值，则需要在代理类中插入新的tuple
+
+                        //新建临时tuple，这个tuple就是要往代理类中进行插入的tuple
+                        //临时tuple除了轨迹部分存的和当前进行插入的tuple（方法形参里的不同，其它都相同）步骤和TJoinSelect一样
+
+
+
+
+                        //需要将得到的轨迹子序列，转换成string的形式，然后将tuple中轨迹部分设置为转换后的值
+
+
+                        //调用一下方法在代理类中也插入新tuple
+//                        int i1 = executeTuple(deputyId, columns, temp1);
+//                        memConnect.getBiPointerT().biPointerTable.add(
+//                                new BiPointerTableItem(classId, tupleid, deputyId, i1)
+
+
+
+
+
         return tupleid;
     }
+
+    private int getAnotherDeputy(int deputyId, int classId) {
+        for (int i = 0; i < memConnect.getDeputyt().deputyTable.size(); i++) {
+            DeputyTableItem deputyTableItem = memConnect.getDeputyt().deputyTable.get(i);
+            if(deputyTableItem.deputyrule[0].equals("5") &&
+            deputyTableItem.originid!=classId &&
+            deputyTableItem.deputyid==deputyId){
+                return deputyTableItem.originid;
+            }
+        }
+        return -1;
+    }
+
 
     private HashMap<String, String> trans(HashMap<Integer, Integer> map, int classId, int tempClassId) {
         HashMap<String,String> map2=new HashMap<>();
@@ -278,7 +340,18 @@ public class InsertImpl implements Insert {
         ArrayList<Integer> deputy=new ArrayList<>();
         for (int i = 0; i < memConnect.getDeputyt().deputyTable.size(); i++) {
             DeputyTableItem deputyTableItem = memConnect.getDeputyt().deputyTable.get(i);
-            if(deputyTableItem.originid==classId){
+            if(deputyTableItem.originid==classId && !deputyTableItem.deputyrule[0].equals("5")){
+                deputy.add(deputyTableItem.deputyid);
+            }
+        }
+        return deputy;
+    }
+
+    private ArrayList<Integer> tJoinDeputySize(int classId) {
+        ArrayList<Integer> deputy=new ArrayList<>();
+        for (int i = 0; i < memConnect.getDeputyt().deputyTable.size(); i++) {
+            DeputyTableItem deputyTableItem = memConnect.getDeputyt().deputyTable.get(i);
+            if(deputyTableItem.originid==classId && deputyTableItem.deputyrule[0].equals("5")){
                 deputy.add(deputyTableItem.deputyid);
             }
         }
