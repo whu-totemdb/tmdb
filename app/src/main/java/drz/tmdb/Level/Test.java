@@ -49,8 +49,8 @@ public class Test {
             memManager.add(o);
             ClassTableItem c = new ClassTableItem();
             memManager.add(c);
-            SwitchingTableItem s = new SwitchingTableItem("attr", "" + i, "00");
-            memManager.add(s);
+            //SwitchingTableItem s = new SwitchingTableItem("attr", "" + i, "00");
+            //memManager.add(s);
             i++;
         }
     }
@@ -444,8 +444,8 @@ public class Test {
         memManager1.add(new BiPointerTableItem(100,200,300,400));
         memManager1.add(new ClassTableItem("1", 1, 2, 3, "4", "5", "6", "7"));
         memManager1.add(new ClassTableItem("zvfz", 1, 2, 3, "zfwzf", "zfwsz", "zfws", "fdzg"));
-        memManager1.add(new SwitchingTableItem("zdfa", "dawd", "dasd"));
-        memManager1.add(new SwitchingTableItem("zzvc", "zsdsz", "dwww"));
+        //memManager1.add(new SwitchingTableItem("zdfa", "dawd", "dasd"));
+        //memManager1.add(new SwitchingTableItem("zzvc", "zsdsz", "dwww"));
         memManager1.add(new DeputyTableItem(0, 1, new String[]{"120", "arwar", "fafaf"}));
         memManager1.add(new DeputyTableItem(100, 555, new String[]{"122220", "arwagsr", "faf358af", "444fww"}));
         memManager1.add(new ObjectTableItem(10,20));

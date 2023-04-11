@@ -426,7 +426,7 @@ public class LevelManager {
         // 遍历一遍找最大score的level
         float maxScore = -1;
         int maxScoreLevel = -1;
-        for(int i = 0; i < 4 ; i++){
+        for(int i = 0; i < Constant.MAX_LEVEL ; i++){
             if(scores.get(i) > maxScore){
                 maxScore = scores.get(i);
                 maxScoreLevel = i;
@@ -444,11 +444,15 @@ public class LevelManager {
     public List<Float> calScore(){
         // 各层score
         List<Float> scores = new ArrayList<Float>(Constant.MAX_LEVEL + 1);
+        for(int i=0; i<Constant.MAX_LEVEL + 1; i++)
+            scores.add(0f);
 
         // level 0 层使用单独的计算策略，原因可参考设计文档
         int level0FileCount = 0;
         // 各层大小
         List<Integer> sizes = new ArrayList<Integer>(Constant.MAX_LEVEL + 1);
+        for(int i=0; i<Constant.MAX_LEVEL + 1; i++)
+            sizes.add(0);
 
         for(String v: this.levelInfo.values()){
             if(v.contains("-")){

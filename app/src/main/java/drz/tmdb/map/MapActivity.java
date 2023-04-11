@@ -1,8 +1,10 @@
 package drz.tmdb.map;
 
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -10,6 +12,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.amap.api.location.AMapLocation;
@@ -27,13 +30,18 @@ import com.amap.api.maps2d.model.CircleOptions;
 import com.amap.api.maps2d.model.LatLng;
 import com.amap.api.maps2d.model.Marker;
 import com.amap.api.maps2d.model.MarkerOptions;
-import com.amap.api.maps2d.model.MyLocationStyle;
+
+import java.util.ArrayList;
+import java.util.Date;
+
+import android.provider.Settings.Secure;
 
 import drz.tmdb.R;
 
 
 public class MapActivity extends Activity implements LocationSource,
         AMapLocationListener {
+
     private AMap aMap;
     private MapView mapView;
     private OnLocationChangedListener mListener;
@@ -48,6 +56,14 @@ public class MapActivity extends Activity implements LocationSource,
     private SensorEventHelper mSensorHelper;
     private Circle mCircle;
     public static final String LOCATION_MARKER_FLAG = "mylocation";
+
+    ArrayList<TrajectoryPoint> trajectory = new ArrayList<>();
+
+    private int[] colorIcon = new int[]{R.drawable.tpoint1, R.drawable.tpoint2, R.drawable.tpoint3,
+            R.drawable.tpoint4,R.drawable.tpoint5, R.drawable.tpoint6, R.drawable.tpoint7,
+            R.drawable.tpoint8, R.drawable.tpoint9, R.drawable.tpoint10, R.drawable.tpoint11 };
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,7 +77,41 @@ public class MapActivity extends Activity implements LocationSource,
         mapView = (MapView) findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);// 此方法必须重写
         init();
+
+        // 在地图上绘制历史轨迹数据
+        drawTrace();
+
+        // 退出地图按钮
+        Button clean_button = findViewById(R.id.back_button);
+        clean_button.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                showExitDialog(v);
+            }
+        });
     }
+
+
+    // 在地图上绘制历史轨迹数据
+    // 1号设备产生的轨迹使用红色点
+    // 2号设备产生的轨迹使用蓝色点
+    private void drawTrace(){
+        // 读取历史轨迹数据
+        ArrayList<ArrayList<TrajectoryPoint>> trajectories = TrajectoryUtils.load();
+        if(trajectories == null || trajectories.size() == 0)
+            return;
+        int counter = -1;
+        for(ArrayList<TrajectoryPoint> trajectory : trajectories){
+            counter = (counter + 1) % 11;
+            // 绘制每条轨迹
+            for(TrajectoryPoint point : trajectory){
+                // 绘制每个点
+                LatLng latLng = new LatLng(point.latitude, point.longitude);
+                aMap.addMarker(new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.fromResource(colorIcon[counter])));
+            }
+        }
+    }
+
 
     /**
      * 初始化
@@ -152,12 +202,23 @@ public class MapActivity extends Activity implements LocationSource,
                     addCircle(location, amapLocation.getAccuracy());//添加定位精度圆
                     addMarker(location);//添加定位图标
                     mSensorHelper.setCurrentMarker(mLocMarker);//定位图标旋转
+                    aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 18));
                 } else {
                     mCircle.setCenter(location);
                     mCircle.setRadius(amapLocation.getAccuracy());
                     mLocMarker.setPosition(location);
                 }
-                aMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 18));
+
+
+
+                double latitude = amapLocation.getLatitude(); // 获取纬度
+                double longitude = amapLocation.getLongitude(); // 获取经度
+                Date date = new Date(amapLocation.getTime()); // 获取定位时间
+                String userID = Secure.getString(getContentResolver(), Secure.ANDROID_ID); // 获取uid
+
+                // 将定位点加入轨迹集合
+                trajectory.add(new TrajectoryPoint(longitude, latitude, date, userID));
+
             } else {
                 String errText = "定位失败," + amapLocation.getErrorCode()+ ": " + amapLocation.getErrorInfo();
                 Log.e("AmapErr",errText);
@@ -184,6 +245,7 @@ public class MapActivity extends Activity implements LocationSource,
             mlocationClient.setLocationListener(this);
             //设置为高精度定位模式
             mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
+            mLocationOption.setInterval(2000);
             //设置定位参数
             mlocationClient.setLocationOption(mLocationOption);
             // 此方法为每隔固定时间会发起一次定位请求，为了减少电量消耗或网络流量消耗，
@@ -232,5 +294,36 @@ public class MapActivity extends Activity implements LocationSource,
         mLocMarker = aMap.addMarker(options);
         mLocMarker.setTitle(LOCATION_MARKER_FLAG);
     }
+
+
+    // 点击返回按钮
+    public void showExitDialog(View v){
+        //定义一个新对话框对象
+        AlertDialog.Builder exit_dialog = new AlertDialog.Builder(this);
+        //设置对话框提示内容
+        exit_dialog.setMessage("Do you want to save the trajectory before exiting the map?");
+        //定义对话框两个按钮及接受事件
+        exit_dialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // 持久化保存轨迹
+                TrajectoryUtils.save(trajectory);
+                // 返回上一个界面
+                finish();
+            }
+        });
+        exit_dialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // 返回上一个界面
+                finish();
+            }
+        });
+        //创建并显示对话框
+        AlertDialog exit_dialog0 = exit_dialog.create();
+        exit_dialog0.show();
+    }
+
+
 
 }
