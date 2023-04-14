@@ -18,7 +18,7 @@ public class ArbitrationController implements Serializable {
     //生成一个仲裁器
     public void putArbitration(String requestID, Arbitration arbitration){
         arbitrationHashMap.put(requestID,arbitration);
-        responseMap.put(requestID,new ArrayList<>());
+        responseMap.put(requestID,new ArrayList<Response>());
     }
 
     public Arbitration getArbitrationByID(String requestID){

@@ -14,10 +14,15 @@ public class VectorClock implements Serializable {
 
     private final static long ride = 1;
 
-    private final int maxClockEntry = Short.MAX_VALUE;
+    private final static int maxClockEntry = Short.MAX_VALUE;
+
+    private final static int entryNumLimit = 50;
+
     private final TreeMap<String,Long> vectorClock;
 
     private volatile long timestamp;//时间戳
+
+    //private ClockEntryHeap heap;
 
     public VectorClock(){
         this(System.currentTimeMillis());
@@ -26,6 +31,7 @@ public class VectorClock implements Serializable {
     public VectorClock(long timestamp){
         this.vectorClock = new TreeMap<String,Long>();
         this.timestamp = timestamp;
+        //heap = new ClockEntryHeap(maxClockEntry,entryNumLimit);
     }
 
     /*public VectorClock(List<ClockEntry> versions, long timestamp) {
@@ -60,6 +66,10 @@ public class VectorClock implements Serializable {
         this.timestamp = timestamp;
     }
 
+    public void put(String nodeID,long version){
+        vectorClock.put(nodeID,version);
+    }
+
     public void increaseVersion(String nodeID,long currentTime){
 
         System.out.print("原来的向量时钟：");
@@ -74,6 +84,7 @@ public class VectorClock implements Serializable {
         }
 
         vectorClock.put(nodeID,version);
+        //heap.put(nodeID);
         this.timestamp = currentTime;
 
         System.out.print("更新后的向量时钟：");
@@ -85,7 +96,179 @@ public class VectorClock implements Serializable {
 
     }
 
-    public static Relation compare(VectorClock vc1, VectorClock vc2){
+
+    public static Relation compare(VectorClock vc1,VectorClock vc2){
+        long start = System.currentTimeMillis();
+
+        boolean vcLowBigger = false;
+        boolean vcHighBigger = false;
+
+        VectorClock vcLow,vcHigh;
+        boolean vc1Low;
+
+        if (vc1.getVectorClock().size() <= vc2.getVectorClock().size()){
+            vcLow = vc1;
+            vcHigh = vc2;
+            vc1Low = true;
+        }
+        else {
+            vcLow = vc2;
+            vcHigh = vc1;
+            vc1Low = false;
+        }
+
+        int vcLowCount = 0;
+        int vcHighCount = 0;
+
+        for (String key : vcLow.getVectorClock().keySet()){
+            Long versionLow = vcLow.getVectorClock().get(key);
+            Long versionHigh = vcHigh.getVectorClock().get(key);
+
+            if (versionHigh == null){
+                //高维向量对应维度不存在，说明低维向量在此维度上更大
+                vcLowBigger = true;
+            }
+            else {
+                if (versionLow > versionHigh){
+                    vcLowBigger = true;
+                }
+                else if(versionLow < versionHigh){
+                    vcHighBigger = true;
+                }
+                //若相同则不改变标志位
+
+                vcHighCount++;
+            }
+            vcLowCount++;
+
+            if (vcLowCount > 1 && vcLowBigger && vcHighBigger){
+                //已经比较过至少两个维度且其中存在至少两个维度上，其中一个维度更大，另一个维度更小
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
+                return Relation.Parallel;
+            }
+        }
+
+        //低维向量为0维
+        if (vcLowCount == 0){
+            if (vcHigh.getVectorClock().size() == 0){
+                return Relation.Equal;
+            }
+
+            if (vc1Low){
+                return Relation.Before;
+            }
+            else {
+                return Relation.After;
+            }
+        }
+
+        //低维向量只有一维
+        if (vcLowCount == 1){
+            //高维向量的维度仍未比较完，在这些维度上都是高维向量更大
+            if (vcHighCount < vcHigh.getVectorClock().size()){
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
+                if (vcLowBigger){
+                    //存在低维向量有某一维度更大的情况
+                    return Relation.Parallel;
+                }
+                else {
+                    //否则就是高维向量更大
+                    if (vc1Low) {
+                        //vc1是低维向量
+                        return Relation.Before;
+                    }
+                    else {
+                        return Relation.After;
+                    }
+                }
+            }
+            else {
+                //高维向量的维度也全部比较完，那么低维和高维向量维度均为1且该维度都是对同一节点的观测
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
+                if (vcLowBigger){
+                    if (vc1Low) {
+                        //vc1是低维向量
+                        return Relation.After;
+                    }
+                    else {
+                        return Relation.Before;
+                    }
+                }
+                else {
+                    if (!vcHighBigger){
+                        return Relation.Equal;
+                    }
+
+                    if (vc1Low) {
+                        //vc1是低维向量
+                        return Relation.Before;
+                    }
+                    else {
+                        return Relation.After;
+                    }
+                }
+            }
+
+        }
+        else {
+            //低维向量维度超过一维
+            //在循环体中的逻辑一定保证vcLowCount>=vcHighCount，且vcLowBigger和vcHighBigger不同时为true
+
+
+            if (vcHighCount < vcHigh.getVectorClock().size()){
+                //高维向量还存在维度尚未比较，在这些维度上高维向量更大
+
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
+
+                if (vcLowBigger) {
+                    //在之前的比较中vcLow存在更大的维度
+                    return Relation.Parallel;
+                }
+                else {
+                    //vcLowBigger为false表示之前比较的维度中都是vcHigh更大，因此vcLow一定小于vcHigh，vcLow Before vcHigh
+                    if (vc1Low) {
+                        return Relation.Before;
+                    }
+                    else {
+                        return Relation.After;
+                    }
+                }
+            }
+            else {
+                //高维向量的维度也全部比较完成
+                long end = System.currentTimeMillis();
+                System.out.println("一次向量时钟比较耗时为："+(end-start)+"ms");
+                if (vcHighBigger) {
+                    if (vc1Low){
+                        return Relation.Before;
+                    }
+                    else {
+                        return Relation.After;
+                    }
+                }
+                else {
+                    if (!vcLowBigger){
+                        return Relation.Equal;
+                    }
+
+                    if (vc1Low){
+                        return Relation.After;
+                    }
+                    else {
+                        return Relation.Before;
+                    }
+                }
+            }
+
+        }
+    }
+
+
+    /*public static Relation compare(VectorClock vc1, VectorClock vc2){
         long start = System.currentTimeMillis();
         //某一维度更大的标志位
         boolean vc1Bigger = false;
@@ -94,6 +277,12 @@ public class VectorClock implements Serializable {
         Set<String> keySet1 = vc1.getVectorClock().keySet();
         Set<String> keySet2 = vc2.getVectorClock().keySet();
 
+        *//*boolean vc1Low = true;
+
+        if (keySet1.size() > keySet2.size()){
+            vc1Low = false;
+        }
+        Set<String> keySet = vc1Low ? keySet1 : keySet2;*//*
 
         int vc1Count = 0;
         int vc2Count = 0;
@@ -173,7 +362,7 @@ public class VectorClock implements Serializable {
                 }
             }
         }
-    }
+    }*/
 
     public static Action getLatestVersion(ArrayList<Response> responses){
         Action result;
@@ -191,6 +380,9 @@ public class VectorClock implements Serializable {
             vc2 = response.getVectorClock();
 
             switch (compare(vc1,vc2)){
+                case Equal:
+                    //保持原样
+                    break;
                 case Before:
                     vc1 = vc2;
                     action1 = action2;

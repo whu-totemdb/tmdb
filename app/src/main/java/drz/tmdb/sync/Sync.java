@@ -68,8 +68,8 @@ public class Sync {
                 Duration.ofMillis(10),
                 Duration.ofMillis(5000),
                 3,
+                3,
                 2,
-                1,
                 2,
                 65536,
                 10
@@ -142,8 +142,8 @@ public class Sync {
                 Duration.ofMillis(10),
                 Duration.ofMillis(5000),
                 3,
+                3,
                 2,
-                1,
                 2,
                 65536,
                 10

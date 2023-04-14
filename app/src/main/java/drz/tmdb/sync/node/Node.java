@@ -755,6 +755,9 @@ public class Node implements Serializable {
                     VectorClock localVectorClock = vectorClockMap.get(primaryKey);//本地对应的向量时钟
                     long l3 = System.currentTimeMillis();
                     switch (VectorClock.compare(localVectorClock,otherVectorClock)){
+                        case Equal:
+                            System.out.println(Thread.currentThread().getName()+"：两个向量时钟相等");
+                            break;
                         case Before:
                             System.out.println(Thread.currentThread().getName()+"：先后顺序为before");
                             //接收到的请求对应的版本是更新的
