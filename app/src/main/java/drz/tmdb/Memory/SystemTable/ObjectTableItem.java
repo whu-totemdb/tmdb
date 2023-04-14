@@ -1,6 +1,9 @@
 package drz.tmdb.Memory.SystemTable;
 
+//import android.support.annotation.Nullable;
+
 import java.io.Serializable;
+import java.util.Objects;
 
 import drz.tmdb.Memory.Tuple;
 
@@ -17,6 +20,31 @@ public class ObjectTableItem implements Serializable{
     public ObjectTableItem( int classid, int tupleid) {
         this.classid = classid;
         this.tupleid = tupleid;
+    }
+
+    @Override
+    public boolean equals(Object object){
+        if(this==object) return true;
+        if (!(object instanceof ObjectTableItem)) {
+            return false;
+        }
+        ObjectTableItem oi=(ObjectTableItem) object;
+        if(this.classid!=oi.classid){
+            return false;
+        }
+        if(this.tupleid!=oi.tupleid){
+            return false;
+        }
+
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + Objects.hash(this.classid)+Objects.hash(this.tupleid);
+        return result;
     }
 
 }

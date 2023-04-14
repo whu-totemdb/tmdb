@@ -2,12 +2,13 @@ package drz.tmdb.show;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import drz.tmdb.Memory.TupleList;
 import drz.tmdb.R;
@@ -31,7 +32,7 @@ public class PrintResult extends AppCompatActivity {
      public void Print(TupleList tpl,String[] attrname,int[] attrid,String[] type,String removeDuplicate){
 
         int tabCol  = attrid.length;
-        int tabH = tpl.tuplenum;
+        int tabH = tpl.tuplelist.size();
         int r;
         int c;
         String stemp;

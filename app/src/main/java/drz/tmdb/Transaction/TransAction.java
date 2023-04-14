@@ -1,6 +1,6 @@
 package drz.tmdb.Transaction;
 
-import static drz.tmdb.Level.Test.*;
+//import static drz.tmdb.Level.Test.*;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -40,9 +40,9 @@ import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.impl.SelectImpl;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 import drz.tmdb.Transaction.Transactions.impl.UpdateImpl;
+import drz.tmdb.map.TrajectoryUtils;
 import drz.tmdb.show.PrintResult;
 import drz.tmdb.show.ShowTable;
-import drz.tmdb.sync.node.database.Action;
 
 public class TransAction {
 
@@ -56,11 +56,12 @@ public class TransAction {
     public TransAction() throws IOException {}
 
     public TransAction(Context context) throws IOException {
-//        test19();
+//        test21();
         this.context = context;
         this.mem = new MemManager();
         this.levelManager = mem.levelManager;
         this.memConnect=new MemConnect(mem);
+        new TrajectoryUtils(memConnect);
 
 //        topt = mem.objectTable;
 //        classt = mem.classTable;
@@ -196,6 +197,7 @@ public class TransAction {
 //    }
 
     public String query2(String k, int op, String s) {
+
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         //Action action = new Action();
@@ -223,6 +225,9 @@ public class TransAction {
                         new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     }
                     break;
+                //TODO TMDB
+                //加入针对CreateTJoinDeputyClass这种statement的处理逻辑
+
 //                case "Create":
 //                    log.WriteLog(s);
 //                    CreateUnionDeputy(aa);

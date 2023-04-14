@@ -2,7 +2,6 @@ package drz.tmdb.show;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.ViewGroup;
@@ -10,6 +9,8 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.Serializable;
 
@@ -57,7 +58,7 @@ public class ShowDep extends AppCompatActivity implements Serializable {
                 satemp = deputyt.deputyTable.get(i-1).deputyrule;
                 stemp1 = oj1.toString();
                 stemp2 = oj2.toString();
-                stemp3 = satemp[0].toString()+satemp[1].toString()+satemp[2].toString();
+                stemp3 = satemp[0].toString();
             }
             for (int j = 0; j < tabCol; j++) {
                 TextView tv = new TextView(this);

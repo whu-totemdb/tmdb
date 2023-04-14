@@ -6,4 +6,5 @@ import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public interface Create {
     boolean create(Statement stmt) throws TMDBException;
+
 }

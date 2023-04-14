@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+        <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+            <com.amap.api.maps2d.MapView
+                android:id="@+id/map"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" />
+        </RelativeLayout>
+
+
+        <RelativeLayout
+            android:layout_width="57dp"
+            android:layout_height="57dp">
+
+            <Button
+                android:id="@+id/back_button"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:background="@android:drawable/ic_delete"
+                android:text=""
+                tools:ignore="SpeakableTextPresentCheck" />
+        </RelativeLayout>
+
+
+    </RelativeLayout>
+
+
+
+    <TextView
+        android:id="@+id/location_errInfo_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|left"
+        android:layout_marginBottom="10dp"
+        android:layout_marginLeft="10dp"
+        android:background="@color/red"
+        android:textColor="@color/darkgrey"
+        android:text="TextView"
+        android:visibility="gone"/>
+
+
+
+</LinearLayout>

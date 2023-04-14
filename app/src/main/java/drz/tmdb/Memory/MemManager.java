@@ -1,6 +1,6 @@
 package drz.tmdb.Memory;
 
-import static drz.tmdb.Level.Test.*;
+//import static drz.tmdb.Level.Test.*;
 
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -111,9 +111,6 @@ public class MemManager {
                 long t2 = System.currentTimeMillis();
                 System.out.println("将写满的MemTable写到SSTable耗时" + (t2 - t1) + "ms");
                 clearMem();
-
-                // 同时触发levelManager的autoCompaction
-                this.levelManager.autoCompaction();
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -150,6 +147,7 @@ public class MemManager {
         levelManager.level_0.add(dataFileSuffix);
         // levelInfo 的结构  dataFileSuffix : level-length-minKey-maxKey
         levelManager.levelInfo.put("" + dataFileSuffix, "0" + "-" + SSTableTotalSize + "-" + sst.getMinKey() + "-" + sst.getMaxKey());
+        levelManager.autoCompaction();
 
         // 内存清空
         clearMem();
@@ -159,6 +157,7 @@ public class MemManager {
 
 
     // 查询key对应的value
+    // todo: write your code here
     public Tuple search(String key){
         // 首先查MEMTable
         for(Tuple t : this.tupleList.tuplelist){
@@ -405,12 +404,18 @@ public class MemManager {
             f.createNewFile();
         BufferedOutputStream writeAccess = new BufferedOutputStream(new FileOutputStream(f));
         for(SwitchingTableItem item: this.switchingTable.switchingTable){
-            // 存attr
-            writeAccess.write(Constant.INT_TO_BYTES(item.attr.length()));
-            writeAccess.write(item.attr.getBytes());
-            // 存deputy
-            writeAccess.write(Constant.INT_TO_BYTES(item.deputy.length()));
-            writeAccess.write(item.deputy.getBytes());
+            // 存oriclassid
+            writeAccess.write(Constant.INT_TO_BYTES(item.oriId));
+//            writeAccess.write(item.oriId);
+            // 存oriattrid
+            writeAccess.write(Constant.INT_TO_BYTES(item.oriAttrid));
+//            writeAccess.write(item.deputy.getBytes());
+            // 存deputyclassid
+            writeAccess.write(Constant.INT_TO_BYTES(item.deputyId));
+//            writeAccess.write(item.attr.getBytes());
+            // 存deputyattrid
+            writeAccess.write(Constant.INT_TO_BYTES(item.deputyAttrId));
+//            writeAccess.write(item.deputy.getBytes());
             // 存rule
             writeAccess.write(Constant.INT_TO_BYTES(item.rule.length()));
             writeAccess.write(item.rule.getBytes());
@@ -429,18 +434,28 @@ public class MemManager {
         while(cur < l){
             SwitchingTableItem item = new SwitchingTableItem();
             // 读attr
+
+
+//            raf.read(buffer);
+//            item.attr = new String(buffer);
+//            cur += (Integer.BYTES + len);
+//            // 读deputy
+//            len = raf.readInt();
+//            buffer = new byte[len];
+//            raf.read(buffer);
+//            item.deputy = new String(buffer);
+//            cur += (Integer.BYTES + len);
+            item.oriId=raf.readInt();
+            cur+=Integer.BYTES;
+            item.oriAttrid=raf.readInt();
+            cur+=Integer.BYTES;
+            item.deputyId=raf.readInt();
+            cur+=Integer.BYTES;
+            item.deputyAttrId=raf.readInt();
+            cur+=Integer.BYTES;
+            // 读rule
             int len = raf.readInt();
             byte[] buffer = new byte[len];
-            raf.read(buffer);
-            item.attr = new String(buffer);
-            cur += (Integer.BYTES + len);
-            // 读deputy
-            len = raf.readInt();
-            buffer = new byte[len];
-            raf.read(buffer);
-            item.deputy = new String(buffer);
-            cur += (Integer.BYTES + len);
-            // 读rule
             len = raf.readInt();
             buffer = new byte[len];
             raf.read(buffer);

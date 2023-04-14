@@ -1,24 +1,21 @@
 package drz.tmdb;
 
 import android.content.DialogInterface;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 
 import drz.tmdb.Transaction.TransAction;
-import drz.tmdb.Transaction.Transactions.utils.MemConnect;
-import drz.tmdb.sync.Sync;
-import drz.tmdb.sync.node.database.Action;
-import drz.tmdb.sync.node.database.OperationType;
-import drz.tmdb.sync.util.FilePathUtil;
+import drz.tmdb.map.MapActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,6 +28,9 @@ public class MainActivity extends AppCompatActivity {
     //Node node;
 
     private boolean whu_trace_select = false;
+
+
+
 
     public MainActivity() throws IOException {
     }
@@ -100,16 +100,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+        // 绘制地图
         Button draw_trace = findViewById(R.id.draw_trace);
         draw_trace.setOnClickListener(new View.OnClickListener(){
             @Override
-            public void onClick(View v){
-                //trans.show_map(whu_trace_select);
-
-                //int id[] = {1,1,1,1};
-                //trans.Printechart(id);
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, MapActivity.class));
             }
         });
+
 
         Button whu_trace = findViewById(R.id.whu);
         whu_trace.setOnClickListener(new View.OnClickListener(){
