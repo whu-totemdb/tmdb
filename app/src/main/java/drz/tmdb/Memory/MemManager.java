@@ -50,7 +50,7 @@ public class MemManager {
 
     public LevelManager levelManager = new LevelManager();
 
-    public LogManager logManager = new LogManager();
+    public LogManager logManager = new LogManager(this);
 
     // 构造函数
     // 从文件中读取历史数据，将系统表加载到内存中
@@ -81,10 +81,7 @@ public class MemManager {
 
     // 往MemManager中添加对象
     public void add(Object o){
-        //先写日志
-        //String k = Constant.calculateKey(o);
-        //String v = JSONObject.toJSONString(o);
-        //logManager.WriteLog(k, (byte) 0,v);
+
 
         if(o instanceof ObjectTableItem){
             this.objectTable.objectTable.add((ObjectTableItem) o);
@@ -97,6 +94,11 @@ public class MemManager {
         }else if(o instanceof SwitchingTableItem){
             this.switchingTable.switchingTable.add((SwitchingTableItem) o);
         }else if(o instanceof Tuple){
+            //先写日志
+            String k = "" + ((Tuple) o).tupleId;
+            String v = JSONObject.toJSONString((Tuple) o);
+            logManager.WriteLog(k, (byte) 0,v);
+
             this.tupleList.addTuple((Tuple) o);
             this.currentMemSize += RamUsageEstimator.sizeOf(o);
         }
@@ -156,7 +158,7 @@ public class MemManager {
     }
 
 
-    // 查询key对应的value
+    //
     // todo: write your code here
     public Tuple search(String key){
         // 首先查MEMTable

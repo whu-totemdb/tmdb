@@ -2,6 +2,8 @@ package drz.tmdb.Transaction;
 
 //import static drz.tmdb.Level.Test.*;
 
+import static drz.tmdb.Log.Test.test1;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -56,7 +58,7 @@ public class TransAction {
     public TransAction() throws IOException {}
 
     public TransAction(Context context) throws IOException {
-//        test21();
+        test1();
         this.context = context;
         this.mem = new MemManager();
         this.levelManager = mem.levelManager;

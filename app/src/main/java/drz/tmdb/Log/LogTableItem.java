@@ -1,5 +1,7 @@
 package drz.tmdb.Log;
 
+import androidx.annotation.NonNull;
+
 public class LogTableItem {
     public int logid;//日志记录id
     public Byte op;//0表示插入，1表示删除操作
@@ -14,4 +16,11 @@ public class LogTableItem {
         this.value=value;
     }
     public LogTableItem(){};
+
+    @NonNull
+    @Override
+    public String toString(){
+        return "id为"+ this.logid+" op为"+ this.op+" key为"
+                + this.key + " value为"+ this.value +" offset为"+ this.offset;
+    }
 }
