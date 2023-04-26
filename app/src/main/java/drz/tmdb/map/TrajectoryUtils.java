@@ -8,12 +8,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-import drz.tmdb.Memory.Tuple;
+import drz.tmdb.memory.Tuple;
 import drz.tmdb.Transaction.Transactions.Create;
 import drz.tmdb.Transaction.Transactions.Insert;
 import drz.tmdb.Transaction.Transactions.Select;

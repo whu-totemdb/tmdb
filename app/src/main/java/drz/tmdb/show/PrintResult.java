@@ -10,7 +10,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import drz.tmdb.Memory.TupleList;
+import drz.tmdb.memory.TupleList;
 import drz.tmdb.R;
 
 public class PrintResult extends AppCompatActivity {

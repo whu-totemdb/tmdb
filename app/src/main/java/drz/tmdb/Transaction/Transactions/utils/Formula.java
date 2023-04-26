@@ -13,7 +13,7 @@ import net.sf.jsqlparser.schema.Column;
 
 import java.util.ArrayList;
 
-import drz.tmdb.Memory.Tuple;
+import drz.tmdb.memory.Tuple;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public class Formula {

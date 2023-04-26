@@ -4,7 +4,6 @@ package drz.tmdb.Log;
 
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -18,8 +17,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Memory.Tuple;
+import drz.tmdb.memory.MemManager;
+import drz.tmdb.memory.Tuple;
 
 public class LogManager {
     public File logFile;//日志文件

@@ -1,11 +1,7 @@
 package drz.tmdb.Transaction.Transactions.impl;
 
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.update.UpdateSet;
@@ -13,17 +9,14 @@ import net.sf.jsqlparser.statement.update.UpdateSet;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
-import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
+import drz.tmdb.memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.memory.TupleList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.Update;

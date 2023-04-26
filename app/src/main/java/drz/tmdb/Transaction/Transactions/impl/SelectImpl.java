@@ -16,14 +16,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.ObjectTableItem;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.memory.TupleList;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.utils.Formula;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;

@@ -1,4 +1,4 @@
-package drz.tmdb.Memory;
+package drz.tmdb.memory;
 import java.io.Serializable;
 import java.util.*;
 public class TupleList implements Serializable {

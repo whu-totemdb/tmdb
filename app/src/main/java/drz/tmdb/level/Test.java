@@ -1,4 +1,4 @@
-package drz.tmdb.Level;
+package drz.tmdb.level;
 
 
 import com.alibaba.fastjson.JSON;
@@ -13,18 +13,18 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
-import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
-import drz.tmdb.Memory.SystemTable.DeputyTableItem;
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
-import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
-import drz.tmdb.Memory.Tuple;
+import drz.tmdb.memory.MemManager;
+import drz.tmdb.memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.DeputyTableItem;
+import drz.tmdb.memory.SystemTable.ObjectTableItem;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.map.TrajectoryPoint;
+import drz.tmdb.map.TrajectoryUtils;
 
 public class Test {
 
@@ -416,24 +416,24 @@ public class Test {
 
     // 测试search
     public static void test17() throws IOException {
-        MemManager memManager = new MemManager();
-        for(int i=0; i<1000; i++){
-            Tuple t = new Tuple();
-            t.tupleId = i;
-            memManager.add(t);
-        }
-        memManager.saveMemTableToFile();
-        System.out.println("开始search");
-        long t1 = System.currentTimeMillis();
-        int findCount = 0;
-        for(int i=0; i<2000; i++){
-            Tuple t = memManager.search("" + i);
-            if(t != null)
-                findCount++;
-        }
-        long t2 = System.currentTimeMillis();
-        System.out.println("执行1000次search耗时" + (t2 - t1) + "ms"); // 2.8s
-        return;
+//        MemManager memManager = new MemManager();
+//        for(int i=0; i<1000; i++){
+//            Tuple t = new Tuple();
+//            t.tupleId = i;
+//            memManager.add(t);
+//        }
+//        memManager.saveMemTableToFile();
+//        System.out.println("开始search");
+//        long t1 = System.currentTimeMillis();
+//        int findCount = 0;
+//        for(int i=0; i<2000; i++){
+//            Tuple t = memManager.search("" + i);
+//            if(t != null)
+//                findCount++;
+//        }
+//        long t2 = System.currentTimeMillis();
+//        System.out.println("执行1000次search耗时" + (t2 - t1) + "ms"); // 2.8s
+//        return;
 
     }
 
@@ -500,7 +500,7 @@ public class Test {
 
     }
 
-    // 测试
+    // 测试update
     public static void test21() throws IOException {
 
         SSTable s = new SSTable("test",1);
@@ -509,9 +509,27 @@ public class Test {
         s.writeSSTable();
         SSTable ss = new SSTable("test", 2);
         String str = ss.search("1");
-
-
         return;
     }
+
+    // 测试轨迹序列化与反序列化
+    public static void test22() throws IOException {
+
+        ArrayList<TrajectoryPoint> trajectory = new ArrayList<>();
+        trajectory.add(new TrajectoryPoint(23.55532231, 420.1563456465));
+        trajectory.add(new TrajectoryPoint(44.43454832, 420.1544338874));
+        String str = TrajectoryUtils.serialize(trajectory);
+        ArrayList<TrajectoryPoint> trajectory2 = TrajectoryUtils.deserialize(str);
+        return;
+    }
+
+
+    // 缓存测试
+    public static void test23(){
+
+
+    }
+
+
 
 }

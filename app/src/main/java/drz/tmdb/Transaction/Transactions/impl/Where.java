@@ -8,16 +8,14 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.memory.TupleList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.utils.Formula;

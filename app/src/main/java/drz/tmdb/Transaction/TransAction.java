@@ -1,8 +1,6 @@
 package drz.tmdb.Transaction;
 
-//import static drz.tmdb.Level.Test.*;
-
-import static drz.tmdb.Log.Test.test1;
+import static drz.tmdb.level.Test.*;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -19,12 +17,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 //import drz.tmdb.Level.LevelManager;
-import drz.tmdb.Level.LevelManager;
+import drz.tmdb.level.LevelManager;
 import drz.tmdb.Log.*;
-import drz.tmdb.Memory.*;
+import drz.tmdb.memory.*;
 
 
-import drz.tmdb.Memory.SystemTable.*;
+import drz.tmdb.memory.SystemTable.*;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Create;
 import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
@@ -58,7 +56,7 @@ public class TransAction {
     public TransAction() throws IOException {}
 
     public TransAction(Context context) throws IOException {
-        test1();
+        test23();
         this.context = context;
         this.mem = new MemManager();
         this.levelManager = mem.levelManager;
@@ -199,7 +197,6 @@ public class TransAction {
 //    }
 
     public String query2(String k, int op, String s) {
-
 //        memConnect.reload();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(s.getBytes());
         //Action action = new Action();
@@ -227,9 +224,6 @@ public class TransAction {
                         new AlertDialog.Builder(context).setTitle("提示").setMessage("创建成功").setPositiveButton("确定",null).show();
                     }
                     break;
-                //TODO TMDB
-                //加入针对CreateTJoinDeputyClass这种statement的处理逻辑
-
 //                case "Create":
 //                    log.WriteLog(s);
 //                    CreateUnionDeputy(aa);

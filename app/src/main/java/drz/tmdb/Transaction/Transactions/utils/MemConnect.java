@@ -2,28 +2,20 @@ package drz.tmdb.Transaction.Transactions.utils;
 
 import com.alibaba.fastjson.JSON;
 
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
-import net.sf.jsqlparser.statement.select.FromItem;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Memory.SystemTable.BiPointerTable;
-import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
-import drz.tmdb.Memory.SystemTable.ClassTable;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
-import drz.tmdb.Memory.SystemTable.DeputyTable;
-import drz.tmdb.Memory.SystemTable.DeputyTableItem;
-import drz.tmdb.Memory.SystemTable.ObjectTable;
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
-import drz.tmdb.Memory.SystemTable.SwitchingTable;
-import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.memory.MemManager;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.memory.SystemTable.BiPointerTable;
+import drz.tmdb.memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.memory.SystemTable.ClassTable;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.DeputyTable;
+import drz.tmdb.memory.SystemTable.ObjectTable;
+import drz.tmdb.memory.SystemTable.ObjectTableItem;
+import drz.tmdb.memory.SystemTable.SwitchingTable;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 
 public class MemConnect {
@@ -65,8 +57,18 @@ public class MemConnect {
 
     //获取tuple
     public Tuple GetTuple(int id) {
-        Tuple tuple = this.mem.search("" + id);
-        return tuple;
+        Object searchResult = this.mem.search("t" + id);
+        Tuple t = null;
+        if(searchResult == null)
+            return null;
+        if(searchResult instanceof Tuple)
+            t = (Tuple) searchResult;
+        else if(searchResult instanceof String)
+            return JSON.parseObject((String) searchResult, Tuple.class);
+        if(t.delete)
+            return null;
+        else
+            return t;
     }
 
     //插入tuple

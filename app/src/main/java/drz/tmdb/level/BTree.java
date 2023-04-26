@@ -1,10 +1,8 @@
-package drz.tmdb.Level;
+package drz.tmdb.level;
 
 
 import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;

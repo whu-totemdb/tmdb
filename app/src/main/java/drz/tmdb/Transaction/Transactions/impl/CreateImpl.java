@@ -6,7 +6,7 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 
 import java.util.ArrayList;
 
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Create;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;

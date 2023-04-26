@@ -1,4 +1,4 @@
-package drz.tmdb.Memory;
+package drz.tmdb.memory;
 
 public class Constant {
 
