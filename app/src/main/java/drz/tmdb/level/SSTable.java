@@ -266,35 +266,46 @@ public class SSTable {
     // 根据zone map查询如果不在范围中则返回null
     // 根据bloom filter查或者遍历查询没找到则返回""
     public String search(String key) throws IOException {
-        // 读Footer
-        long[] info = readFooter();
-        long zoneMapOffset = info[0];
-        long zoneMapLength = info[1];
-        long bloomFilterOffset = info[2];
-        long bloomFilterLength = info[3];
-        long bTreeRootOffset = info[4];
-        long indexBlockLength = info[5];
 
-        // 1. 检查zone map
-        if(this.maxKey == "")
+        // 初始化读通道
+        if(this.raf == null){
+            File f = new File(Constant.DATABASE_DIR + this.fileName);
+            this.raf = new RandomAccessFile(f, "r");
+        }
+
+        // 如果meta data不完整，则需要从文件中读取
+        if(this.maxKey == ""){
+            // 读Footer
+            long[] info = readFooter();
+            long zoneMapOffset = info[0];
+            long zoneMapLength = info[1];
+            long bloomFilterOffset = info[2];
+            long bloomFilterLength = info[3];
+            long bTreeRootOffset = info[4];
+            long indexBlockLength = info[5];
+
             // 读zone map
             readZoneMap(zoneMapOffset, zoneMapLength);
+
+            // 初始化BloomFilter
+            readBloomFilter(bloomFilterOffset, bloomFilterLength);
+
+            // 初始化index block
+            readIndexBlock(bTreeRootOffset, indexBlockLength);
+        }
+
+
+        // 1. 检查zone map
         if(key.compareTo(this.minKey) < 0 && key.compareTo(this.maxKey) > 0)
             return null;
 
         // 2. 检查bloom filter
-        if(this.bloomFilter == null)
-            // 初始化BloomFilter
-            readBloomFilter(bloomFilterOffset, bloomFilterLength);
         if(!this.bloomFilter.check(key))
             return "";
 
         // 如果1 2 均通过，说明key极有可能存在该SSTable中
         // 3. 定位到该key可能存在的data block
-        if(this.bTree == null)
-            // 初始化index block
-            readIndexBlock(bTreeRootOffset, indexBlockLength);
-        Long offset = this.bTree.rightSearch(key);
+        Long offset = this.bTree.leftSearch(key);
         if(offset == null)
             offset = 0l;
 
@@ -315,7 +326,7 @@ public class SSTable {
             valueBuffer = new byte[length - Constant.MAX_KEY_LENGTH];
             this.raf.read(keyBuffer);
             this.raf.read(valueBuffer);
-//            String k = new String(keyBuffer);
+            String k = new String(keyBuffer);
 //            System.out.println(k);
             if(Arrays.equals(targetKeyBuffer, keyBuffer))
                 return new String(valueBuffer);

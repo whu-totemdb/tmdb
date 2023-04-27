@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 import drz.tmdb.memory.MemManager;
 import drz.tmdb.memory.SystemTable.BiPointerTableItem;
@@ -397,20 +399,25 @@ public class Test {
     }
 
     // 测试B树 right search
+    // re-test: 2023/4/27
     public static void test18(){
         BTree bTree = new BTree<>(3);
         for(int i=0; i<10; i++){
             bTree.insert("k" + i, (long)i);
         }
         System.out.println(bTree.getMaxKey());
-        System.out.println(bTree.rightSearch("k"+10));
-        System.out.println(bTree.rightSearch("k"+0));
-        System.out.println(bTree.rightSearch("k"+22));
-        System.out.println(bTree.rightSearch("k"+55));
-        System.out.println(bTree.rightSearch("k"+35));
-        System.out.println(bTree.rightSearch("k"+99));
-        System.out.println(bTree.rightSearch("k"+49));
-        System.out.println(bTree.rightSearch("k"+69));
+        System.out.println(bTree.leftSearch("k"+0));//0
+        System.out.println(bTree.leftSearch("k05"));//1
+        System.out.println(bTree.leftSearch("k"+15));//2
+        System.out.println(bTree.leftSearch("k"+25));//3
+        System.out.println(bTree.leftSearch("k"+35));//4
+        System.out.println(bTree.leftSearch("k"+45));//5
+        System.out.println(bTree.leftSearch("k"+55));//6
+        System.out.println(bTree.leftSearch("k"+65));//7
+        System.out.println(bTree.leftSearch("k"+75));//8
+        System.out.println(bTree.leftSearch("k"+85));//9
+        System.out.println(bTree.leftSearch("k"+95));//null
+
         return;
     }
 
@@ -524,9 +531,34 @@ public class Test {
     }
 
 
-    // 缓存测试
-    public static void test23(){
+    // 有缓存下的search测试
+    public static void test23() throws IOException {
+        MemManager memManager = new MemManager();
+        for(int i=0; i<1000; i++){
+            Tuple t = new Tuple();
+            t.tupleId = i;
+            memManager.add(t);
+        }
+        memManager.saveMemTableToFile();
+        System.out.println("开始search");
+        long t1 = System.currentTimeMillis();
+        int findCount = 0;
+        for(int i=0; i<2000; i++){
+            Object t = memManager.search("t" + i);
+            if(t != null)
+                findCount++;
+        }
+        long t2 = System.currentTimeMillis();
+        System.out.println("执行2000次缓存不命中的search耗时" + (t2 - t1) + "ms"); // 0.990s
 
+        long t3 = System.currentTimeMillis();
+        for(int i=0; i<1000; i++){
+            Object t = memManager.search("t" + i);
+        }
+        long t4 = System.currentTimeMillis();
+        System.out.println("执行1000次缓存命中的search耗时" + (t4 - t3) + "ms"); // 0.704s
+
+        return;
 
     }
 

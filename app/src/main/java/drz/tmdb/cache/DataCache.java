@@ -15,7 +15,7 @@ public class DataCache {
     private final int MAX_CACHED_DATA_SIZE = 100000;
 
     // 哈希表记录k-v
-    private Map<String, String> cachedData = new HashMap<>(MAX_CACHED_DATA_SIZE);
+    public Map<String, String> cachedData = new HashMap<>(MAX_CACHED_DATA_SIZE);
 
     // 链表记录插入key的顺序，从而实现LRU
     private LinkedList<String> lruList = new LinkedList<>();

@@ -220,23 +220,41 @@ public class BTree<K, V> {
 
         }
 
-        private V rightSearch(K key, V right){
-            int size = this.entrys.size();
-            int i;
-            V currentV = null;
-            for(i=0; i<size; i++){
-                currentV = this.entrys.get(i).getValue();
-                if (compare(this.entrys.get(i).getKey(), key) == 0) // 找到相等的则return
+        // 可以参考二叉搜索树的策略。
+        // key为目标key
+        // record记录该层结点的返回值，如果子节点中没有找到更符合条件（即更大）的key时，返回该record
+        private V leftSearch(K key, Entry<K, V> record){
+
+            // 遍历当前结点的entry，找到比他小的最大值
+            int n = this.entrys.size();
+            int i = 0;
+            while(i < n){
+                // 如果恰好相等，直接返回
+                if(compare(this.entrys.get(i).getKey(), key) == 0)
                     return this.entrys.get(i).getValue();
-                if (compare(this.entrys.get(i).getKey(), key) > 0) // entry.key > key
-                    break;
+                if(compare(this.entrys.get(i).getKey(), key) < 0)
+                    i++;
+                else
+                    break;;
             }
-            if(i == size && this.children.size() == 0)
-                return right;
-            if(this.children.size() == 0)
-                return currentV;
-            return this.children.get(i).rightSearch(key, currentV);
+            if(i < this.entrys.size())
+                record = this.entrys.get(i);
+
+            // 如果是叶子节点
+            // 比较该层的record和上层的record，选择更大的返回
+            if(this.isLeaf()){
+                if(i >= this.entrys.size())
+                    return record.getValue();
+                if(compare(this.entrys.get(i).getKey(), record.getKey()) < 0)
+                    return record.getValue();
+                else
+                    return this.entrys.get(i).getValue();
+            }
+
+            // 否则递归到子节点中查找
+            return this.children.get(i).leftSearch(key, record);
         }
+
 
         public boolean isLeaf() {
             return leaf;
@@ -977,12 +995,12 @@ public class BTree<K, V> {
         return ret;
     }
 
-    // 如果有key，则返回对应的value，否则返回比key大的最小key对应的value
-    public V rightSearch(K key){
+    // 查询比key小的最大key对应的value
+    public V leftSearch(K key){
         // 如果key比最大key还大，直接返回null
         if(compare(key, getMaxKey()) > 0)
             return null;
-        return root.rightSearch(key, null);
+        return root.leftSearch(key, null);
     }
 
     // 返回B树的最大key

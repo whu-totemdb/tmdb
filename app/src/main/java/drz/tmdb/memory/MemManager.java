@@ -143,7 +143,7 @@ public class MemManager {
         SSTable sst= new SSTable("SSTable" + dataFileSuffix, 1);
 
         for(Tuple t : this.tupleList.tuplelist){
-            String k = "" + t.tupleId;
+            String k = "t" + t.tupleId;
             sst.data.put(k, JSONObject.toJSONString(t));
         }
 
@@ -191,7 +191,7 @@ public class MemManager {
                     SSTable sst;
                     if(i <=2)
                         // level 0-2 直接从缓存中获取meta block
-                        sst = this.cacheManager.metaCache.get(j);
+                        sst = this.cacheManager.metaCache.get(suffix);
                     else
                         sst = new SSTable("SSTable" + suffix, 2);
 

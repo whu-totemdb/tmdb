@@ -191,7 +191,7 @@ public class LogManager {
         LogItem.offset=currentOffset;
         currentId++;
         writeLogItemToSSTable(LogItem);
-        System.out.println("该条日志已写入，详细信息为：" + LogItem);
+        //System.out.println("该条日志已写入，详细信息为：" + LogItem);
 
         iterator = Map.entrySet().iterator();
         //将该日志记录的logid按对象分类
