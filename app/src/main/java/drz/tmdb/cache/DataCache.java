@@ -29,7 +29,7 @@ public class DataCache {
             this.lruList.remove(key);
             this.lruList.add(key);
         }
-        return null;
+        return ret;
     }
 
     public void put(String key, String value){

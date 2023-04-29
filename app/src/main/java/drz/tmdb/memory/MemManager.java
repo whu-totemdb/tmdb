@@ -79,7 +79,8 @@ public class MemManager {
         saveClassTable();
         saveBiPointerTable();
         saveObjectTable();
-        saveMemTableToFile();
+        if(this.tupleList.tuplelist.size() != 0)
+            saveMemTableToFile();
         this.levelManager.saveMetaToFile();
     }
 

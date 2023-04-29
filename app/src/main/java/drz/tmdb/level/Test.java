@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 
 import drz.tmdb.memory.MemManager;
 import drz.tmdb.memory.SystemTable.BiPointerTableItem;
@@ -543,22 +544,27 @@ public class Test {
         System.out.println("开始search");
         long t1 = System.currentTimeMillis();
         int findCount = 0;
-        for(int i=0; i<2000; i++){
+        for(int i=0; i<1000; i++){
             Object t = memManager.search("t" + i);
             if(t != null)
                 findCount++;
         }
         long t2 = System.currentTimeMillis();
-        System.out.println("执行2000次缓存不命中的search耗时" + (t2 - t1) + "ms"); // 0.990s
+        System.out.println("meta block cache提速后执行1000次search耗时" + (t2 - t1) + "ms"); // 1030ms
 
         long t3 = System.currentTimeMillis();
         for(int i=0; i<1000; i++){
             Object t = memManager.search("t" + i);
         }
         long t4 = System.currentTimeMillis();
-        System.out.println("执行1000次缓存命中的search耗时" + (t4 - t3) + "ms"); // 0.704s
+        System.out.println("data cache提速后执行1000次searchsearch耗时" + (t4 - t3) + "ms"); // 17ms
+
 
         return;
+
+    }
+
+    public static void test24() throws IOException {
 
     }
 
