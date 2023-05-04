@@ -3,10 +3,9 @@ package drz.tmdb.memory;
 //import static drz.tmdb.Level.Test.*;
 
 
-import org.apache.lucene.util.RamUsageEstimator;
-
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+
+import org.apache.lucene.util.RamUsageEstimator;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -15,11 +14,11 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
+import drz.tmdb.Log.LogManager;
 import drz.tmdb.cache.CacheManager;
 import drz.tmdb.level.Constant;
 import drz.tmdb.level.LevelManager;
 import drz.tmdb.level.SSTable;
-import drz.tmdb.Log.LogManager;
 import drz.tmdb.memory.SystemTable.BiPointerTable;
 import drz.tmdb.memory.SystemTable.BiPointerTableItem;
 import drz.tmdb.memory.SystemTable.ClassTable;
@@ -70,6 +69,16 @@ public class MemManager {
         loadObjectTable();
 
         levelManager.cacheManager = this.cacheManager;
+        // 将level-0和level-1和level-2的SSTable的meta block存进缓存中
+        for(Integer fileSuffix : this.levelManager.level_0){
+            this.cacheManager.metaCache.add(new SSTable("SSTable" + fileSuffix, 3));
+        }
+        for(Integer fileSuffix : this.levelManager.level_1){
+            this.cacheManager.metaCache.add(new SSTable("SSTable" + fileSuffix, 3));
+        }
+        for(Integer fileSuffix : this.levelManager.level_2){
+            this.cacheManager.metaCache.add(new SSTable("SSTable" + fileSuffix, 3));
+        }
     }
 
     // 持久化保存所有数据

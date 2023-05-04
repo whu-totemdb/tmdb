@@ -87,16 +87,7 @@ public class LevelManager {
             }
         }
 
-        // 将level-0和level-1和level-2的SSTable的meta block存进缓存中
-        for(Integer fileSuffix : this.level_0){
-            this.cacheManager.metaCache.add(new SSTable("SSTable" + fileSuffix, 3));
-        }
-        for(Integer fileSuffix : this.level_1){
-            this.cacheManager.metaCache.add(new SSTable("SSTable" + fileSuffix, 3));
-        }
-        for(Integer fileSuffix : this.level_2){
-            this.cacheManager.metaCache.add(new SSTable("SSTable" + fileSuffix, 3));
-        }
+
 
     }
 
