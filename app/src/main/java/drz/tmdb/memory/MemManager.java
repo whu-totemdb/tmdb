@@ -180,7 +180,7 @@ public class MemManager {
         // 首先查MEMTable
         if(key.startsWith("t"))
             for(Tuple t : this.tupleList.tuplelist){
-                if(("" + t.tupleId).equals(key)){
+                if(("t" + t.tupleId).equals(key)){
                     return t;
                 }
             }
