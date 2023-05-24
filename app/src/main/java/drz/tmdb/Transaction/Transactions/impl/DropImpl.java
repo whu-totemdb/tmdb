@@ -3,14 +3,12 @@ package drz.tmdb.Transaction.Transactions.impl;
 import net.sf.jsqlparser.statement.Statement;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
-import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
-import drz.tmdb.Memory.SystemTable.DeputyTableItem;
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
-import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.DeputyTableItem;
+import drz.tmdb.memory.SystemTable.ObjectTableItem;
+import drz.tmdb.memory.SystemTable.SwitchingTableItem;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Drop;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;

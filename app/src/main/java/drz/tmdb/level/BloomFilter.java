@@ -1,10 +1,6 @@
-package drz.tmdb.Level;
+package drz.tmdb.level;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class BloomFilter {

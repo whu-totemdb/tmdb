@@ -13,11 +13,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Memory.SystemTable.BiPointerTable;
-import drz.tmdb.Memory.SystemTable.ClassTable;
-import drz.tmdb.Memory.SystemTable.DeputyTable;
-import drz.tmdb.Memory.SystemTable.ObjectTable;
-import drz.tmdb.Memory.SystemTable.SwitchingTable;
+import drz.tmdb.memory.SystemTable.BiPointerTable;
+import drz.tmdb.memory.SystemTable.ClassTable;
+import drz.tmdb.memory.SystemTable.DeputyTable;
+import drz.tmdb.memory.SystemTable.ObjectTable;
+import drz.tmdb.memory.SystemTable.SwitchingTable;
 
 public class ShowTable extends AppCompatActivity implements Serializable {
     private String[] tables = new String[5];

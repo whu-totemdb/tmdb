@@ -16,7 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Memory.SystemTable.ClassTable;
+import drz.tmdb.memory.SystemTable.ClassTable;
 
 public class ShowCla extends AppCompatActivity implements Serializable {
     private final int W = ViewGroup.LayoutParams.WRAP_CONTENT;

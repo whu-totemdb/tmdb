@@ -1,4 +1,4 @@
-package drz.tmdb.Memory.SystemTable;
+package drz.tmdb.memory.SystemTable;
 
 import java.io.Serializable;
 import java.util.Objects;

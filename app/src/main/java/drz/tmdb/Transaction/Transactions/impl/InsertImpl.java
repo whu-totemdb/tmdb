@@ -8,16 +8,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
-import drz.tmdb.Memory.SystemTable.DeputyTableItem;
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
-import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
+import drz.tmdb.memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.DeputyTableItem;
+import drz.tmdb.memory.SystemTable.ObjectTableItem;
+import drz.tmdb.memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.memory.TupleList;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.Insert;
-import drz.tmdb.Transaction.Transactions.Select;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 

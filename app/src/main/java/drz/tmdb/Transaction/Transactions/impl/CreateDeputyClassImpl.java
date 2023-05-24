@@ -1,8 +1,6 @@
 package drz.tmdb.Transaction.Transactions.impl;
 
 
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -17,15 +15,13 @@ import java.util.stream.Collectors;
 import java.util.HashSet;
 import java.util.List;
 
-import drz.tmdb.Memory.SystemTable.BiPointerTableItem;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
-import drz.tmdb.Memory.SystemTable.DeputyTableItem;
-import drz.tmdb.Memory.SystemTable.SwitchingTableItem;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Transaction.Transactions.Create;
+import drz.tmdb.memory.SystemTable.BiPointerTableItem;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.DeputyTableItem;
+import drz.tmdb.memory.SystemTable.SwitchingTableItem;
+import drz.tmdb.memory.Tuple;
 import drz.tmdb.Transaction.Transactions.CreateDeputyClass;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
-import drz.tmdb.Transaction.Transactions.Insert;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 

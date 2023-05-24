@@ -15,7 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Memory.SystemTable.BiPointerTable;
+import drz.tmdb.memory.SystemTable.BiPointerTable;
 
 public class ShowBi extends AppCompatActivity implements Serializable {
     private final int W = ViewGroup.LayoutParams.WRAP_CONTENT;

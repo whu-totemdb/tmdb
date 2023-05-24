@@ -136,17 +136,17 @@ public class BTree_Indexer<K, V> {
             children = new ArrayList<BTreeNode<K, V>>();
 
             // 首先读4字节判断节点的type
-            int type = drz.tmdb.Level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( offset, 4, fileName), 0, 4);
+            int type = drz.tmdb.level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( offset, 4, fileName), 0, 4);
             offset += 4;
 
             // 叶子节点
             if(type == 1){
                 leaf = true;
                 // 读4字节即一个int，得到有多少个entry
-                int entryCount = drz.tmdb.Level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( offset, 4, fileName), 0, 4);
+                int entryCount = drz.tmdb.level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( offset, 4, fileName), 0, 4);
                 offset += 4;
                 // 每个Entry即每个k-v占用的字节数
-                int singleEntryLength = drz.tmdb.Level.Constant.MAX_KEY_LENGTH + Long.BYTES;
+                int singleEntryLength = drz.tmdb.level.Constant.MAX_KEY_LENGTH + Long.BYTES;
                 // 总占用字节数
                 int totalLength = entryCount * singleEntryLength;
                 // 读取entryCount个Entry
@@ -156,13 +156,13 @@ public class BTree_Indexer<K, V> {
                 for(int i=0; i<entryCount; i++){
                     byte[] b;
                     // K
-                    b = new byte[drz.tmdb.Level.Constant.MAX_KEY_LENGTH];
-                    System.arraycopy(buffer, singleEntryLength * i, b, 0, drz.tmdb.Level.Constant.MAX_KEY_LENGTH);
-                    K k = (K) drz.tmdb.Level.Constant.BYTES_TO_KEY(b);
+                    b = new byte[drz.tmdb.level.Constant.MAX_KEY_LENGTH];
+                    System.arraycopy(buffer, singleEntryLength * i, b, 0, drz.tmdb.level.Constant.MAX_KEY_LENGTH);
+                    K k = (K) drz.tmdb.level.Constant.BYTES_TO_KEY(b);
                     // V
                     b = new byte[Long.BYTES];
-                    System.arraycopy(buffer, singleEntryLength * i + drz.tmdb.Level.Constant.MAX_KEY_LENGTH, b, 0, Long.BYTES);
-                    long v = drz.tmdb.Level.Constant.BYTES_TO_LONG(b);
+                    System.arraycopy(buffer, singleEntryLength * i + drz.tmdb.level.Constant.MAX_KEY_LENGTH, b, 0, Long.BYTES);
+                    long v = drz.tmdb.level.Constant.BYTES_TO_LONG(b);
                     // 添加entry
                     entrys.add((Entry<K, V>) new Entry<String, Long>((String) k, v));
                 }
@@ -176,14 +176,14 @@ public class BTree_Indexer<K, V> {
                 // 1. 计算子节点所在的偏移
                 long entryStartOffset = offset; // 记录Entry开始的offset
                 // 读4字节即一个int，得到有多少个entry
-                int entryCount = drz.tmdb.Level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( entryStartOffset, 4, fileName), 0, 4);
+                int entryCount = drz.tmdb.level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( entryStartOffset, 4, fileName), 0, 4);
                 // 每个Entry即每个k-v占用的字节数
-                int singleEntryLength = drz.tmdb.Level.Constant.MAX_KEY_LENGTH + Long.BYTES;
+                int singleEntryLength = drz.tmdb.level.Constant.MAX_KEY_LENGTH + Long.BYTES;
                 // Entry总占用字节数
                 int totalEntryLength = entryCount * singleEntryLength;
                 long childrenStartOffset = offset + 4 + totalEntryLength; // 记录children开始的offset
                 // 读4字节即一个int，得到有多少个child
-                int childrenCount = drz.tmdb.Level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( childrenStartOffset, 4, fileName), 0, 4);
+                int childrenCount = drz.tmdb.level.Constant.BYTES_TO_INT(Constants.readBytesFromFile( childrenStartOffset, 4, fileName), 0, 4);
                 // 每个child占用一个long 8字节，共占用
                 int totalChildrenLength = childrenCount * Long.BYTES;
 
@@ -194,7 +194,7 @@ public class BTree_Indexer<K, V> {
                     // 读取long为孩子节点的地址
                     byte[] b = new byte[Long.BYTES];
                     System.arraycopy(buffer, Long.BYTES * i, b, 0, Long.BYTES);
-                    long address = drz.tmdb.Level.Constant.BYTES_TO_LONG(b);
+                    long address = drz.tmdb.level.Constant.BYTES_TO_LONG(b);
                     // 递归
                     children.add(new BTreeNode<>(fileName, address));
                 }
@@ -205,13 +205,13 @@ public class BTree_Indexer<K, V> {
                 for(int i=0; i<entryCount; i++){
                     byte[] b;
                     // K
-                    b = new byte[drz.tmdb.Level.Constant.MAX_KEY_LENGTH];
-                    System.arraycopy(buffer, singleEntryLength * i, b, 0, drz.tmdb.Level.Constant.MAX_KEY_LENGTH);
-                    String k = drz.tmdb.Level.Constant.BYTES_TO_KEY(b);
+                    b = new byte[drz.tmdb.level.Constant.MAX_KEY_LENGTH];
+                    System.arraycopy(buffer, singleEntryLength * i, b, 0, drz.tmdb.level.Constant.MAX_KEY_LENGTH);
+                    String k = drz.tmdb.level.Constant.BYTES_TO_KEY(b);
                     // V
                     b = new byte[Long.BYTES];
-                    System.arraycopy(buffer, singleEntryLength * i + drz.tmdb.Level.Constant.MAX_KEY_LENGTH, b, 0, Long.BYTES);
-                    long v = drz.tmdb.Level.Constant.BYTES_TO_LONG(b);
+                    System.arraycopy(buffer, singleEntryLength * i + drz.tmdb.level.Constant.MAX_KEY_LENGTH, b, 0, Long.BYTES);
+                    long v = drz.tmdb.level.Constant.BYTES_TO_LONG(b);
                     // 添加entry
                     entrys.add((Entry<K, V>) new Entry<String, Long>(k, v));
                 }
@@ -451,20 +451,20 @@ public class BTree_Indexer<K, V> {
                 // 更新offset
                 this.offset = offset;
                 // 每个Entry即每个k-v占用的字节数
-                int singleEntryLength = drz.tmdb.Level.Constant.MAX_KEY_LENGTH + Long.BYTES;
+                int singleEntryLength = drz.tmdb.level.Constant.MAX_KEY_LENGTH + Long.BYTES;
                 // 该节点所有Entry需要占用的字节数
                 // 额外的8个字节，一个字节记录该node的type，一个字节记录k-v对的个数
                 int totalLength = entrys.size() * singleEntryLength + 8;
                 // 首部4字节记录type
-                outputStream.write(drz.tmdb.Level.Constant.INT_TO_BYTES(1));
+                outputStream.write(drz.tmdb.level.Constant.INT_TO_BYTES(1));
                 // 再4字节记录k-v对的个数
-                outputStream.write(drz.tmdb.Level.Constant.INT_TO_BYTES(entrys.size()));
+                outputStream.write(drz.tmdb.level.Constant.INT_TO_BYTES(entrys.size()));
                 // 依次写入各Entry
                 for(Entry entry : entrys){
                     // 写key
-                    outputStream.write(drz.tmdb.Level.Constant.KEY_TO_BYTES(entry.key.toString()));
+                    outputStream.write(drz.tmdb.level.Constant.KEY_TO_BYTES(entry.key.toString()));
                     // 写value，其实是个记录offset的long
-                    outputStream.write(drz.tmdb.Level.Constant.LONG_TO_BYTES((long)entry.value));
+                    outputStream.write(drz.tmdb.level.Constant.LONG_TO_BYTES((long)entry.value));
                 }
                 return totalLength;
             }
@@ -478,28 +478,28 @@ public class BTree_Indexer<K, V> {
                 }
                 // 将其子节点都保存完后再保存该节点
                 // 每个Entry即每个k-v占用的字节数， 共有entrys.size()个
-                int singleEntryLength = drz.tmdb.Level.Constant.MAX_KEY_LENGTH + Long.BYTES;
+                int singleEntryLength = drz.tmdb.level.Constant.MAX_KEY_LENGTH + Long.BYTES;
                 // 每个Children即一个记录偏移的龙占用的字节数，共有children.size()个
                 int singleChildLength = Long.BYTES;
                 // 额外还需要12字节，一个int记录节点type，一个int记录entry个数，一个int记录child个数
                 int totalLength = singleEntryLength * entrys.size() + singleChildLength * children.size() + 12;
                 // 首部4字节记录type
-                outputStream.write(drz.tmdb.Level.Constant.INT_TO_BYTES(0));
+                outputStream.write(drz.tmdb.level.Constant.INT_TO_BYTES(0));
                 // 再4字节记录k-v对的个数
-                outputStream.write(drz.tmdb.Level.Constant.INT_TO_BYTES(entrys.size()));
+                outputStream.write(drz.tmdb.level.Constant.INT_TO_BYTES(entrys.size()));
                 // 依次写入各Entry
                 for(Entry entry : entrys){
                     // 写key
-                    outputStream.write(drz.tmdb.Level.Constant.KEY_TO_BYTES(entry.key.toString()));
+                    outputStream.write(drz.tmdb.level.Constant.KEY_TO_BYTES(entry.key.toString()));
                     // 写value，其实是个记录offset的long
-                    outputStream.write(drz.tmdb.Level.Constant.LONG_TO_BYTES((long)entry.value));
+                    outputStream.write(drz.tmdb.level.Constant.LONG_TO_BYTES((long)entry.value));
                 }
                 // 再4字节记录children的个数
-                outputStream.write(drz.tmdb.Level.Constant.INT_TO_BYTES(children.size()));
+                outputStream.write(drz.tmdb.level.Constant.INT_TO_BYTES(children.size()));
                 // 依次写入各Children
                 for(BTreeNode child : children){
                     // 每个child保存其offset
-                    outputStream.write(drz.tmdb.Level.Constant.LONG_TO_BYTES((long)child.offset));
+                    outputStream.write(drz.tmdb.level.Constant.LONG_TO_BYTES((long)child.offset));
                 }
                 return totalLength;
             }
@@ -945,11 +945,11 @@ public class BTree_Indexer<K, V> {
         // 计算占用总字节数
         long totalSize;
         if(root.leaf){
-            totalSize = Integer.BYTES * 2 + root.entrys.size() * (drz.tmdb.Level.Constant.MAX_KEY_LENGTH + Long.BYTES);
+            totalSize = Integer.BYTES * 2 + root.entrys.size() * (drz.tmdb.level.Constant.MAX_KEY_LENGTH + Long.BYTES);
         }
         else{
             totalSize = Integer.BYTES * 3 +
-                    root.entrys.size() * (drz.tmdb.Level.Constant.MAX_KEY_LENGTH + Long.BYTES) +
+                    root.entrys.size() * (drz.tmdb.level.Constant.MAX_KEY_LENGTH + Long.BYTES) +
                     root.children.size() * Long.BYTES;
         }
 

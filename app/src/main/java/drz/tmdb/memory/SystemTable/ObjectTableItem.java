@@ -1,11 +1,9 @@
-package drz.tmdb.Memory.SystemTable;
+package drz.tmdb.memory.SystemTable;
 
 //import android.support.annotation.Nullable;
 
 import java.io.Serializable;
 import java.util.Objects;
-
-import drz.tmdb.Memory.Tuple;
 
 public class ObjectTableItem implements Serializable{
 

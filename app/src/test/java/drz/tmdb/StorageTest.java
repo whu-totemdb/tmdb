@@ -4,9 +4,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-import drz.tmdb.Level.SSTable;
-import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
+import drz.tmdb.level.SSTable;
+import drz.tmdb.memory.MemManager;
+import drz.tmdb.memory.SystemTable.ObjectTableItem;
 
 public class StorageTest {
     @Test

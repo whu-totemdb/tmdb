@@ -1,17 +1,10 @@
 package drz.tmdb.Transaction.Transactions.impl;
 
-import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-
-import java.util.ArrayList;
 import java.util.List;
 
 
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.memory.TupleList;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
 import drz.tmdb.Transaction.Transactions.utils.SelectResult;
 

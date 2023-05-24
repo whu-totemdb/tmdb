@@ -14,7 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.Serializable;
 
 import drz.tmdb.R;
-import drz.tmdb.Memory.SystemTable.SwitchingTable;
+import drz.tmdb.memory.SystemTable.SwitchingTable;
 
 public class ShowSwi extends AppCompatActivity implements Serializable {
     private final int W = ViewGroup.LayoutParams.WRAP_CONTENT;

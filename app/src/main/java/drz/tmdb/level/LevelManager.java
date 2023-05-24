@@ -1,7 +1,7 @@
-package drz.tmdb.Level;
+package drz.tmdb.level;
 
-import static drz.tmdb.Level.Constant.DATABASE_DIR;
-import static drz.tmdb.Level.Constant.INT_TO_BYTES;
+import static drz.tmdb.level.Constant.DATABASE_DIR;
+import static drz.tmdb.level.Constant.INT_TO_BYTES;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -20,9 +20,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+
+import drz.tmdb.cache.CacheManager;
 
 
 public class LevelManager {
@@ -42,6 +43,9 @@ public class LevelManager {
     public final TreeSet<Integer> level_5 = new TreeSet<Integer>();
     public final TreeSet<Integer> level_6 = new TreeSet<Integer>();
     public final TreeSet[] levels = {level_0, level_1, level_2, level_3, level_4, level_5, level_6};
+
+
+    public CacheManager cacheManager;
 
     // constructor
     public LevelManager(){
@@ -82,6 +86,8 @@ public class LevelManager {
                 levels[level].add(suffix);
             }
         }
+
+
 
     }
 
@@ -193,8 +199,7 @@ public class LevelManager {
         this.levelInfo.put("maxDataFileSuffix", "" + dataFileSuffix);
 
         // 打开新SSTable的写通道
-        File f = new File(Constant.DATABASE_DIR + "SSTable" + dataFileSuffix);
-        BufferedOutputStream writeAccess = new BufferedOutputStream(new FileOutputStream(f, true));
+        SSTable newSST = new SSTable("SSTable" + dataFileSuffix, 1);
 
         // 初始化compaction需要的参数
         List<Integer> targetSSTable = new ArrayList<>(set);
@@ -241,10 +246,8 @@ public class LevelManager {
         }
 
         // 初始化new SSTable 的 meta data
-        BTree<String, Long> bTree = new BTree<>(); // B树，记录每个data block的最大key的offset
-        BloomFilter bloomFilter = new BloomFilter(estimateItemCount); // BloomFilter
-        String maxKey = "";
-        String minKey = "";
+        newSST.bloomFilter = new BloomFilter(estimateItemCount); // BloomFilter
+
         // 写SSTable需要的一些参数，用来进行data block划分
         long dataBlockStartOffset = 0; // 此data block的开始偏移
         long totalOffset = 0; // 总偏移
@@ -276,24 +279,24 @@ public class LevelManager {
             readAccesses.get(targetIndex).read(data);
 
             // 写入新SSTable
-            writeAccess.write(data);
+            newSST.appendToFile(data);
             totalOffset += data.length;
 
             // 更新minKey和maxKey，由于是归并合并，第一次一定是minKey，最后一次的一定是maxKey
-            if(minKey.equals(""))
-                minKey = currentKeys.get(targetIndex);
-            maxKey = currentKeys.get(targetIndex);
+            if(newSST.minKey.equals(""))
+                newSST.minKey = currentKeys.get(targetIndex);
+            newSST.maxKey = currentKeys.get(targetIndex);
 
             // 如果data block写满，则开启新data block，将旧data block的最大key和起始偏移记录到B树中
             if(totalOffset - dataBlockStartOffset > Constant.MAX_DATA_BLOCK_SIZE){
                 // (max key in this data block -> data block start offset)插入B-Tree
-                bTree.insert(currentKeys.get(targetIndex), dataBlockStartOffset);
+                newSST.bTree.insert(currentKeys.get(targetIndex), dataBlockStartOffset);
                 // 更新dataBlockStartOffset
                 dataBlockStartOffset = totalOffset;
             }
 
             // 更新Bloom Filter
-            bloomFilter.add(currentKeys.get(targetIndex));
+            newSST.bloomFilter.add(currentKeys.get(targetIndex));
 
             // 更新pointers、currentKeys、currentLength
             for(Integer x : minKeyIndex){
@@ -309,37 +312,37 @@ public class LevelManager {
         }
         //  遍历结束时，未满的data block信息也写入B-Tree
         if(dataBlockStartOffset != totalOffset){
-            bTree.insert(maxKey, dataBlockStartOffset);
+            newSST.bTree.insert(newSST.maxKey, dataBlockStartOffset);
         }
 
         // 新SSTable的meta data写入
         // 写zone map
         long zoneMapStartOffset = totalOffset; // zone map的开始偏移
         long zoneMapLength = Constant.MAX_KEY_LENGTH * 2; // zone map的长度
-        writeAccess.write(Constant.KEY_TO_BYTES(minKey));
-        writeAccess.write(Constant.KEY_TO_BYTES(maxKey));
+        newSST.appendToFile(Constant.KEY_TO_BYTES(newSST.minKey));
+        newSST.appendToFile(Constant.KEY_TO_BYTES(newSST.maxKey));
         // 写Bloom filter
         long bloomFilterStartOffset = zoneMapStartOffset + zoneMapLength;
-        long bloomFilterLength = 4 + bloomFilter.getByteCount(); // +4 的原因见BloomFilter写文件的格式
-        bloomFilter.writeToFile(writeAccess);
+        long bloomFilterLength = 4 + newSST.bloomFilter.getByteCount(); // +4 的原因见BloomFilter写文件的格式
+        newSST.bloomFilter.writeToFile(newSST.outputStream);
         // 写index block
         long indexBlockStartOffset = bloomFilterStartOffset + bloomFilterLength;
-        long[] info = bTree.write(writeAccess, indexBlockStartOffset);
+        long[] info = newSST.bTree.write(newSST.outputStream, indexBlockStartOffset);
         long indexBlockLength = info[0];
         long bTreeRootOffset = info[1];
         // 写Footer
         long footerStartOffset = indexBlockStartOffset + indexBlockLength;
         long footerLength = Long.BYTES * 6;
-        writeAccess.write(Constant.LONG_TO_BYTES(zoneMapStartOffset));
-        writeAccess.write(Constant.LONG_TO_BYTES(zoneMapLength));
-        writeAccess.write(Constant.LONG_TO_BYTES(bloomFilterStartOffset));
-        writeAccess.write(Constant.LONG_TO_BYTES(bloomFilterLength));
-        writeAccess.write(Constant.LONG_TO_BYTES(bTreeRootOffset));
-        writeAccess.write(Constant.LONG_TO_BYTES(indexBlockLength));
+        newSST.appendToFile(Constant.LONG_TO_BYTES(zoneMapStartOffset));
+        newSST.appendToFile(Constant.LONG_TO_BYTES(zoneMapLength));
+        newSST.appendToFile(Constant.LONG_TO_BYTES(bloomFilterStartOffset));
+        newSST.appendToFile(Constant.LONG_TO_BYTES(bloomFilterLength));
+        newSST.appendToFile(Constant.LONG_TO_BYTES(bTreeRootOffset));
+        newSST.appendToFile(Constant.LONG_TO_BYTES(indexBlockLength));
 
         // flush close 各种写通道和读通道
-        writeAccess.flush();
-        writeAccess.close();
+        newSST.outputStream.flush();
+        newSST.outputStream.close();
         for(RandomAccessFile ra : readAccesses){
             ra.close();
         }
@@ -347,13 +350,19 @@ public class LevelManager {
         // 将该SSTable添加到对应level中
         this.levels[level].add(dataFileSuffix);
         // levelInfo 的结构  dataFileSuffix : level-length-minKey-maxKey
-        this.levelInfo.put("" + dataFileSuffix, level + "-" + (footerLength + footerStartOffset) + "-" + minKey + "-" + maxKey);
+        this.levelInfo.put("" + dataFileSuffix, level + "-" + (footerLength + footerStartOffset) + "-" + newSST.minKey + "-" + newSST.maxKey);
+        // 更新缓存
+        if(level <= 2)
+            this.cacheManager.metaCache.add(newSST);
 
         // 旧SSTable从level中删除
         for(Integer i : set){
             this.levels[level - 1].remove(i);
             this.levels[level].remove(i);
             this.levelInfo.remove("" + i);
+
+            // 更新缓存
+            this.cacheManager.metaCache.remove(i);
         }
     }
 

@@ -1,13 +1,10 @@
-package drz.tmdb.Level;
-
-import com.alibaba.fastjson.JSONObject;
+package drz.tmdb.level;
 
 //import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+        import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -25,21 +22,21 @@ public class SSTable {
     public TreeMap<String, String> data = new TreeMap<>();
 
     // SSTable的文件名
-    private String fileName;
+    public String fileName;
 
     // 最大key与最小key
-    private String maxKey = "";
-    private String minKey = "";
+    String maxKey = "";
+    String minKey = "";
 
     // BloomFilter
     public BloomFilter bloomFilter;
 
     // B树，记录每个data block的最大key的offset
-    private BTree<String, Long> bTree = new BTree<>(3);
+    BTree<String, Long> bTree;
 
     // SSTable的写通道
     // 为避免频繁new flush close outputStream而浪费大量时间，将其设置成类属性一次打开一次关闭
-    private BufferedOutputStream outputStream;
+    BufferedOutputStream outputStream;
 
     // SSTable的读通道
     // 由于读SSTable时不需要从头开始，多为根据指定offset跳着读，因此使用RandomAccessFile更快
@@ -122,7 +119,7 @@ public class SSTable {
     }
 
     // 向此SSTable末尾追加写字节数组data
-    private void appendToFile(byte[] data){
+    void appendToFile(byte[] data){
         try{
             this.outputStream.write(data, 0, data.length);
         } catch (IOException e) {
@@ -193,6 +190,7 @@ public class SSTable {
         // 准备工作：初始化Bloom Filter，因为需要知道k-v的数量，因此放到此处初始化
         int itemCount = this.data.size();
         this.bloomFilter = new BloomFilter(itemCount);
+        this.bTree = new BTree<>(3);
 
         // 1. 分data block写入
         long dataBlockStartOffset = 0; // 此data block的开始偏移（记录B树结点时有用）
@@ -265,33 +263,49 @@ public class SSTable {
 
 
     // 在单个SSTable中查
+    // 根据zone map查询如果不在范围中则返回null
+    // 根据bloom filter查或者遍历查询没找到则返回""
     public String search(String key) throws IOException {
-        // 读Footer
-        long[] info = readFooter();
-        long zoneMapOffset = info[0];
-        long zoneMapLength = info[1];
-        long bloomFilterOffset = info[2];
-        long bloomFilterLength = info[3];
-        long bTreeRootOffset = info[4];
-        long indexBlockLength = info[5];
+
+        // 初始化读通道
+        if(this.raf == null){
+            File f = new File(Constant.DATABASE_DIR + this.fileName);
+            this.raf = new RandomAccessFile(f, "r");
+        }
+
+        // 如果meta data不完整，则需要从文件中读取
+        if(this.maxKey == ""){
+            // 读Footer
+            long[] info = readFooter();
+            long zoneMapOffset = info[0];
+            long zoneMapLength = info[1];
+            long bloomFilterOffset = info[2];
+            long bloomFilterLength = info[3];
+            long bTreeRootOffset = info[4];
+            long indexBlockLength = info[5];
+
+            // 读zone map
+            readZoneMap(zoneMapOffset, zoneMapLength);
+
+            // 初始化BloomFilter
+            readBloomFilter(bloomFilterOffset, bloomFilterLength);
+
+            // 初始化index block
+            readIndexBlock(bTreeRootOffset, indexBlockLength);
+        }
+
 
         // 1. 检查zone map
-        // 读zone map
-        readZoneMap(zoneMapOffset, zoneMapLength);
         if(key.compareTo(this.minKey) < 0 && key.compareTo(this.maxKey) > 0)
             return null;
 
         // 2. 检查bloom filter
-        // 初始化BloomFilter
-        readBloomFilter(bloomFilterOffset, bloomFilterLength);
         if(!this.bloomFilter.check(key))
-            return null;
+            return "";
 
         // 如果1 2 均通过，说明key极有可能存在该SSTable中
         // 3. 定位到该key可能存在的data block
-        // 初始化index block
-        readIndexBlock(bTreeRootOffset, indexBlockLength);
-        Long offset = this.bTree.rightSearch(key);
+        Long offset = this.bTree.leftSearch(key);
         if(offset == null)
             offset = 0l;
 
@@ -312,13 +326,13 @@ public class SSTable {
             valueBuffer = new byte[length - Constant.MAX_KEY_LENGTH];
             this.raf.read(keyBuffer);
             this.raf.read(valueBuffer);
-//            String k = new String(keyBuffer);
+            String k = new String(keyBuffer);
 //            System.out.println(k);
             if(Arrays.equals(targetKeyBuffer, keyBuffer))
                 return new String(valueBuffer);
         }
 
-        return null;
+        return "";
     }
 
 }

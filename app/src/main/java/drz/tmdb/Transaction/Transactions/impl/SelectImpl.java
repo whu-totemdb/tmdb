@@ -1,6 +1,7 @@
 package drz.tmdb.Transaction.Transactions.impl;
 
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.RowConstructor;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
@@ -16,14 +17,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import drz.tmdb.Memory.SystemTable.ObjectTableItem;
-import drz.tmdb.Memory.Tuple;
-import drz.tmdb.Memory.TupleList;
-import drz.tmdb.Memory.SystemTable.ClassTableItem;
+import drz.tmdb.memory.SystemTable.ObjectTableItem;
+import drz.tmdb.memory.Tuple;
+import drz.tmdb.memory.TupleList;
+import drz.tmdb.memory.SystemTable.ClassTableItem;
 import drz.tmdb.Transaction.Transactions.Exception.TMDBException;
 import drz.tmdb.Transaction.Transactions.utils.Formula;
 import drz.tmdb.Transaction.Transactions.utils.MemConnect;
@@ -402,15 +402,23 @@ public class SelectImpl implements drz.tmdb.Transaction.Transactions.Select {
         List<Expression> expressions=expressionList.getExpressions();
         TupleList tupleList=new TupleList();
         for(int i=0;i<expressions.size();i++){
-            //values按照行进行存储
-            RowConstructor rowConstructor= (RowConstructor) expressions.get(i);
-            ExpressionList expressionList1=rowConstructor.getExprList();
-            Object[] tuple=new Object[expressionList1.getExpressions().size()];
-            //将每行的值传到新建的tuple中
-            for(int j=0;j<expressionList1.getExpressions().size();j++){
-                tuple[j]=expressionList1.getExpressions().get(j).toString();
+            if(expressions.get(i).getClass().getSimpleName().equals("RowConstructor")) {
+                //values按照行进行存储
+                RowConstructor rowConstructor = (RowConstructor) expressions.get(i);
+                ExpressionList expressionList1 = rowConstructor.getExprList();
+                Object[] tuple = new Object[expressionList1.getExpressions().size()];
+                //将每行的值传到新建的tuple中
+                for (int j = 0; j < expressionList1.getExpressions().size(); j++) {
+                    tuple[j] = expressionList1.getExpressions().get(j).toString();
+                }
+                tupleList.addTuple(new Tuple(tuple));
             }
-            tupleList.addTuple(new Tuple(tuple));
+            else if(expressions.get(i).getClass().getSimpleName().equals("Parenthesis")){
+                Parenthesis parenthesis = (Parenthesis) expressions.get(i);
+                Expression expression = parenthesis.getExpression();
+                Object[] tuple = new Object[]{expression.toString()};
+                tupleList.addTuple(new Tuple(tuple));
+            }
         }
         ArrayList<ClassTableItem> classTableItemArrayList=new ArrayList<>();
         //构建classtableItemlist，返回selctResult需要
