@@ -15,34 +15,37 @@ public class DataCache {
     private final int MAX_CACHED_DATA_SIZE = 100000;
 
     // 哈希表记录k-v
-    public Map<String, String> cachedData = new HashMap<>(MAX_CACHED_DATA_SIZE);
+    public Map<K, V> cachedData = new HashMap<>(MAX_CACHED_DATA_SIZE);
 
     // 链表记录插入key的顺序，从而实现LRU
-    private LinkedList<String> lruList = new LinkedList<>();
+    private LinkedList<K> lruList = new LinkedList<>();
 
 
     public String get(String key){
-        String ret = this.cachedData.getOrDefault(key, null);
+        K targetKey = new K(key);
+        V targetValue = this.cachedData.getOrDefault(targetKey, null);
+
+        if(targetValue == null)
+            return null;
 
         // 如果key在缓存中，则将key置顶
-        if(ret != null){
-            this.lruList.remove(key);
-            this.lruList.add(key);
-        }
-        return ret;
+        this.lruList.remove(targetKey);
+        this.lruList.add(targetKey);
+
+        return targetValue.valueString;
     }
 
     public void put(String key, String value){
 
         // 如果容量已满，则需要移除最久未使用的
         if(this.cachedData.size() > this.MAX_CACHED_DATA_SIZE){
-            String oldKey = this.lruList.pop();
+            K oldKey = this.lruList.pop();
             this.cachedData.remove(oldKey);
         }
 
         // 新数据加入
-        this.cachedData.put(key, value);
-        this.lruList.add(key);
+        this.cachedData.put(new K(key), new V(value));
+        this.lruList.add(new K(key));
     }
 
 }
