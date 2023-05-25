@@ -13,7 +13,7 @@ public class Transaction {
     private final TransactionId tid;
     volatile boolean started = false;
     public File logFile;//日志文件
-    public MemManager memManager;
+    public drz.tmdb.memory.MemManager memManager;
     LogManager1 logManager1=new LogManager1(memManager);
 
     public Transaction() throws IOException {
@@ -60,7 +60,7 @@ public class Transaction {
 
             try {
 
-                Database.getBufferPool().transactionComplete(tid, !abort); // release locks
+                BufferPool.transactionComplete(tid, !abort); // release locks
 
             } catch (IOException e) {
                 e.printStackTrace();

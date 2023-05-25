@@ -1,11 +1,14 @@
 package drz.tmdb.cache;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+
+import drz.tmdb.ARIES_log.Entry;
 
 // 以 k-v pair为粒度的缓存
 // 采用LRU替换策略
@@ -18,7 +21,7 @@ public class DataCache {
     public Map<String, String> cachedData = new HashMap<>(MAX_CACHED_DATA_SIZE);
 
     // 链表记录插入key的顺序，从而实现LRU
-    private LinkedList<String> lruList = new LinkedList<>();
+    public static LinkedList<String> lruList = new LinkedList<>();
 
 
     public String get(String key){
@@ -44,5 +47,6 @@ public class DataCache {
         this.cachedData.put(key, value);
         this.lruList.add(key);
     }
+
 
 }

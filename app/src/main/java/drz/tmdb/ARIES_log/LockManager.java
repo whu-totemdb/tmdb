@@ -9,10 +9,10 @@ public class LockManager {
 
     //Key相当于资源，LockState存放事务id与锁类型，故每个LockState代表某事务在Key上加了锁
     //故整个map为所有资源的锁信息
-    private Map<PageId, List<LockState>> lockStateMap;
+    private Map<EntryId, List<LockState>> lockStateMap;
 
     //Key为事务，PageId为正在等待的资源，相当于保存了等待的信息，PS：BufferPool中实际用的是sleep体现等待
-    private Map<TransactionId, PageId> waitingInfo;
+    private Map<TransactionId, EntryId> waitingInfo;
 
     public LockManager() {
         //使用支持并发的容器避免ConcurrentModificationException
@@ -29,20 +29,20 @@ public class LockManager {
      * 如果tid此时不能给pid加读锁，返回false
      *
      * @param tid
-     * @param pid
+     * @param eid
      * @return
      */
-    public synchronized boolean grantSLock(TransactionId tid, PageId pid) {
-        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(pid);
+    public synchronized boolean grantSLock(TransactionId tid, EntryId eid) {
+        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list != null && list.size() != 0) {
             if (list.size() == 1) {//pid上只有一个锁
                 LockState ls = list.iterator().next();
                 if (ls.getTid().equals(tid)) {//判断是否为自己的锁
                     //如果是读锁，直接返回（在||的之前返回），否则加锁再返回
-                    return ls.getPerm() == Permissions.READ_ONLY || lock(pid, tid, Permissions.READ_ONLY);
+                    return ls.getPerm() == Permissions.READ_ONLY || lock(eid, tid, Permissions.READ_ONLY);
                 } else {
                     //如果是别人的读锁，加锁再返回，是写锁则需要等待
-                    return ls.getPerm() == Permissions.READ_ONLY ? lock(pid, tid, Permissions.READ_ONLY) : wait(tid, pid);
+                    return ls.getPerm() == Permissions.READ_ONLY ? lock(eid, tid, Permissions.READ_ONLY) : wait(tid, eid);
                 }
             } else {
                 //多个锁有四种情况
@@ -51,16 +51,16 @@ public class LockManager {
                 for (LockState ls : list) {
                     if (ls.getPerm() == Permissions.READ_WRITE) {
                         //如果其中有一个写锁，那么根据是否为自己的来判断属于情况1还是2
-                        return ls.getTid().equals(tid) || wait(tid, pid);
+                        return ls.getTid().equals(tid) || wait(tid, eid);
                     } else if (ls.getTid().equals(tid)) {//如果是读锁且是tid的
                         return true;//情况3在此返回，也可能是情况1（如果先遍历到读锁）
                     }
                 }
                 //情况4
-                return lock(pid, tid, Permissions.READ_ONLY);
+                return lock(eid, tid, Permissions.READ_ONLY);
             }
         } else {
-            return lock(pid, tid, Permissions.READ_ONLY);
+            return lock(eid, tid, Permissions.READ_ONLY);
         }
     }
 
@@ -70,17 +70,17 @@ public class LockManager {
      * 如果tid此时不能给pid加写锁，返回false
      *
      * @param tid
-     * @param pid
+     * @param eid
      * @return
      */
-    public synchronized boolean grantXLock(TransactionId tid, PageId pid) {
-        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(pid);
+    public synchronized boolean grantXLock(TransactionId tid, EntryId eid) {
+        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list != null && list.size() != 0) {
             if (list.size() == 1) {//如果pid上只有一个锁
                 LockState ls = list.iterator().next();
                 //如果是自己的写锁，直接返回（在||之前返回），否则加锁再返回（在lock处返回）
                 //如果这个锁是别人的，必须等待，也就是在wait处（冒号之后）返回
-                return ls.getTid().equals(tid) ? ls.getPerm() == Permissions.READ_WRITE || lock(pid, tid, Permissions.READ_WRITE) : wait(tid, pid);
+                return ls.getTid().equals(tid) ? ls.getPerm() == Permissions.READ_WRITE || lock(eid, tid, Permissions.READ_WRITE) : wait(tid, eid);
             } else {
                 //多个锁有三种情况，只有第一种情况返回true，其余返回wait
                 // 1.两个锁，且都属于tid（一读一写） 2.两个锁，且都属于非tid的事务（一读一写） 3.多个读锁
@@ -91,28 +91,28 @@ public class LockManager {
                         }
                     }
                 }
-                return wait(tid, pid);
+                return wait(tid, eid);
             }
         } else {//pid上没有锁，可以加写锁
-            return lock(pid, tid, Permissions.READ_WRITE);
+            return lock(eid, tid, Permissions.READ_WRITE);
         }
     }
 
 
     /**
      * 加锁，表示tid在pid上有一个perm权限的锁，并返回true
-     * @param pid
+     * @param eid
      * @param tid
      * @param perm
      */
-    private synchronized boolean lock(PageId pid, TransactionId tid, Permissions perm) {
+    private synchronized boolean lock(EntryId eid, TransactionId tid, Permissions perm) {
         LockState nls = new LockState(tid, perm);
-        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(pid);
+        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list == null) {
             list = new ArrayList<>();
         }
         list.add(nls);
-        lockStateMap.put(pid, list);
+        lockStateMap.put(eid, list);
         waitingInfo.remove(tid);
         return true;
     }
@@ -120,11 +120,11 @@ public class LockManager {
     /**
      * 只是处理好waitingInfo的信息然后返回false
      * @param tid
-     * @param pid
+     * @param eid
      * @return
      */
-    private synchronized boolean wait(TransactionId tid, PageId pid) {
-        waitingInfo.put(tid, pid);
+    private synchronized boolean wait(TransactionId tid, EntryId eid) {
+        waitingInfo.put(tid, eid);
         return false;
     }
 
@@ -135,17 +135,17 @@ public class LockManager {
      * 而是应该先unlock再根据返回结果判断是否存在
      *
      * @param tid
-     * @param pid
+     * @param eid
      * @return
      */
-    public synchronized boolean unlock(TransactionId tid, PageId pid) {
-        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(pid);
+    public synchronized boolean unlock(TransactionId tid, EntryId eid) {
+        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
 
         if (list == null || list.size() == 0) return false;
-        LockState ls = getLockState(tid, pid);
+        LockState ls = getLockState(tid, eid);
         if (ls == null) return false;
         list.remove(ls);
-        lockStateMap.put(pid, list);
+        lockStateMap.put(eid, list);
         return true;
     }
 
@@ -156,9 +156,9 @@ public class LockManager {
      */
     public synchronized void releaseTransactionLocks(TransactionId tid) {
         //先找出所有，再释放
-        List<PageId> toRelease = getAllLocksByTid(tid);
-        for (PageId pid : toRelease) {
-            unlock(tid, pid);
+        List<EntryId> toRelease = getAllLocksByTid(tid);
+        for (EntryId eid : toRelease) {
+            unlock(tid, eid);
         }
     }
 
@@ -198,22 +198,22 @@ public class LockManager {
      * 下面方法的注释以这个例子为基础，具体解释这个方法是如何判断出“T1在P3上的等待已经造成了死锁”的
      *
      * @param tid
-     * @param pid
+     * @param eid
      * @return true表示进入了死锁，false表示没有
      */
-    public synchronized boolean deadlockOccurred(TransactionId tid, PageId pid) {//T1为tid，P3为pid
-        List<LockState> holders = lockStateMap.get(pid);
+    public synchronized boolean deadlockOccurred(TransactionId tid, EntryId eid) {//T1为tid，P3为pid
+        List<LockState> holders = lockStateMap.get(eid);
         if (holders == null || holders.size() == 0) {
             return false;
         }
-        List<PageId> pids = getAllLocksByTid(tid);//找出T1拥有的所有资源，即只含有P1的list
+        List<EntryId> eids = getAllLocksByTid(tid);//找出T1拥有的所有资源，即只含有P1的list
         for (LockState ls : holders) {
             TransactionId holder = ls.getTid();
             //去掉T1，因为虽然上图没画出这种情况，但T1可能同时也在其他Page上有读锁，这会影响判断结果
             if (!holder.equals(tid)) {
                 //判断T3(holder)是否直接或间接在等待P1(pids)
                 //由图可以看出T3在直接等待P2，而P2的拥有者T2在直接等待P1,即T3在间接等待P1
-                boolean isWaiting = isWaitingResources(holder, pids, tid);
+                boolean isWaiting = isWaitingResources(holder, eids, tid);
                 if (isWaiting) {
                     return true;
                 }
@@ -226,18 +226,18 @@ public class LockManager {
      * 判断tid是否直接或间接地在等待pids中的某个资源
      *
      * @param tid
-     * @param pids
+     * @param eids
      * @param toRemove 需要排除toRemove来判断，具体原因见方法内部注释；
      *                 事实上，toRemove就是leadToDeadLock()的参数tid，也就是要排除它自己对判断过程的影响
      * @return
      */
-    private synchronized boolean isWaitingResources(TransactionId tid, List<PageId> pids, TransactionId toRemove) {
-        PageId waitingPage = waitingInfo.get(tid);
+    private synchronized boolean isWaitingResources(TransactionId tid, List<EntryId> eids, TransactionId toRemove) {
+        EntryId waitingPage = waitingInfo.get(tid);
         if (waitingPage == null) {
             return false;
         }
-        for (PageId pid : pids) {
-            if (pid.equals(waitingPage)) {
+        for (EntryId eid : eids) {
+            if (eid.equals(waitingPage)) {
                 return true;
             }
         }
@@ -248,7 +248,7 @@ public class LockManager {
         for (LockState ls : holders) {
             TransactionId holder = ls.getTid();
             if (!holder.equals(toRemove)) {//去掉toRemove，在toRemove刚好拥有waitingResource的读锁时就需要
-                boolean isWaiting = isWaitingResources(holder, pids, toRemove);
+                boolean isWaiting = isWaitingResources(holder, eids, toRemove);
                 if (isWaiting) return true;
             }
         }
@@ -264,11 +264,11 @@ public class LockManager {
 
     /**
      * @param tid 施加锁的事务id
-     * @param pid 被上锁的page
+     * @param eid 被上锁的page
      * @return tid代表的事务在pid上的锁;如果不存在该锁，返回null
      */
-    public synchronized LockState getLockState(TransactionId tid, PageId pid) {
-        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(pid);
+    public synchronized LockState getLockState(TransactionId tid, EntryId eid) {
+        ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list == null || list.size() == 0) {
             return null;
         }
@@ -286,16 +286,16 @@ public class LockManager {
      * @param tid
      * @return
      */
-    private synchronized List<PageId> getAllLocksByTid(TransactionId tid) {
-        ArrayList<PageId> pids = new ArrayList<>();
-        for (Map.Entry<PageId, List<LockState>> entry : lockStateMap.entrySet()) {
+    private synchronized List<EntryId> getAllLocksByTid(TransactionId tid) {
+        ArrayList<EntryId> eids = new ArrayList<>();
+        for (Map.Entry<EntryId, List<LockState>> entry : lockStateMap.entrySet()) {
             for (LockState ls : entry.getValue()) {
                 if (ls.getTid().equals(tid)) {
-                    pids.add(entry.getKey());
+                    eids.add(entry.getKey());
                 }
             }
         }
-        return pids;
+        return eids;
     }
 
 //==========================查询与修改两个map信息的相关方法 end=========================

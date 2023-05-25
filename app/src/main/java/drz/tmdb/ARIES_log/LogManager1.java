@@ -8,14 +8,13 @@ import java.lang.reflect.*;
 
 import drz.tmdb.Log.BTree_Indexer;
 import drz.tmdb.Log.Constants;
-import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Memory.Tuple;
+
 
 public class LogManager1 {
     public File logFile;//日志文件
     private static RandomAccessFile raf;
     static Boolean recoveryUndecided;
-    public MemManager memManager;
+    public drz.tmdb.memory.MemManager memManager;
 
     static final int ABORT_RECORD = 1;
     static final int COMMIT_RECORD = 2;
@@ -34,7 +33,7 @@ public class LogManager1 {
     static HashMap<Long,Long> tidToFirstLogRecord = new HashMap<Long,Long>();
 
 
-    public LogManager1(MemManager memManager) throws IOException {
+    public LogManager1(drz.tmdb.memory.MemManager memManager) throws IOException {
         this.memManager = memManager;
 
         File dir = new File(Constants.LOG_BASE_DIR);
@@ -73,8 +72,6 @@ public class LogManager1 {
         // must have buffer pool lock before proceeding, since this
         // calls rollback
 
-        synchronized (Database.getBufferPool()) {
-
                 preAppend();
                 //Debug.log("ABORT");
                 //should we verify that this is a live transaction?
@@ -89,7 +86,6 @@ public class LogManager1 {
                 force();
                 tidToFirstLogRecord.remove(tid.getId());
 
-        }
     }
 
     /** Write a commit record to disk for the specified tid,
@@ -115,8 +111,8 @@ public class LogManager1 {
      @param after The after image of the page
 
      */
-    public  synchronized void logWrite(TransactionId tid, Tuple before,
-                                       Tuple after)
+    public  synchronized void logWrite(TransactionId tid, Entry before,
+                                       Entry after)
             throws IOException  {
         preAppend();
 
@@ -130,8 +126,8 @@ public class LogManager1 {
 
     }
 
-    void writePageData(RandomAccessFile raf, Page p) throws IOException{
-        PageId pid = p.getId();
+    void writeEntryData(RandomAccessFile raf, Entry e) throws IOException{
+        EntryId eid = e.getId();
         int pageInfo[] = pid.serialize();
 
         //page data is:

@@ -37,7 +37,7 @@ public class LogManager {
 
 
 
-    public MemManager memManager;
+    public drz.tmdb.memory.MemManager memManager;
 
     //初始化索引b树
     public BTree_Indexer<String , Long> bTree_indexer;
@@ -47,7 +47,7 @@ public class LogManager {
     //遍历hashMap的keySet
     public Iterator<Map.Entry<String, List<Integer>>> iterator;
 
-    public LogManager(MemManager memManager) throws IOException {
+    public LogManager(drz.tmdb.memory.MemManager memManager) throws IOException {
         this.memManager = memManager;
 
         File dir = new File(Constants.LOG_BASE_DIR);

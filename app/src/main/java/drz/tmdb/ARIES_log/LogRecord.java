@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 
-import drz.tmdb.Memory.Tuple;
 
 //用于读取每条log记录
 //根据不同的record，读取不同的raf长度
@@ -31,15 +30,15 @@ public class LogRecord {
         int record = raf.readInt();
         switch(record)
         {
-            case LogFile.ABORT_RECORD:
+            case LogManager1.ABORT_RECORD:
                 return new AbortRecord(raf);
-            case LogFile.COMMIT_RECORD:
+            case LogManager1.COMMIT_RECORD:
                 return new CommitRecord(raf);
-            case LogFile.UPDATE_RECORD:
+            case LogManager1.UPDATE_RECORD:
                 return new UpdateRecord(raf);
-            case LogFile.BEGIN_RECORD:
+            case LogManager1.BEGIN_RECORD:
                 return new BeginRecord(raf);
-            case LogFile.CHECKPOINT_RECORD:
+            case LogManager1.CHECKPOINT_RECORD:
                 return new CheckPointRecord(raf);
             default:
                 return null;
@@ -104,8 +103,8 @@ class BeginRecord extends LogRecord{
 
 class UpdateRecord extends LogRecord{
 
-    private final Tuple before;
-    private final Tuple after;
+    private final Entry before;
+    private final Entry after;
 
     public UpdateRecord(RandomAccessFile raf) throws IOException {
         super(raf);
@@ -114,12 +113,12 @@ class UpdateRecord extends LogRecord{
         offset = raf.readLong();
     }
 
-    public Tuple getBefore()
+    public Entry getBefore()
     {
         return before;
     }
 
-    public Tuple getAfter()
+    public Entry getAfter()
     {
         return after;
     }
