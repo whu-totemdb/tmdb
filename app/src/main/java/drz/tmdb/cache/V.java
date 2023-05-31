@@ -2,9 +2,13 @@ package drz.tmdb.cache;
 
 import java.io.Serializable;
 
+import drz.tmdb.ARIES_log.TransactionId;
+
 public class V implements Serializable {
 
     public String valueString;
+
+    private TransactionId lastDirtyOperation;
 
     public V(){
     }
@@ -40,6 +44,14 @@ public class V implements Serializable {
     @Override
     public int hashCode(){
         return this.valueString.hashCode();
+    }
+
+    public void markDirty(boolean dirty, TransactionId tid) {
+        lastDirtyOperation = dirty ? tid : null;
+    }
+
+    public TransactionId isDirty(){
+        return lastDirtyOperation;
     }
 
 

@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
 
+import drz.tmdb.cache.K;
+import drz.tmdb.cache.V;
+
 
 //用于读取每条log记录
 //根据不同的record，读取不同的raf长度
@@ -103,24 +106,35 @@ class BeginRecord extends LogRecord{
 
 class UpdateRecord extends LogRecord{
 
-    private final Entry before;
-    private final Entry after;
+    private final K beforeK;
+    private final V beforeV;
+    private final K afterK;
+    private final V afterV;
 
     public UpdateRecord(RandomAccessFile raf) throws IOException {
         super(raf);
-        before = Database.getLogFile().readPageData(raf);
-        after = Database.getLogFile().readPageData(raf);
+        beforeK = new K(raf.readUTF());
+        beforeV = new V(raf.readUTF());
+        afterK = new K(raf.readUTF());
+        afterV = new V(raf.readUTF());
         offset = raf.readLong();
     }
 
-    public Entry getBefore()
+    public K getBeforeK()
     {
-        return before;
+        return beforeK;
     }
-
-    public Entry getAfter()
+    public V getBeforeV()
     {
-        return after;
+        return beforeV;
+    }
+    public K getAfterK()
+    {
+        return afterK;
+    }
+    public V getAfterV()
+    {
+        return afterV;
     }
 
     @Override

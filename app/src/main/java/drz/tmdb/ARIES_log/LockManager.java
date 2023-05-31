@@ -5,14 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import drz.tmdb.cache.K;
+
 public class LockManager {
 
-    //Key相当于资源，LockState存放事务id与锁类型，故每个LockState代表某事务在Key上加了锁
+    //Key相当于资源，LockState存放事务id与锁类型，故每个LockState代表某事务在某键值对上加了锁
     //故整个map为所有资源的锁信息
-    private Map<EntryId, List<LockState>> lockStateMap;
+    private Map<K, List<LockState>> lockStateMap;
 
     //Key为事务，PageId为正在等待的资源，相当于保存了等待的信息，PS：BufferPool中实际用的是sleep体现等待
-    private Map<TransactionId, EntryId> waitingInfo;
+    private Map<TransactionId, K> waitingInfo;
 
     public LockManager() {
         //使用支持并发的容器避免ConcurrentModificationException
@@ -32,7 +34,7 @@ public class LockManager {
      * @param eid
      * @return
      */
-    public synchronized boolean grantSLock(TransactionId tid, EntryId eid) {
+    public synchronized boolean grantSLock(TransactionId tid, K eid) {
         ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list != null && list.size() != 0) {
             if (list.size() == 1) {//pid上只有一个锁
@@ -73,7 +75,7 @@ public class LockManager {
      * @param eid
      * @return
      */
-    public synchronized boolean grantXLock(TransactionId tid, EntryId eid) {
+    public synchronized boolean grantXLock(TransactionId tid, K eid) {
         ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list != null && list.size() != 0) {
             if (list.size() == 1) {//如果pid上只有一个锁
@@ -105,7 +107,7 @@ public class LockManager {
      * @param tid
      * @param perm
      */
-    private synchronized boolean lock(EntryId eid, TransactionId tid, Permissions perm) {
+    private synchronized boolean lock(K eid, TransactionId tid, Permissions perm) {
         LockState nls = new LockState(tid, perm);
         ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list == null) {
@@ -123,7 +125,7 @@ public class LockManager {
      * @param eid
      * @return
      */
-    private synchronized boolean wait(TransactionId tid, EntryId eid) {
+    private synchronized boolean wait(TransactionId tid, K eid) {
         waitingInfo.put(tid, eid);
         return false;
     }
@@ -138,7 +140,7 @@ public class LockManager {
      * @param eid
      * @return
      */
-    public synchronized boolean unlock(TransactionId tid, EntryId eid) {
+    public synchronized boolean unlock(TransactionId tid, K eid) {
         ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
 
         if (list == null || list.size() == 0) return false;
@@ -156,8 +158,8 @@ public class LockManager {
      */
     public synchronized void releaseTransactionLocks(TransactionId tid) {
         //先找出所有，再释放
-        List<EntryId> toRelease = getAllLocksByTid(tid);
-        for (EntryId eid : toRelease) {
+        List<K> toRelease = getAllLocksByTid(tid);
+        for (K eid : toRelease) {
             unlock(tid, eid);
         }
     }
@@ -167,46 +169,13 @@ public class LockManager {
 
 //==========================检测死锁的相关方法 beign======================================
 
-    /**
-     *
-     * 通过检测资源的依赖图根据是否存在环来判断是否已经陷入死锁
-     * 具体实现：本事务tid需要检测“正在等待的资源的拥有者是否已经直接或间接的在等待本事务tid已经拥有的资源”
-     * <p>
-     * 如图，括号内P1,P2,P3为资源,T1,T2,T3为事务
-     * 虚线以及其上的字母R加上箭头组成了拥有关系，如果是字母W则代表正在等待写锁
-     * 例如下图左上方T1到P1的一连串符号表示的是T1此时拥有P1的读锁
-     * 图的边缘可以是虚线的转折点，例如为了表示T2正在等待P1
-     * <p>
-     * //     T1---R-->P1<-------
-     * //                       W
-     * //  ----------------------
-     * //  W
-     * //  ---T2---R-->P2<-------
-     * //                       W
-     * //  ----------------------
-     * //  W
-     * //  ---T3---R-->P3
-     * <p>
-     * 上图的含义是，Ti拥有了对Pi的读锁(1<=i<=3)
-     * 因为T1在P1上有了读锁，所以T2正在等待P1的写锁
-     * 同理，T3正在等待P2的写锁
-     * <p>
-     * 现在假设的情景是，此时T1要申请对P3的写锁，进入等待，这将会造成死锁
-     * 而接下来调用这个方法判断，就可以得知已经产生死锁从而回滚事务（具体在BufferPool的getPage()方法的while循环开始处）
-     * <p>
-     * 导致死锁的本质原因就是将等待的资源(P3)的拥有者(T3)间接的在等待T1拥有的资源(P1)
-     * 下面方法的注释以这个例子为基础，具体解释这个方法是如何判断出“T1在P3上的等待已经造成了死锁”的
-     *
-     * @param tid
-     * @param eid
-     * @return true表示进入了死锁，false表示没有
-     */
-    public synchronized boolean deadlockOccurred(TransactionId tid, EntryId eid) {//T1为tid，P3为pid
+
+    public synchronized boolean deadlockOccurred(TransactionId tid, K eid) {//T1为tid，P3为pid
         List<LockState> holders = lockStateMap.get(eid);
         if (holders == null || holders.size() == 0) {
             return false;
         }
-        List<EntryId> eids = getAllLocksByTid(tid);//找出T1拥有的所有资源，即只含有P1的list
+        List<K> eids = getAllLocksByTid(tid);//找出T1拥有的所有资源，即只含有P1的list
         for (LockState ls : holders) {
             TransactionId holder = ls.getTid();
             //去掉T1，因为虽然上图没画出这种情况，但T1可能同时也在其他Page上有读锁，这会影响判断结果
@@ -228,15 +197,15 @@ public class LockManager {
      * @param tid
      * @param eids
      * @param toRemove 需要排除toRemove来判断，具体原因见方法内部注释；
-     *                 事实上，toRemove就是leadToDeadLock()的参数tid，也就是要排除它自己对判断过程的影响
+     *
      * @return
      */
-    private synchronized boolean isWaitingResources(TransactionId tid, List<EntryId> eids, TransactionId toRemove) {
-        EntryId waitingPage = waitingInfo.get(tid);
+    private synchronized boolean isWaitingResources(TransactionId tid, List<K> eids, TransactionId toRemove) {
+        K waitingPage = waitingInfo.get(tid);
         if (waitingPage == null) {
             return false;
         }
-        for (EntryId eid : eids) {
+        for (K eid : eids) {
             if (eid.equals(waitingPage)) {
                 return true;
             }
@@ -267,7 +236,7 @@ public class LockManager {
      * @param eid 被上锁的page
      * @return tid代表的事务在pid上的锁;如果不存在该锁，返回null
      */
-    public synchronized LockState getLockState(TransactionId tid, EntryId eid) {
+    public synchronized LockState getLockState(TransactionId tid, K eid) {
         ArrayList<LockState> list = (ArrayList<LockState>) lockStateMap.get(eid);
         if (list == null || list.size() == 0) {
             return null;
@@ -286,9 +255,9 @@ public class LockManager {
      * @param tid
      * @return
      */
-    private synchronized List<EntryId> getAllLocksByTid(TransactionId tid) {
-        ArrayList<EntryId> eids = new ArrayList<>();
-        for (Map.Entry<EntryId, List<LockState>> entry : lockStateMap.entrySet()) {
+    private synchronized List<K> getAllLocksByTid(TransactionId tid) {
+        ArrayList<K> eids = new ArrayList<>();
+        for (Map.Entry<K, List<LockState>> entry : lockStateMap.entrySet()) {
             for (LockState ls : entry.getValue()) {
                 if (ls.getTid().equals(tid)) {
                     eids.add(entry.getKey());
