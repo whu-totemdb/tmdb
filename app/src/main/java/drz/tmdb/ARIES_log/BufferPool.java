@@ -1,11 +1,17 @@
 package drz.tmdb.ARIES_log;
 
+import org.apache.commons.collections4.list.TreeList;
+
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import drz.tmdb.cache.DataCache;
 import drz.tmdb.cache.K;
 import drz.tmdb.cache.V;
+import drz.tmdb.level.SSTable;
 
 public class BufferPool {
     //当前的缓存页
@@ -36,7 +42,7 @@ public class BufferPool {
             throws IOException, InterruptedException, TransactionAbortedException {
         lockManager.releaseTransactionLocks(tid);
         if (commit) {
-           // flushPages(tid);
+            flushPages(tid);
         } else {
             revertTransactionAction(tid);
         }
@@ -57,6 +63,29 @@ public class BufferPool {
                 memManager.cacheManager.dataCache.put(key.keyString,oldValue,tid);
             }
         }
+
+    }
+
+    private static void flushPages(TransactionId tid){
+
+        List<Entry> kvPairsToSST = new TreeList<>(); // 暂存需要刷盘的键值对
+
+        // TODO
+
+        flushPage(kvPairsToSST);
+    }
+
+
+    private static void flushPage(List<Entry> kvPairsToSST){
+        for(Entry entry : kvPairsToSST){
+            memManager.add(entry);
+        }
+        try{
+            memManager.saveMemTableToFile();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
 
     }
 }
