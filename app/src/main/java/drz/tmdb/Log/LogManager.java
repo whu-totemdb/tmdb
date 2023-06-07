@@ -18,8 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import drz.tmdb.Memory.MemManager;
-import drz.tmdb.Memory.Tuple;
+
 
 public class LogManager {
     public File logFile;//日志文件

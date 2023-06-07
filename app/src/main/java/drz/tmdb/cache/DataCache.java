@@ -32,6 +32,7 @@ public class DataCache {
 
     public String get(String key, TransactionId tid) throws InterruptedException, TransactionAbortedException {
         K k=new K(key);
+        //加读锁
         boolean result = lockManager.grantSLock(tid, k);
         //下面的while循环就是在模拟等待过程，隔一段时间就检查一次是否申请到锁了，还没申请到就检查是否陷入死锁
         while (!result) {
@@ -43,6 +44,7 @@ public class DataCache {
             result = lockManager.grantSLock(tid, k);
         }
 
+
         K targetKey = new K(key);
         V targetValue = this.cachedData.getOrDefault(targetKey, null);
 
@@ -53,12 +55,15 @@ public class DataCache {
         this.lruList.remove(targetKey);
         this.lruList.add(targetKey);
 
+
         return targetValue.valueString;
 
     }
 
     public void put(String key, String value,TransactionId tid) throws TransactionAbortedException, InterruptedException {
         K k=new K(key);
+        V v=new V(value);
+        //加写锁
         boolean result = lockManager.grantXLock(tid, k);
         //下面的while循环就是在模拟等待过程，隔一段时间就检查一次是否申请到锁了，还没申请到就检查是否陷入死锁
         while (!result) {
@@ -79,6 +84,9 @@ public class DataCache {
         // 新数据加入
         this.cachedData.put(new K(key), new V(value));
         this.lruList.add(new K(key));
+
+        //标记被该事务弄脏
+        v.markDirty(true,tid);
     }
 
     public void delete(String key){

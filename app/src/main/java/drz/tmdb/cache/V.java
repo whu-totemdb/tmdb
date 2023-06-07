@@ -8,7 +8,7 @@ public class V implements Serializable {
 
     public String valueString;
 
-    private TransactionId lastDirtyOperation;
+    public TransactionId lastDirtyOperation;
 
     public V(){
     }

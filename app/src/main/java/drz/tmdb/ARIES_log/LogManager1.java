@@ -151,7 +151,7 @@ public class LogManager1 {
                 Set<Long> keys = tidToFirstLogRecord.keySet();
                 Iterator<Long> els = keys.iterator();
                 force();
-                Database.getBufferPool().flushAllPages();
+                bufferPool.flushAllPages();
                 startCpOffset = raf.getFilePointer();
                 raf.writeInt(CHECKPOINT_RECORD);
                 raf.writeLong(-1);

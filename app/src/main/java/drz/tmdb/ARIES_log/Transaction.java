@@ -54,7 +54,7 @@ public class Transaction {
                 LogManager1.logAbort(tid); //does rollback too
             } else {
 
-                //Database.getBufferPool().flushPages(tid);
+                Database.getBufferPool().flushPages(tid);
                 LogManager1.logCommit(tid);
             }
 
