@@ -176,7 +176,7 @@ public class MemManager {
 
 
     // 查询指定key，返回value
-    public Object search(String key){
+    public Object search(String key) throws InterruptedException {
         // 首先查MEMTable
         if(key.startsWith("t"))
             for(Tuple t : this.tupleList.tuplelist){

@@ -1,6 +1,8 @@
 package drz.tmdb.cache;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import drz.tmdb.level.Constant;
 

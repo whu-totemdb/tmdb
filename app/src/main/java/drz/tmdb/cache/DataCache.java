@@ -2,20 +2,12 @@ package drz.tmdb.cache;
 
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
 
-import drz.tmdb.ARIES_log.LockManager;
-import drz.tmdb.ARIES_log.Transaction;
-import drz.tmdb.ARIES_log.TransactionAbortedException;
-import drz.tmdb.ARIES_log.TransactionId;
 
 // 以 k-v pair为粒度的缓存
 // 采用LRU替换策略
 public class DataCache {
-    private static LockManager lockManager=new LockManager();
 
     // 最大缓存的k-v数量
     private final int MAX_CACHED_DATA_SIZE = 100000;
@@ -30,21 +22,7 @@ public class DataCache {
 
 
 
-    public String get(String key, TransactionId tid) throws InterruptedException, TransactionAbortedException {
-        K k=new K(key);
-        //加读锁
-        boolean result = lockManager.grantSLock(tid, k);
-        //下面的while循环就是在模拟等待过程，隔一段时间就检查一次是否申请到锁了，还没申请到就检查是否陷入死锁
-        while (!result) {
-            if (lockManager.deadlockOccurred(tid, k)) {
-                throw new TransactionAbortedException();
-            }
-            Thread.sleep(SLEEP_INTERVAL);
-            //sleep之后再次判断result
-            result = lockManager.grantSLock(tid, k);
-        }
-
-
+    public String get(String key) throws InterruptedException {
         K targetKey = new K(key);
         V targetValue = this.cachedData.getOrDefault(targetKey, null);
 
@@ -60,21 +38,7 @@ public class DataCache {
 
     }
 
-    public void put(String key, String value,TransactionId tid) throws TransactionAbortedException, InterruptedException {
-        K k=new K(key);
-        V v=new V(value);
-        //加写锁
-        boolean result = lockManager.grantXLock(tid, k);
-        //下面的while循环就是在模拟等待过程，隔一段时间就检查一次是否申请到锁了，还没申请到就检查是否陷入死锁
-        while (!result) {
-            if (lockManager.deadlockOccurred(tid, k)) {
-                throw new TransactionAbortedException();
-            }
-            Thread.sleep(SLEEP_INTERVAL);
-            //sleep之后再次判断result
-            result = lockManager.grantSLock(tid, k);
-        }
-
+    public void put(String key, String value) throws InterruptedException {
         // 如果容量已满，则需要移除最久未使用的
         if(this.cachedData.size() > this.MAX_CACHED_DATA_SIZE){
             K oldKey = this.lruList.pop();
@@ -85,8 +49,6 @@ public class DataCache {
         this.cachedData.put(new K(key), new V(value));
         this.lruList.add(new K(key));
 
-        //标记被该事务弄脏
-        v.markDirty(true,tid);
     }
 
     public void delete(String key){
@@ -95,11 +57,6 @@ public class DataCache {
         cachedData.remove(targetKey);
     }
 
-    public synchronized void releaseKey(TransactionId tid, String key) {
-        K k=new K(key);
-        if (!lockManager.unlock(tid, k)) {
-            throw new IllegalArgumentException();
-        }
-    }
+
 
 }

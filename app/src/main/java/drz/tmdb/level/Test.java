@@ -533,7 +533,7 @@ public class Test {
 
 
     // 有缓存下的search测试
-    public static void test23() throws IOException {
+    public static void test23() throws IOException, InterruptedException {
         MemManager memManager = new MemManager();
         for(int i=0; i<1000; i++){
             Tuple t = new Tuple();

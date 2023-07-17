@@ -17,6 +17,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import drz.tmdb.memory.MemManager;
+import drz.tmdb.memory.Tuple;
 
 
 public class LogManager {
@@ -45,8 +47,8 @@ public class LogManager {
     //遍历hashMap的keySet
     public Iterator<Map.Entry<String, List<Integer>>> iterator;
 
-    public LogManager() throws IOException {
-        this.memManager = memManager;
+    public LogManager(MemManager memManager) throws IOException {
+        this.memManager = this.memManager;
 
         File dir = new File(Constants.LOG_BASE_DIR);
         if(!dir.exists()){
@@ -292,7 +294,7 @@ public class LogManager {
         }
         redo_log = readRedo();
         for(int i=0;i<redo_num;i++){
-            drz.tmdb.memory.Tuple t = JSON.parseObject(redo_log[i].value, drz.tmdb.memory.Tuple.class);
+            Tuple t = JSON.parseObject(redo_log[i].value, Tuple.class);
             System.out.println("崩溃后redo，数据重新恢复到数据库中！");
             memManager.add(t);
         }

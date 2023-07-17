@@ -2,13 +2,11 @@ package drz.tmdb.cache;
 
 import java.io.Serializable;
 
-import drz.tmdb.ARIES_log.TransactionId;
 
 public class V implements Serializable {
 
     public String valueString;
 
-    public TransactionId lastDirtyOperation;
 
     public V(){
     }
@@ -46,13 +44,7 @@ public class V implements Serializable {
         return this.valueString.hashCode();
     }
 
-    public void markDirty(boolean dirty, TransactionId tid) {
-        lastDirtyOperation = dirty ? tid : null;
-    }
 
-    public TransactionId isDirty(){
-        return lastDirtyOperation;
-    }
 
 
 }
