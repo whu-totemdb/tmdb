@@ -4,7 +4,6 @@ package drz.tmdb.Log;
 
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -46,7 +45,7 @@ public class LogManager {
     //遍历hashMap的keySet
     public Iterator<Map.Entry<String, List<Integer>>> iterator;
 
-    public LogManager(drz.tmdb.memory.MemManager memManager) throws IOException {
+    public LogManager() throws IOException {
         this.memManager = memManager;
 
         File dir = new File(Constants.LOG_BASE_DIR);
@@ -293,7 +292,7 @@ public class LogManager {
         }
         redo_log = readRedo();
         for(int i=0;i<redo_num;i++){
-            Tuple t = JSON.parseObject(redo_log[i].value, Tuple.class);
+            drz.tmdb.memory.Tuple t = JSON.parseObject(redo_log[i].value, drz.tmdb.memory.Tuple.class);
             System.out.println("崩溃后redo，数据重新恢复到数据库中！");
             memManager.add(t);
         }
