@@ -2,31 +2,39 @@
 
 Totem Mobile Database at WHU.
 
-武汉大学移动端Totem数据库系统 [https://github.com/whu-totemdb/tmdb]
+本项目为2024年武汉大学计算机弘毅班"数据库系统实现"课程的大作业。
 
-## 介绍
+## 任务目标
 
-本项目为武汉大学计算机弘毅班"数据库系统实现"课程的大作业。
+以代码块功能补齐的形式，实现一个对象代理模型的数据库内核，使其支持基本的create、show、drop等类级别操作和insert、select、delete、update等查询执行语句。
 
-This is a prototype system for teaching purpose.
+## 任务列表
 
-### Task 1
+### *Task 1: 底层存储接口实现*
 
-设计系统表，并实现系统表的读取和保存。
+- Step1：根据注释提示完善`MemConnect`模块相关函数补齐，实现上层功能与存储模块的交互接口
 
-### Task 2
+### *Task 2: 类级别操作*
 
-实现对象Join操作。
+- Step1：show table功能实现
+- Step2：create deputy class功能实现
+- Step3：drop class功能实现
 
-### Task 3
+### *Task 3: 查询执行*
 
-实现更新迁移、跨类查询； 实现手机端轨迹数据的join操作并进行可视化。
+- Step1：带表达式的select实现
+- Step2：where子句的实现
+- Step3：where子句中or字段的实现
+- Step4：delete语句实现
+- Step5：limit字段实现
 
-## 参考资料
+## 参考材料
 
-[TMDB总体设计文档](file/TMDB总体设计文档3.0.pdf)
+[任务描述](参考材料/任务描述.pdf)
 
-[对象代理介绍](http://totemdb.whu.edu.cn/upload/202102/02/202102022020113648.pdf)
+[基本语法](参考材料/基本语法.pdf)
 
-[Totem用户手册](http://totemdb.whu.edu.cn/upload/202102/02/202102022020276488.pdf)
+[系统表介绍](参考材料/系统表介绍.pdf)
+
+[TMDB总体设计文档3.0](参考材料/TMDB总体设计文档3.0.pdf)
 
